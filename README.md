@@ -7,4 +7,4 @@ This repo contains sample implementations of data validation on Spanner using Ap
 1. JDBC <=> Spanner (both MySQL and PostgreSQL)
 2. Spanner <=> Spanner
 
-##
+## How to run
