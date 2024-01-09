@@ -1,0 +1,50 @@
+{
+   "type" : "record",
+   "namespace" : "com.google.dataproducts",
+   "name" : "DataProductRecord",
+   "fields" : [
+      { "name" : "id",
+        "type" : {
+            "type": "string",
+            "logicalType": "uuid"
+         }
+      },
+      { "name" : "type" , "type" : "string" },
+      { "name" : "bucket" , "type" : "string" },
+      { "name" : "key" , "type" : "string" },
+      {
+         "name": "last_modified",
+         "type": {
+           "type": "long",
+           "logicalType": "timestamp-millis"
+         }
+      },
+      {
+         "name": "recorded_at",
+         "type": {
+           "type": "long",
+           "logicalType": "timestamp-millis"
+         }
+      },
+      { "name" : "version_id" , "type" : "string" },
+      { "name" : "gcs_bucket" , "type" : "string" },
+      { "name" : "gcs_key" , "type" : "string" },
+      { "name" : "gcs_confirmed" , "type" : "boolean" },
+      { "name" : "version" , "type" : "string" },
+      { "name" : "extension" , "type" : "string" },
+      {
+         "name" : "record_id",
+         "type" : {
+             "type": "string",
+             "logicalType": "uuid"
+          }
+       },
+      {
+         "name": "created_at",
+         "type": {
+           "type": "long",
+           "logicalType": "timestamp-millis"
+         }
+      }
+   ]
+}

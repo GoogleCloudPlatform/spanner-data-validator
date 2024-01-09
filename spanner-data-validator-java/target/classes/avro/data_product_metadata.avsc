@@ -1,0 +1,15 @@
+{
+  "type" : "record",
+  "namespace" : "com.google.dataproducts",
+  "name" : "DataProductMetadata",
+  "fields" : [
+    { "name" : "key" , "type" : "string" },
+    { "name" : "value" , "type" : "string" },
+    { "name" : "data_product_id",
+      "type" : {
+        "type": "string",
+        "logicalType": "uuid"
+      }
+    }
+  ]
+}

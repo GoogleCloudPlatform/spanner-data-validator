@@ -50,19 +50,6 @@ public class Helpers {
     return retVal;
   }
 
-  public static List<KV<UUID, UUID>> getUUIDRanges(Integer partitionCount) {
-    return getUUIDRangesWithCoverage(partitionCount, 100);
-  }
-
-  //
-  public static List<KV<UUID, UUID>> getUUIDRangesWithCoverage(Integer partitionCount,
-      Integer coveragePercent) {
-    return getUUIDRangesWithCoverage(UUID.fromString("00000000-0000-0000-0000-000000000000"),
-        UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff"),
-        partitionCount,
-        coveragePercent);
-  }
-
   public static List<KV<UUID, UUID>> getUUIDRangesWithCoverage(UUID start,
       UUID end,
       Integer partitionCount,
@@ -101,52 +88,6 @@ public class Helpers {
     return bRanges;
   }
 
-  public static List<KV<Long, Long>> getTimestampRangesWithCoverage(String startDateStr,
-      String endDateStr,
-      Integer partitionCount,
-      Integer coveragePercent) throws ParseException {
-
-    SimpleDateFormat formatter = new SimpleDateFormat("yy-MM-dd");
-    Timestamp startTS = new Timestamp(formatter.parse(startDateStr).getTime());
-    Timestamp endTS = new Timestamp(formatter.parse(endDateStr).getTime());
-
-    return getLongRangesWithCoverage(startTS.getTime(),
-        endTS.getTime(),
-        partitionCount,
-        coveragePercent);
-  }
-
-  public static List<KV<Long, Long>> getLongRangesWithCoverage(Long start,
-      Long end,
-      Integer partitionCount,
-      Integer coveragePercent) {
-    Long stepSize = (end-start)/partitionCount;
-
-    // Simple implementation of "coverage" - just reduce the step size
-    if(coveragePercent < 100) {
-      stepSize = (stepSize/100)*coveragePercent;
-    }
-
-    ArrayList<KV<Long, Long>> bRanges = new ArrayList<>();
-    // Account for starting point
-    bRanges.add(KV.of(start, start));
-
-    Long maxRange = start;
-    for(Integer i = 0; i < partitionCount - 1; i++) {
-      Long minRange = maxRange;
-      maxRange = minRange + stepSize;
-
-      KV<Long, Long> range = KV.of(minRange, maxRange);
-
-      bRanges.add(range);
-    }
-
-    KV<Long, Long> range = KV.of(maxRange, end);
-    bRanges.add(range);
-
-    return bRanges;
-  }
-
   public static boolean isUUIDInRange(UUID valueToCheck, KV<UUID, UUID> range) {
 
     BigInteger rangeStart = uuidToBigInt(range.getKey());
@@ -162,28 +103,6 @@ public class Helpers {
     return true;
   }
 
-  public static PreparedStatementSetter<KV<UUID, UUID>> getPreparedStatementSetterForUUID() {
-    return (element, preparedStatement) -> {
-
-      UUID startUUID = element.getKey();
-      UUID endUUID = element.getValue();
-
-      preparedStatement.setString(1, startUUID.toString());
-      preparedStatement.setString(2, endUUID.toString());
-    };
-  }
-
-  public static PreparedStatementSetter<KV<Long, Long>> getPreparedStatementSetterForTimestamp() {
-    return (element, preparedStatement) -> {
-
-      Timestamp startUUID = new Timestamp(element.getKey());
-      Timestamp endUUID = new Timestamp(element.getValue());
-
-      preparedStatement.setTimestamp(1, startUUID);
-      preparedStatement.setTimestamp(2, endUUID);
-    };
-  }
-
   public static KV<UUID, UUID> getRangeFromList(UUID lookup, List<KV<UUID, UUID>> rangeList) {
     Comparator<KV<UUID, UUID>> comparator = (o1, o2) -> {
       BigInteger lhs = Helpers.uuidToBigInt(o1.getKey());
@@ -192,25 +111,6 @@ public class Helpers {
     };
 
     List<KV<UUID, UUID>> sortedCopy = new ArrayList(rangeList);
-    sortedCopy.sort(comparator);
-
-    int searchIndex =
-        Collections.binarySearch(sortedCopy, KV.of(lookup, lookup), comparator);
-
-    int rangeIndex = searchIndex;
-    if(searchIndex < 0) rangeIndex = -searchIndex - 2;
-
-    return sortedCopy.get(rangeIndex);
-  }
-
-  public static KV<Long, Long> getRangeFromList(Long lookup, List<KV<Long, Long>> rangeList) {
-    Comparator<KV<Long, Long>> comparator = (o1, o2) -> {
-      Long lhs = o1.getKey();
-      Long rhs = o2.getKey();
-      return lhs.compareTo(rhs);
-    };
-
-    List<KV<Long, Long>> sortedCopy = new ArrayList(rangeList);
     sortedCopy.sort(comparator);
 
     int searchIndex =

@@ -30,8 +30,6 @@ import java.sql.ResultSet;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import org.apache.beam.sdk.Pipeline;
@@ -77,12 +75,21 @@ import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PostgresToSpannerDVTWithHash {
+public class JDBCToSpannerDVTWithHash {
   private static final String JDBC_DRIVER = "org.postgresql.Driver";
-  private static final Logger LOG = LoggerFactory.getLogger(PostgresToSpannerDVTWithHash.class);
+  private static final Logger LOG = LoggerFactory.getLogger(JDBCToSpannerDVTWithHash.class);
 
-  // [START PostgresToSpannerDVTWithHash_options]
-  public interface PostgresToSpannerDVTWithHashOptions extends PipelineOptions {
+  // [START JDBCToSpannerDVTWithHash_options]
+  public interface JDBCToSpannerDVTWithHashOptions extends PipelineOptions {
+
+    /**
+     * The JDBC protocol (only postgresql and mysql are supported).
+     */
+    @Description("JDBC Protocol")
+    @Default.String("postgresql")
+    String getProtocol();
+
+    void setProtocol(String value);
 
     /**
      * The JDBC server.
@@ -156,7 +163,7 @@ public class PostgresToSpannerDVTWithHash {
 
     void setSpannerDatabaseId(String value);
 
-    @Description("Dialect of the database that is used")
+    @Description("Dialect of the Spanner database")
     @Default
     @Default.Enum("POSTGRESQL")
       // alternative: GOOGLE_STANDARD_SQL
@@ -206,23 +213,10 @@ public class PostgresToSpannerDVTWithHash {
 
     void setAdjustTimestampPrecision(Boolean value);
   }
-  // [END PostgresToSpannerDVTWithHash_options]
-
-  @DefaultCoder(AvroCoder.class)
-  public static class MyData {
-    public String name;
-    public Long age;
-
-    public MyData() {}
-
-    public MyData(String name, Long age) {
-      this.name = name;
-      this.age = age;
-    }
-  }
+  // [END JDBCToSpannerDVTWithHash_options]
 
   private static BigQueryIO.Write<ComparerResult> getBQWrite(Pipeline p,
-      PostgresToSpannerDVTWithHashOptions options,
+      JDBCToSpannerDVTWithHashOptions options,
       String tableName) {
 
     TableSchema bqSchema = new TableSchema()
@@ -287,7 +281,7 @@ public class PostgresToSpannerDVTWithHash {
   }
 
   private static void configureComparisonPipeline(Pipeline p,
-      PostgresToSpannerDVTWithHashOptions options,
+      JDBCToSpannerDVTWithHashOptions options,
       String connString,
       TableSpec tableSpec,
       BigQueryIO.Write<ComparerResult> bqWrite) throws ParseException {
@@ -400,20 +394,9 @@ public class PostgresToSpannerDVTWithHash {
     return 0L;
   }
 
-  private static void insertRecordSorted(ArrayList<HashResult> records, HashResult record) {
-    int pos = Collections.binarySearch(records,
-        record,
-        Comparator.comparing((HashResult result) -> result.sha256));
-    if (pos < 0) {
-      records.add(-pos-1, record);
-    } else {
-      // TODO: error handling (don't expect duplicates)
-    } // if/else
-  }
-
   private static PCollection<HashResult> getJDBCRecords(String query,
       Integer keyIndex,
-      PostgresToSpannerDVTWithHashOptions options,
+      JDBCToSpannerDVTWithHashOptions options,
       String connString,
       PCollection<KV<UUID, UUID>> pRanges) {
 
@@ -448,7 +431,7 @@ public class PostgresToSpannerDVTWithHash {
 
   private static PCollection<HashResult> getSpannerRecords(String query,
       Integer keyIndex,
-      PostgresToSpannerDVTWithHashOptions options,
+      JDBCToSpannerDVTWithHashOptions options,
       PCollection<KV<UUID, UUID>> pRanges) {
 
     Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
@@ -490,7 +473,7 @@ public class PostgresToSpannerDVTWithHash {
     return spannerHashes;
   }
 
-  static void runDVT(PostgresToSpannerDVTWithHashOptions options) throws IOException, ParseException {
+  static void runDVT(JDBCToSpannerDVTWithHashOptions options) throws IOException, ParseException {
     Pipeline p = Pipeline.create(options);
 
     p.getCoderRegistry().registerCoderForClass(HashResult.class, AvroCoder.of(HashResult.class));
@@ -522,7 +505,7 @@ public class PostgresToSpannerDVTWithHash {
 
     TableSpec spec = new TableSpec(
         "DataProductMetadata",
-        "select * from \"data-products\".data_product_metadata where data_product_id > uuid(?) and data_product_id <= uuid(?)", // Postgres
+        "select * from \"data-products\".data_product_metadata where data_product_id > uuid(?) and data_product_id <= uuid(?)",
         "SELECT key, value, data_product_id FROM data_product_metadata "
             + "WHERE data_product_id > $1 AND data_product_id <= $2", // Spangres
         2,
@@ -552,9 +535,9 @@ public class PostgresToSpannerDVTWithHash {
   }
 
   public static void main(String[] args) throws IOException, ParseException {
-    PostgresToSpannerDVTWithHashOptions options =
-        PipelineOptionsFactory.fromArgs(args).withValidation().as(PostgresToSpannerDVTWithHashOptions.class);
+    JDBCToSpannerDVTWithHashOptions options =
+        PipelineOptionsFactory.fromArgs(args).withValidation().as(JDBCToSpannerDVTWithHashOptions.class);
 
     runDVT(options);
   }
-} // class PostgresToSpannerDVTWithHash
+} // class JDBCToSpannerDVTWithHash

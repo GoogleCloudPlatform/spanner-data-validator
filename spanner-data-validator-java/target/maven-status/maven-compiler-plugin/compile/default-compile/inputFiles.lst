@@ -1,0 +1,13 @@
+/Users/karthit/code/gcp/ossrelease/spanner-data-validator/spanner-data-validator-java/src/main/java/com/google/migration/SharedTags.java
+/Users/karthit/code/gcp/ossrelease/spanner-data-validator/spanner-data-validator-java/src/main/java/com/google/migration/dto/HashResult.java
+/Users/karthit/code/gcp/ossrelease/spanner-data-validator/spanner-data-validator-java/src/main/java/com/google/migration/DataTransforms.java
+/Users/karthit/code/gcp/ossrelease/spanner-data-validator/spanner-data-validator-java/src/main/java/com/google/migration/composite/GetMatchCountDetailsTransform.java
+/Users/karthit/code/gcp/ossrelease/spanner-data-validator/spanner-data-validator-java/src/main/java/com/google/migration/JDBCToSpannerDVTWithHash.java
+/Users/karthit/code/gcp/ossrelease/spanner-data-validator/spanner-data-validator-java/src/main/java/com/google/migration/composite/CalculateMatchDetailsFn.java
+/Users/karthit/code/gcp/ossrelease/spanner-data-validator/spanner-data-validator-java/src/main/java/com/google/migration/dto/IntermediateCoGBKResult.java
+/Users/karthit/code/gcp/ossrelease/spanner-data-validator/spanner-data-validator-java/src/main/java/com/google/migration/dofns/CountMatchesDoFn.java
+/Users/karthit/code/gcp/ossrelease/spanner-data-validator/spanner-data-validator-java/src/main/java/com/google/migration/dofns/MapWithRangeFn.java
+/Users/karthit/code/gcp/ossrelease/spanner-data-validator/spanner-data-validator-java/src/main/java/com/google/migration/dto/ComparerResult.java
+/Users/karthit/code/gcp/ossrelease/spanner-data-validator/spanner-data-validator-java/src/main/java/com/google/migration/dto/RunConfig.java
+/Users/karthit/code/gcp/ossrelease/spanner-data-validator/spanner-data-validator-java/src/main/java/com/google/migration/dto/TableSpec.java
+/Users/karthit/code/gcp/ossrelease/spanner-data-validator/spanner-data-validator-java/src/main/java/com/google/migration/Helpers.java

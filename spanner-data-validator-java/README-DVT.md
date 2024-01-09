@@ -30,7 +30,7 @@ Example:
 
 ## Running locally
 
-mvn compile exec:java -Dexec.mainClass=com.google.migration.PostgresToSpannerDVTWithHash \
+mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWithHash \
 -Dexec.args="--server=localhost \
 --port=5432 \
 --username=kt_user \
@@ -45,7 +45,7 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.PostgresToSpannerDVT
 
 ## Running on Dataflow
 
-mvn compile exec:java -Dexec.mainClass=com.google.migration.PostgresToSpannerDVTWithHash \
+mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWithHash \
 -Dexec.args="--project=kt-shared-project \
 --network=default \
 --subnetwork=https://www.googleapis.com/compute/v1/projects/kt-shared-project/regions/us-central1/subnetworks/default \
