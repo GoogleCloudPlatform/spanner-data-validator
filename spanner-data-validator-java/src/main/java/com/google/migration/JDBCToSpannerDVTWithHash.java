@@ -455,6 +455,7 @@ public class JDBCToSpannerDVTWithHash {
             (SerializableFunction<PartitionRange, ReadOperation>)
                 input -> {
                   Statement statement =
+                      // TODO: handle spangres vs google sql here
                       Statement.newBuilder(query)
                           .bind("p1")
                           .to(input.getStartRange())
@@ -492,7 +493,8 @@ public class JDBCToSpannerDVTWithHash {
     p.getCoderRegistry().registerCoderForClass(HashResult.class, AvroCoder.of(HashResult.class));
 
     // JDBC conn string
-    String connString = String.format("jdbc:postgresql://%s:%d/%s", options.getServer(),
+    String connString = String.format("jdbc:%s://%s:%d/%s", options.getProtocol(),
+        options.getServer(),
         options.getPort(),
         options.getSourceDB());
 
@@ -513,7 +515,7 @@ public class JDBCToSpannerDVTWithHash {
     p.run().waitUntilFinish();
   }
 
-  static List<TableSpec> getTableSpecs() throws IOException {
+  static List<TableSpec> getTableSpecs() {
     ArrayList<TableSpec> tableSpecs = new ArrayList<>();
 
     TableSpec spec = new TableSpec(
