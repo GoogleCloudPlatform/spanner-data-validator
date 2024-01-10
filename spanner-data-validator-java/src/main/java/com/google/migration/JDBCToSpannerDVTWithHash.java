@@ -28,15 +28,11 @@ import com.google.migration.dto.PartitionRange;
 import com.google.migration.dto.TableSpec;
 import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
-import java.io.IOException;
 import java.sql.ResultSet;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 import org.apache.beam.sdk.Pipeline;
-import org.apache.beam.sdk.coders.DefaultCoder;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write;
@@ -487,7 +483,7 @@ public class JDBCToSpannerDVTWithHash {
     return spannerHashes;
   }
 
-  static void runDVT(JDBCToSpannerDVTWithHashOptions options) throws IOException, ParseException {
+  static void runDVT(JDBCToSpannerDVTWithHashOptions options) {
     Pipeline p = Pipeline.create(options);
 
     p.getCoderRegistry().registerCoderForClass(HashResult.class, AvroCoder.of(HashResult.class));
@@ -549,7 +545,7 @@ public class JDBCToSpannerDVTWithHash {
     return tableSpecs;
   }
 
-  public static void main(String[] args) throws IOException, ParseException {
+  public static void main(String[] args) {
     JDBCToSpannerDVTWithHashOptions options =
         PipelineOptionsFactory.fromArgs(args).withValidation().as(JDBCToSpannerDVTWithHashOptions.class);
 
