@@ -24,7 +24,10 @@ import com.google.migration.dofns.MapWithRangeFn;
 import com.google.migration.dofns.MapWithRangeFn.MapWithRangeType;
 import com.google.migration.dto.ComparerResult;
 import com.google.migration.dto.HashResult;
+import com.google.migration.dto.PartitionRange;
 import com.google.migration.dto.TableSpec;
+import com.google.migration.partitioning.PartitionRangeListFetcher;
+import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.text.ParseException;
@@ -284,38 +287,44 @@ public class JDBCToSpannerDVTWithHash {
       JDBCToSpannerDVTWithHashOptions options,
       String connString,
       TableSpec tableSpec,
-      BigQueryIO.Write<ComparerResult> bqWrite) throws ParseException {
-    List<KV<UUID, UUID>> bRanges =
-        Helpers.getUUIDRangesWithCoverage(
-            UUID.fromString(tableSpec.getRangeStart()),
-            UUID.fromString(tableSpec.getRangeEnd()),
-            options.getPartitionCount(),
-            tableSpec.getRangeCoverage());
+      BigQueryIO.Write<ComparerResult> bqWrite) {
+    PartitionRangeListFetcher fetcher =
+        PartitionRangeListFetcherFactory.getFetcher(tableSpec.getRangeFieldType());
+    List<PartitionRange> bRanges = fetcher.getPartitionRangesWithCoverage(tableSpec.getRangeStart(),
+        tableSpec.getRangeEnd(),
+        options.getPartitionCount(),
+        tableSpec.getRangeCoverage());
 
     String tableName = tableSpec.getTableName();
 
-    PCollection<KV<UUID, UUID>> pRanges = p.apply(Create.of(bRanges));
+    PCollection<PartitionRange> pRanges = p.apply(Create.of(bRanges));
 
     // get ranges of keys
-    final PCollectionView<List<KV<UUID, UUID>>> uuidRangesView = pRanges.apply(View.asList());
+    final PCollectionView<List<PartitionRange>> uuidRangesView = pRanges.apply(View.asList());
 
     PCollection<HashResult> spannerRecords =
         getSpannerRecords(tableSpec.getDestQuery(),
             tableSpec.getRangeFieldIndex(),
+            tableSpec.getRangeFieldType(),
             options,
             pRanges);
     PCollection<KV<String, HashResult>> mappedWithHashSpannerRecords =
-        spannerRecords.apply(ParDo.of(new MapWithRangeFn(uuidRangesView, MapWithRangeType.RANGE_PLUS_HASH))
+        spannerRecords.apply(ParDo.of(new MapWithRangeFn(uuidRangesView,
+                MapWithRangeType.RANGE_PLUS_HASH,
+                tableSpec.getRangeFieldType()))
             .withSideInputs(uuidRangesView));
 
     PCollection<HashResult> jdbcRecords =
         getJDBCRecords(tableSpec.getSourceQuery(),
             tableSpec.getRangeFieldIndex(),
+            tableSpec.getRangeFieldType(),
             options,
             connString,
             pRanges);
     PCollection<KV<String, HashResult>> mappedWithHashJdbcRecords =
-        jdbcRecords.apply(ParDo.of(new MapWithRangeFn(uuidRangesView, MapWithRangeType.RANGE_PLUS_HASH))
+        jdbcRecords.apply(ParDo.of(new MapWithRangeFn(uuidRangesView,
+                MapWithRangeType.RANGE_PLUS_HASH,
+                tableSpec.getRangeFieldType()))
             .withSideInputs(uuidRangesView));
 
     PCollection<KV<String, CoGbkResult>> results =
@@ -396,23 +405,24 @@ public class JDBCToSpannerDVTWithHash {
 
   private static PCollection<HashResult> getJDBCRecords(String query,
       Integer keyIndex,
+      String rangeFieldType,
       JDBCToSpannerDVTWithHashOptions options,
       String connString,
-      PCollection<KV<UUID, UUID>> pRanges) {
+      PCollection<PartitionRange> pRanges) {
 
     Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
 
     PCollection<HashResult> jdbcRecords =
         pRanges.apply(String.format("Read%sInParallel", "MyTable"),
-            JdbcIO.<KV<UUID, UUID>, HashResult>readAll()
+            JdbcIO.<PartitionRange, HashResult>readAll()
                 .withDataSourceConfiguration(DataSourceConfiguration.create(
                         JDBC_DRIVER, connString)
                     .withUsername(options.getUsername())
                     .withPassword(options.getPassword()))
                 .withQuery(query)
                 .withParameterSetter((input, preparedStatement) -> {
-                  preparedStatement.setString(1, input.getKey().toString());
-                  preparedStatement.setString(2, input.getValue().toString());
+                  preparedStatement.setString(1, input.getStartRange());
+                  preparedStatement.setString(2, input.getEndRange());
                 })
                 .withRowMapper(new RowMapper<HashResult>() {
                   @Override
@@ -420,6 +430,7 @@ public class JDBCToSpannerDVTWithHash {
                       throws @UnknownKeyFor@NonNull@Initialized Exception {
                     return HashResult.fromJDBCResultSet(resultSet,
                         keyIndex,
+                        rangeFieldType,
                         adjustTimestampPrecision);
                   }
                 })
@@ -431,8 +442,9 @@ public class JDBCToSpannerDVTWithHash {
 
   private static PCollection<HashResult> getSpannerRecords(String query,
       Integer keyIndex,
+      String rangeFieldType,
       JDBCToSpannerDVTWithHashOptions options,
-      PCollection<KV<UUID, UUID>> pRanges) {
+      PCollection<PartitionRange> pRanges) {
 
     Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
 
@@ -440,14 +452,14 @@ public class JDBCToSpannerDVTWithHash {
     PCollection<ReadOperation> readOps = pRanges.apply("ConvertToSpannerIOReadOperations",
         MapElements.into(TypeDescriptor.of(ReadOperation.class))
         .via(
-            (SerializableFunction<KV<UUID, UUID>, ReadOperation>)
+            (SerializableFunction<PartitionRange, ReadOperation>)
                 input -> {
                   Statement statement =
                       Statement.newBuilder(query)
                           .bind("p1")
-                          .to(input.getKey().toString())
+                          .to(input.getStartRange())
                           .bind("p2")
-                          .to(input.getValue().toString())
+                          .to(input.getEndRange())
                           .build();
                   ReadOperation readOperation =
                       ReadOperation.create().withQuery(statement);
@@ -467,6 +479,7 @@ public class JDBCToSpannerDVTWithHash {
                 (SerializableFunction<? super Struct, HashResult>)
                     input -> HashResult.fromSpannerStruct(input,
                         keyIndex,
+                        rangeFieldType,
                         adjustTimestampPrecision)
             ));
 

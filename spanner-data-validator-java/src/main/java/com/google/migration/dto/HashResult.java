@@ -21,6 +21,7 @@ public class HashResult {
   public String sha256;
   public String key;
   public String range = "";
+  public String rangeFieldType = TableSpec.UUID_FIELD_TYPE;
 
   public HashResult() {
   }
@@ -37,6 +38,7 @@ public class HashResult {
 
   public static HashResult fromSpannerStruct(Struct spannerStruct,
       Integer keyIndex,
+      String rangeFieldType,
       Boolean adjustTimestampPrecision) {
     HashResult retVal = new HashResult();
 
@@ -67,6 +69,7 @@ public class HashResult {
     } // for
 
     retVal.key = spannerStruct.getString(keyIndex);
+    retVal.rangeFieldType = rangeFieldType;
     retVal.origValue = sbConcatCols.toString();
     retVal.sha256 = Helpers.sha256(retVal.origValue);
     retVal.isSource = true;
@@ -76,6 +79,7 @@ public class HashResult {
 
   public static HashResult fromJDBCResultSet(ResultSet resultSet,
       Integer keyIndex,
+      String rangeFieldType,
       Boolean adjustTimestampPrecision)
       throws SQLException, NoSuchAlgorithmException {
     HashResult retVal = new HashResult();
@@ -116,6 +120,7 @@ public class HashResult {
     } // for
 
     retVal.key = resultSet.getString(keyIndex+1);
+    retVal.rangeFieldType = rangeFieldType;
     retVal.origValue = sbConcatCols.toString();
     retVal.sha256 = Helpers.sha256(retVal.origValue);
     retVal.isSource = true;
