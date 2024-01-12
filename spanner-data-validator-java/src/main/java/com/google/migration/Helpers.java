@@ -136,6 +136,8 @@ public class Helpers {
     return  false;
   }
 
+
+
   public static GenericRecord jdbcResultSetToGenericRecord(String recordName,
       String schemaAsJson,
       ResultSet jdbcResultSet) throws SQLException {

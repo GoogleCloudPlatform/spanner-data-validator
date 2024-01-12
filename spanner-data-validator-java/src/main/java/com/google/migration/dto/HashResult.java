@@ -3,7 +3,6 @@ package com.google.migration.dto;
 import com.google.cloud.spanner.Struct;
 import com.google.cloud.spanner.Type;
 import com.google.migration.Helpers;
-import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -49,26 +48,40 @@ public class HashResult {
 
       switch (colType.toString()) {
         case "STRING":
-          sbConcatCols.append(spannerStruct.getString(i));
+        case "JSON<PG_JSONB>":
+          sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getString(i));
           break;
         case "INT64":
-          sbConcatCols.append(spannerStruct.getLong(i));
+          sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getLong(i));
           break;
         case "TIMESTAMP":
-          Long rawTimestamp = spannerStruct.getTimestamp(i).toSqlTimestamp().getTime();
-          if(adjustTimestampPrecision) rawTimestamp = rawTimestamp/1000;
-          sbConcatCols.append(rawTimestamp);
+          if(!spannerStruct.isNull(i)) {
+            Long rawTimestamp = spannerStruct.getTimestamp(i).toSqlTimestamp().getTime();
+            if (adjustTimestampPrecision)
+              rawTimestamp = rawTimestamp / 1000;
+            sbConcatCols.append(rawTimestamp);
+          }
           break;
         case "BOOL":
         case "BOOLEAN":
-          sbConcatCols.append(spannerStruct.getBoolean(i));
+          sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getBoolean(i));
           break;
         default:
           throw new RuntimeException(String.format("Unsupported type: %s", colType));
       } // switch
     } // for
 
-    retVal.key = spannerStruct.getString(keyIndex);
+    switch(rangeFieldType) {
+      case TableSpec.UUID_FIELD_TYPE:
+        retVal.key = spannerStruct.getString(keyIndex);
+        break;
+      case TableSpec.INT_FIELD_TYPE:
+        retVal.key = String.valueOf(spannerStruct.getLong(keyIndex));
+        break;
+      default:
+        throw new RuntimeException(String.format("Unexpected range field type %s", rangeFieldType));
+    }
+
     retVal.rangeFieldType = rangeFieldType;
     retVal.origValue = sbConcatCols.toString();
     retVal.sha256 = Helpers.sha256(retVal.origValue);
@@ -81,7 +94,7 @@ public class HashResult {
       Integer keyIndex,
       String rangeFieldType,
       Boolean adjustTimestampPrecision)
-      throws SQLException, NoSuchAlgorithmException {
+      throws SQLException {
     HashResult retVal = new HashResult();
 
     ResultSetMetaData rsMetaData = resultSet.getMetaData();
@@ -96,7 +109,10 @@ public class HashResult {
       switch (type) {
         case Types.VARCHAR:
         case Types.OTHER:
-          sbConcatCols.append(resultSet.getString(colOrdinal));
+          String val = resultSet.getString(colOrdinal);
+          if(val != null) {
+            sbConcatCols.append(resultSet.getString(colOrdinal));
+          }
           break;
         case Types.BIT:
         case Types.BOOLEAN:
@@ -107,6 +123,10 @@ public class HashResult {
           break;
         case Types.BIGINT:
           sbConcatCols.append(resultSet.getLong(colOrdinal));
+          break;
+        case Types.DECIMAL:
+          sbConcatCols.append(resultSet.getBigDecimal(colOrdinal));
+          break;
         case Types.TIMESTAMP:
         case Types.TIME_WITH_TIMEZONE:
           Long rawTimestamp = resultSet.getTimestamp(colOrdinal).getTime();
@@ -119,7 +139,17 @@ public class HashResult {
       } // switch
     } // for
 
-    retVal.key = resultSet.getString(keyIndex+1);
+    switch(rangeFieldType) {
+      case TableSpec.UUID_FIELD_TYPE:
+        retVal.key = resultSet.getString(keyIndex+1);
+        break;
+      case TableSpec.INT_FIELD_TYPE:
+        retVal.key = String.valueOf(resultSet.getInt(keyIndex+1));
+        break;
+      default:
+        throw new RuntimeException(String.format("Unexpected range field type %s", rangeFieldType));
+    }
+
     retVal.rangeFieldType = rangeFieldType;
     retVal.origValue = sbConcatCols.toString();
     retVal.sha256 = Helpers.sha256(retVal.origValue);

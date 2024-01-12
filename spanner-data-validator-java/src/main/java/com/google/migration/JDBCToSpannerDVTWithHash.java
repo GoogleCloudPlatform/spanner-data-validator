@@ -12,6 +12,7 @@ import static com.google.migration.SharedTags.unmatchedJDBCRecordCountTag;
 import static com.google.migration.SharedTags.unmatchedJDBCRecordsTag;
 import static com.google.migration.SharedTags.unmatchedSpannerRecordCountTag;
 import static com.google.migration.SharedTags.unmatchedSpannerRecordsTag;
+import static com.google.migration.TableSpecList.getTableSpecs;
 
 import com.google.api.services.bigquery.model.TableFieldSchema;
 import com.google.api.services.bigquery.model.TableRow;
@@ -29,7 +30,6 @@ import com.google.migration.dto.TableSpec;
 import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
 import java.sql.ResultSet;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.beam.sdk.Pipeline;
@@ -75,7 +75,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class JDBCToSpannerDVTWithHash {
-  private static final String JDBC_DRIVER = "org.postgresql.Driver";
+  private static final String POSTGRES_JDBC_DRIVER = "org.postgresql.Driver";
+  private static final String MYSQL_JDBC_DRIVER = "com.mysql.jdbc.Driver";
   private static final Logger LOG = LoggerFactory.getLogger(JDBCToSpannerDVTWithHash.class);
 
   // [START JDBCToSpannerDVTWithHash_options]
@@ -408,11 +409,16 @@ public class JDBCToSpannerDVTWithHash {
 
     Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
 
+    String driver = POSTGRES_JDBC_DRIVER;
+    if(options.getProtocol().compareTo("mysql") == 0) {
+      driver = MYSQL_JDBC_DRIVER;
+    }
+
     PCollection<HashResult> jdbcRecords =
         pRanges.apply(String.format("Read%sInParallel", "MyTable"),
             JdbcIO.<PartitionRange, HashResult>readAll()
                 .withDataSourceConfiguration(DataSourceConfiguration.create(
-                        JDBC_DRIVER, connString)
+                        driver, connString)
                     .withUsername(options.getUsername())
                     .withPassword(options.getPassword()))
                 .withQuery(query)
@@ -450,14 +456,29 @@ public class JDBCToSpannerDVTWithHash {
         .via(
             (SerializableFunction<PartitionRange, ReadOperation>)
                 input -> {
-                  Statement statement =
-                      // TODO: handle spangres vs google sql here
-                      Statement.newBuilder(query)
-                          .bind("p1")
-                          .to(input.getStartRange())
-                          .bind("p2")
-                          .to(input.getEndRange())
-                          .build();
+                  Statement statement;
+                  switch(rangeFieldType) {
+                    case TableSpec.UUID_FIELD_TYPE:
+                      statement =
+                          Statement.newBuilder(query)
+                              .bind("p1")
+                              .to(input.getStartRange())
+                              .bind("p2")
+                              .to(input.getEndRange())
+                              .build();
+                      break;
+                    case TableSpec.INT_FIELD_TYPE:
+                      statement =
+                          Statement.newBuilder(query)
+                              .bind("p1")
+                              .to(Integer.parseInt(input.getStartRange()))
+                              .bind("p2")
+                              .to(Integer.parseInt(input.getEndRange()))
+                              .build();
+                      break;
+                    default:
+                      throw new RuntimeException(String.format("Unexpected range field type: %s", rangeFieldType));
+                  }
                   ReadOperation readOperation =
                       ReadOperation.create().withQuery(statement);
 
@@ -509,40 +530,6 @@ public class JDBCToSpannerDVTWithHash {
     }
 
     p.run().waitUntilFinish();
-  }
-
-  static List<TableSpec> getTableSpecs() {
-    ArrayList<TableSpec> tableSpecs = new ArrayList<>();
-
-    TableSpec spec = new TableSpec(
-        "DataProductMetadata",
-        "select * from \"data-products\".data_product_metadata where data_product_id > uuid(?) and data_product_id <= uuid(?)",
-        "SELECT key, value, data_product_id FROM data_product_metadata "
-            + "WHERE data_product_id > $1 AND data_product_id <= $2", // Spangres
-        2,
-        2,
-        TableSpec.UUID_FIELD_TYPE,
-        "00000000-0000-0000-0000-000000000000",
-        "ffffffff-ffff-ffff-ffff-ffffffffffff"
-    );
-    tableSpecs.add(spec);
-
-    spec = new TableSpec(
-        "DataProductRecords",
-        "select * from \"data-products\".data_product_records "
-            + "where id > uuid(?) and id <= uuid(?)",
-        "SELECT * FROM data_product_records "
-            + "WHERE id > $1 AND id <= $2",
-        0, // zero based index of column that is key (in this case, it's id)
-        2, // integer percentage of rows per partition range - top 2 percent *within range*
-        TableSpec.UUID_FIELD_TYPE,
-        "00000000-0000-0000-0000-000000000000",
-        //"02010000-0000-0000-ffff-ffffffffffff"
-        "ffffffff-ffff-ffff-ffff-ffffffffffff"
-    );
-    tableSpecs.add(spec);
-
-    return tableSpecs;
   }
 
   public static void main(String[] args) {

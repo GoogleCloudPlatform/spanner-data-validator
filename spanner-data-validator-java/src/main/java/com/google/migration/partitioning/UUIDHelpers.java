@@ -1,14 +1,7 @@
 package com.google.migration.partitioning;
 
-import com.google.migration.Helpers;
-import com.google.migration.dto.PartitionRange;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 import java.util.UUID;
-import org.apache.beam.sdk.values.KV;
 
 public class UUIDHelpers {
   public static UUID bigIntToUUID(BigInteger in) {
@@ -28,26 +21,5 @@ public class UUIDHelpers {
     BigInteger retVal = msb.or(lsb);
 
     return retVal;
-  }
-
-  public static PartitionRange getRangeFromList(UUID lookup, List<PartitionRange> rangeList) {
-    Comparator<PartitionRange> comparator = (o1, o2) -> {
-      BigInteger lhs = UUIDHelpers.uuidToBigInt(UUID.fromString(o1.getStartRange()));
-      BigInteger rhs = Helpers.uuidToBigInt(UUID.fromString(o2.getStartRange()));
-      return lhs.compareTo(rhs);
-    };
-
-    List<PartitionRange> sortedCopy = new ArrayList(rangeList);
-    sortedCopy.sort(comparator);
-
-    int searchIndex =
-        Collections.binarySearch(sortedCopy,
-            new PartitionRange(lookup.toString(), lookup.toString()),
-            comparator);
-
-    int rangeIndex = searchIndex;
-    if(searchIndex < 0) rangeIndex = -searchIndex - 2;
-
-    return sortedCopy.get(rangeIndex);
   }
 } // class UUIDHelpers

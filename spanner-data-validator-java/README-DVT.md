@@ -31,15 +31,16 @@ Example:
 ## Running locally
 
 mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWithHash \
--Dexec.args="--server=localhost \
---port=5432 \
---username=kt_user \
---password=ktpas42* \
---sourceDB=kt_db \
+-Dexec.args="--protocol=mysql \
+--server=localhost \
+--port=3306 \
+--username=root \
+--password=pass \
+--sourceDB=classicmodels \
 --tempLocation=gs://bigdata-stuff/df1 \
 --projectId=kt-shared-project \
---instanceId=tempus-test1 \
---spannerDatabaseId=tempus_db1 \
+--instanceId=dvt-test1 \
+--spannerDatabaseId=dvt-test1-db \
 " \
 -Pdirect-runner
 

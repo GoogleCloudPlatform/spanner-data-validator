@@ -49,7 +49,7 @@ public class UUIDPartitionRangeListFetcher implements PartitionRangeListFetcher 
     // Account for first UUID
     bRanges.add(new PartitionRange(start.toString(), start.toString()));
 
-    BigInteger maxRange = uuidMin;
+    BigInteger maxRange = uuidMin.add(BigInteger.ONE);
     for(Integer i = 0; i < partitionCount - 1; i++) {
       BigInteger minRange = maxRange;
       maxRange = minRange.add(stepSize);
