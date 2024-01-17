@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.google.BigIntUUIDTest" time="0.017" tests="8" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.google.MapWithRangeFnTest" time="0.014" tests="2" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="20"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -58,18 +58,6 @@
     <property name="socksNonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
     <property name="java.class.version" value="64.0"/>
   </properties>
-  <testcase name="lowNumberTest" classname="com.google.BigIntUUIDTest" time="0.006"/>
-  <testcase name="uuidToBigIntTest" classname="com.google.BigIntUUIDTest" time="0.017">
-    <system-out><![CDATA[Orig: 72522674-8b4c-4f66-b1f7-fe13edfd3e55. Bigint: 151958539827022725483514492833482227285. Converted: 72522674-8b4c-4f66-b1f7-fe13edfd3e55
-]]></system-out>
-  </testcase>
-  <testcase name="maxUUIDTest" classname="com.google.BigIntUUIDTest" time="0.007">
-    <system-out><![CDATA[Big int max: 340282366920938463463374607431768211455. UUID max: ffffffff-ffff-ffff-ffff-ffffffffffff
-]]></system-out>
-  </testcase>
-  <testcase name="longMaxPlusTest" classname="com.google.BigIntUUIDTest" time="0.007"/>
-  <testcase name="zeroTest" classname="com.google.BigIntUUIDTest" time="0.006"/>
-  <testcase name="longMaxTest" classname="com.google.BigIntUUIDTest" time="0.006"/>
-  <testcase name="oneTest" classname="com.google.BigIntUUIDTest" time="0.007"/>
-  <testcase name="inRangeTestTest" classname="com.google.BigIntUUIDTest" time="0.012"/>
+  <testcase name="mapWithRangeForIntTest" classname="com.google.MapWithRangeFnTest" time="0.012"/>
+  <testcase name="mapWithRangeForUUIDTest" classname="com.google.MapWithRangeFnTest" time="0.013"/>
 </testsuite>

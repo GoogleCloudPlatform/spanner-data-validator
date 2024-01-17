@@ -3,7 +3,6 @@ package com.google;
 import static org.junit.Assert.assertEquals;
 
 import com.google.migration.Helpers;
-import com.google.migration.TableSpecList;
 import com.google.migration.dofns.MapWithRangeFn;
 import com.google.migration.dofns.MapWithRangeFn.MapWithRangeType;
 import com.google.migration.dto.HashResult;
@@ -19,15 +18,17 @@ import org.junit.Test;
 public class MapWithRangeFnTest {
   @Test
   public void mapWithRangeForIntTest()  {
+    String fieldType = TableSpec.INT_FIELD_TYPE;
+
     PartitionRangeListFetcher fetcher =
-        PartitionRangeListFetcherFactory.getFetcher(TableSpec.INT_FIELD_TYPE);
+        PartitionRangeListFetcherFactory.getFetcher(fieldType);
     List<PartitionRange> pRanges = fetcher.getPartitionRanges(100);
     assertEquals(pRanges.size(), 101);
 
     HashResult hr = new HashResult("0", true, "orig", "hash");
     MapWithRangeFn mapFn = new MapWithRangeFn(null,
         MapWithRangeType.RANGE_PLUS_HASH,
-        TableSpec.INT_FIELD_TYPE);
+        fieldType);
 
     PartitionRange pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
     assertEquals(pRange.getStartRange(), "0");

@@ -3,6 +3,7 @@ package com.google.migration.dto;
 import com.google.cloud.spanner.Struct;
 import com.google.cloud.spanner.Type;
 import com.google.migration.Helpers;
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -116,22 +117,38 @@ public class HashResult {
           break;
         case Types.BIT:
         case Types.BOOLEAN:
-          sbConcatCols.append(resultSet.getBoolean(colOrdinal));
+          Boolean boolVal = resultSet.getBoolean(colOrdinal);
+          if(boolVal != null) {
+            sbConcatCols.append(boolVal);
+          }
           break;
         case Types.INTEGER:
-          sbConcatCols.append(resultSet.getInt(colOrdinal));
+          Integer intVal = resultSet.getInt(colOrdinal);
+          if(intVal != null) {
+            sbConcatCols.append(intVal);
+          }
           break;
         case Types.BIGINT:
-          sbConcatCols.append(resultSet.getLong(colOrdinal));
+          Long longVal = resultSet.getLong(colOrdinal);
+          if(longVal != null) {
+            sbConcatCols.append(longVal);
+          }
           break;
         case Types.DECIMAL:
-          sbConcatCols.append(resultSet.getBigDecimal(colOrdinal));
+          BigDecimal decimalVal = resultSet.getBigDecimal(colOrdinal);
+          if(decimalVal != null) {
+            sbConcatCols.append(decimalVal);
+          }
           break;
         case Types.TIMESTAMP:
         case Types.TIME_WITH_TIMEZONE:
-          Long rawTimestamp = resultSet.getTimestamp(colOrdinal).getTime();
-          if(adjustTimestampPrecision) rawTimestamp = rawTimestamp/1000;
-          sbConcatCols.append(rawTimestamp);
+          java.sql.Timestamp timestampVal = resultSet.getTimestamp(colOrdinal);
+          if(timestampVal != null) {
+            Long rawTimestamp = timestampVal.getTime();
+            if (adjustTimestampPrecision)
+              rawTimestamp = rawTimestamp / 1000;
+            sbConcatCols.append(rawTimestamp);
+          }
           break;
         default:
           LOG.error(String.format("Unsupported type: %d", type));

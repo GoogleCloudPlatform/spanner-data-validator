@@ -11,16 +11,18 @@ com/google/migration/DataTransforms$ProductMetadataFromResultSetFn.class
 com/google/migration/TableSpecList.class
 com/google/migration/SharedTags$3.class
 com/google/migration/dofns/MapWithRangeFn.class
+com/google/migration/dto/ShardSpec.class
 com/google/migration/SharedTags$2.class
 com/google/migration/Helpers$1.class
 com/google/migration/dto/TableSpec.class
 com/google/migration/JDBCToSpannerDVTWithHash.class
+com/google/migration/common/DVTOptionsCore.class
 com/google/migration/SharedTags$5.class
 com/google/migration/dofns/MapWithRangeFn$1.class
 com/google/migration/composite/CalculateMatchDetailsFn.class
 com/google/migration/partitioning/PartitionRangeListFetcher.class
 com/google/migration/DataTransforms.class
-com/google/migration/dto/HashResult$SafeExtractFromSpanner.class
+com/google/migration/ShardedJDBCToSpannerWithHash.class
 com/google/migration/dto/HashResult.class
 com/google/migration/DataTransforms$GenericRecordFromResultSetFn.class
 com/google/migration/partitioning/UUIDHelpers.class
@@ -34,4 +36,5 @@ com/google/migration/dto/ComparerResult.class
 com/google/migration/SharedTags$1.class
 com/google/migration/SharedTags$4.class
 com/google/migration/composite/CalculateMatchDetailsFn$1.class
+com/google/migration/partitioning/LongPartitionRangeListFetcher.class
 com/google/migration/partitioning/IntegerPartitionRangeListFetcher.class

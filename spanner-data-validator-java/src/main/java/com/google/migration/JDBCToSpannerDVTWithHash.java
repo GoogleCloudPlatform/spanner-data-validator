@@ -17,9 +17,10 @@ import static com.google.migration.TableSpecList.getTableSpecs;
 import com.google.api.services.bigquery.model.TableFieldSchema;
 import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
-import com.google.cloud.spanner.Dialect;
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.Struct;
+import com.google.migration.common.DVTOptionsCore;
+import com.google.migration.common.JDBCRowMapper;
 import com.google.migration.dofns.CountMatchesDoFn;
 import com.google.migration.dofns.MapWithRangeFn;
 import com.google.migration.dofns.MapWithRangeFn.MapWithRangeType;
@@ -43,11 +44,7 @@ import org.apache.beam.sdk.io.gcp.spanner.SpannerIO;
 import org.apache.beam.sdk.io.jdbc.JdbcIO;
 import org.apache.beam.sdk.io.jdbc.JdbcIO.DataSourceConfiguration;
 import org.apache.beam.sdk.io.jdbc.JdbcIO.RowMapper;
-import org.apache.beam.sdk.options.Default;
-import org.apache.beam.sdk.options.Description;
-import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.apache.beam.sdk.options.Validation.Required;
 import org.apache.beam.sdk.transforms.Count;
 import org.apache.beam.sdk.transforms.Create;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -80,138 +77,7 @@ public class JDBCToSpannerDVTWithHash {
   private static final Logger LOG = LoggerFactory.getLogger(JDBCToSpannerDVTWithHash.class);
 
   // [START JDBCToSpannerDVTWithHash_options]
-  public interface JDBCToSpannerDVTWithHashOptions extends PipelineOptions {
-
-    /**
-     * The JDBC protocol (only postgresql and mysql are supported).
-     */
-    @Description("JDBC Protocol")
-    @Default.String("postgresql")
-    String getProtocol();
-
-    void setProtocol(String value);
-
-    /**
-     * The JDBC server.
-     */
-    @Description("JDBC Server")
-    @Default.String("localhost")
-    String getServer();
-
-    void setServer(String value);
-
-    /**
-     * The source DB.
-     */
-    @Description("Source DB")
-    @Required
-    String getSourceDB();
-
-    void setSourceDB(String value);
-
-    /**
-     * The JDBC port
-     */
-    @Description("JDBC Port")
-    @Default.Integer(5432)
-    Integer getPort();
-
-    void setPort(Integer value);
-
-    /**
-     * Username.
-     */
-    @Description("Username")
-    @Required
-    String getUsername();
-
-    void setUsername(String value);
-
-    /**
-     * Password
-     */
-    @Description("Password")
-    @Required
-    String getPassword();
-
-    void setPassword(String value);
-
-    /**
-     * ProjectId
-     */
-    @Description("ProjectId")
-    @Required
-    String getProjectId();
-
-    void setProjectId(String value);
-
-    /**
-     * InstanceId
-     */
-    @Description("InstanceId")
-    @Required
-    String getInstanceId();
-
-    void setInstanceId(String value);
-
-    /**
-     * Destination DatabaseId
-     */
-    @Description("Destination DatabaseId")
-    @Required
-    String getSpannerDatabaseId();
-
-    void setSpannerDatabaseId(String value);
-
-    @Description("Dialect of the Spanner database")
-    @Default
-    @Default.Enum("POSTGRESQL")
-      // alternative: GOOGLE_STANDARD_SQL
-    Dialect getDialect();
-
-    void setDialect(Dialect dialect);
-
-    /**
-     * BQ Dataset
-     */
-    @Description("BQDatasetName")
-    @Default.String("SpannerDVTDataset")
-    String getBQDatasetName();
-
-    void setBQDatasetName(String value);
-
-    @Description("RunName")
-    @Default.String("")
-    String getRunName();
-
-    void setRunName(String value);
-
-    /**
-     * BQ Table
-     */
-    @Description("BQTableName")
-    @Default.String("SpannerDVTResults")
-    String getBQTableName();
-
-    void setBQTableName(String value);
-
-    /**
-     * Partition count
-     */
-    @Description("Partition count")
-    @Default.Integer(100)
-    Integer getPartitionCount();
-
-    void setPartitionCount(Integer value);
-
-    /**
-     * Adjust timestamp precision
-     */
-    @Description("Adjust timestamp precision")
-    @Default.Boolean(true)
-    Boolean getAdjustTimestampPrecision();
-
-    void setAdjustTimestampPrecision(Boolean value);
+  public interface JDBCToSpannerDVTWithHashOptions extends DVTOptionsCore {
   }
   // [END JDBCToSpannerDVTWithHash_options]
 
@@ -426,16 +292,7 @@ public class JDBCToSpannerDVTWithHash {
                   preparedStatement.setString(1, input.getStartRange());
                   preparedStatement.setString(2, input.getEndRange());
                 })
-                .withRowMapper(new RowMapper<HashResult>() {
-                  @Override
-                  public HashResult mapRow(@UnknownKeyFor @NonNull @Initialized ResultSet resultSet)
-                      throws @UnknownKeyFor@NonNull@Initialized Exception {
-                    return HashResult.fromJDBCResultSet(resultSet,
-                        keyIndex,
-                        rangeFieldType,
-                        adjustTimestampPrecision);
-                  }
-                })
+                .withRowMapper(new JDBCRowMapper(keyIndex, rangeFieldType, adjustTimestampPrecision))
                 .withOutputParallelization(false)
         );
 
