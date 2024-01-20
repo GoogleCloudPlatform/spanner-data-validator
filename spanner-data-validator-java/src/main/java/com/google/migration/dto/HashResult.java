@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import org.apache.beam.sdk.coders.DefaultCoder;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
+import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +53,9 @@ public class HashResult {
         case "JSON<PG_JSONB>":
           sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getString(i));
           break;
+        case "BYTEA":
+          sbConcatCols.append(spannerStruct.isNull(i) ? "" : Base64.encodeBase64String(spannerStruct.getBytes(i).toByteArray()));
+          break;
         case "INT64":
           sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getLong(i));
           break;
@@ -77,6 +81,7 @@ public class HashResult {
         retVal.key = spannerStruct.getString(keyIndex);
         break;
       case TableSpec.INT_FIELD_TYPE:
+      case TableSpec.LONG_FIELD_TYPE:
         retVal.key = String.valueOf(spannerStruct.getLong(keyIndex));
         break;
       default:
@@ -108,11 +113,18 @@ public class HashResult {
       // https://docs.oracle.com/javase/8/docs/api/constant-values.html
       // look for (java.sql.Types)
       switch (type) {
+        case Types.CHAR:
         case Types.VARCHAR:
         case Types.OTHER:
           String val = resultSet.getString(colOrdinal);
           if(val != null) {
-            sbConcatCols.append(resultSet.getString(colOrdinal));
+            sbConcatCols.append(val);
+          }
+          break;
+        case Types.LONGVARBINARY:
+          byte[] bytes = resultSet.getBytes(colOrdinal);
+          if(bytes != null) {
+            sbConcatCols.append(Base64.encodeBase64String(bytes));
           }
           break;
         case Types.BIT:
@@ -162,6 +174,9 @@ public class HashResult {
         break;
       case TableSpec.INT_FIELD_TYPE:
         retVal.key = String.valueOf(resultSet.getInt(keyIndex+1));
+        break;
+      case TableSpec.LONG_FIELD_TYPE:
+        retVal.key = String.valueOf(resultSet.getLong(keyIndex+1));
         break;
       default:
         throw new RuntimeException(String.format("Unexpected range field type %s", rangeFieldType));

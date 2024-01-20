@@ -157,6 +157,7 @@ public class Helpers {
       // https://docs.oracle.com/javase/8/docs/api/constant-values.html
       // look for (java.sql.Types)
       switch (type) {
+        case Types.CHAR:
         case Types.VARCHAR:
         case Types.OTHER:
           fields = fields.name(colName).type().nullable().stringType().noDefault();
@@ -190,6 +191,7 @@ public class Helpers {
       // https://docs.oracle.com/javase/8/docs/api/constant-values.html
       // look for (java.sql.Types)
       switch (type) {
+        case Types.CHAR:
         case Types.VARCHAR:
         case Types.OTHER:
           record.put(colName, jdbcResultSet.getString(colOrdinal));

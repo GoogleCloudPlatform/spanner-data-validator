@@ -9,6 +9,8 @@ public class PartitionRangeListFetcherFactory {
         return new UUIDPartitionRangeListFetcher();
       case TableSpec.INT_FIELD_TYPE:
         return new IntegerPartitionRangeListFetcher();
+      case TableSpec.LONG_FIELD_TYPE:
+        return new LongPartitionRangeListFetcher();
       default:
         throw new RuntimeException(String.format("Unrecognized partition type: %s", partitionType));
     } // switch

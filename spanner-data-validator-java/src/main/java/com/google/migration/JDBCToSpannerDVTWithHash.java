@@ -19,6 +19,7 @@ import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.Struct;
+import com.google.migration.TableSpecList.ShardSpecList;
 import com.google.migration.common.DVTOptionsCore;
 import com.google.migration.common.JDBCRowMapper;
 import com.google.migration.dofns.CountMatchesDoFn;
@@ -27,10 +28,12 @@ import com.google.migration.dofns.MapWithRangeFn.MapWithRangeType;
 import com.google.migration.dto.ComparerResult;
 import com.google.migration.dto.HashResult;
 import com.google.migration.dto.PartitionRange;
+import com.google.migration.dto.ShardSpec;
 import com.google.migration.dto.TableSpec;
 import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.beam.sdk.Pipeline;
@@ -48,6 +51,7 @@ import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.Count;
 import org.apache.beam.sdk.transforms.Create;
 import org.apache.beam.sdk.transforms.DoFn;
+import org.apache.beam.sdk.transforms.Flatten;
 import org.apache.beam.sdk.transforms.MapElements;
 import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.transforms.SerializableFunction;
@@ -57,6 +61,7 @@ import org.apache.beam.sdk.transforms.join.CoGroupByKey;
 import org.apache.beam.sdk.transforms.join.KeyedPCollectionTuple;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
+import org.apache.beam.sdk.values.PCollectionList;
 import org.apache.beam.sdk.values.PCollectionTuple;
 import org.apache.beam.sdk.values.PCollectionView;
 import org.apache.beam.sdk.values.TupleTag;
@@ -72,8 +77,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class JDBCToSpannerDVTWithHash {
-  private static final String POSTGRES_JDBC_DRIVER = "org.postgresql.Driver";
-  private static final String MYSQL_JDBC_DRIVER = "com.mysql.jdbc.Driver";
+  protected static final String POSTGRES_JDBC_DRIVER = "org.postgresql.Driver";
+  protected static final String MYSQL_JDBC_DRIVER = "com.mysql.jdbc.Driver";
   private static final Logger LOG = LoggerFactory.getLogger(JDBCToSpannerDVTWithHash.class);
 
   // [START JDBCToSpannerDVTWithHash_options]
@@ -81,47 +86,46 @@ public class JDBCToSpannerDVTWithHash {
   }
   // [END JDBCToSpannerDVTWithHash_options]
 
-  private static BigQueryIO.Write<ComparerResult> getBQWrite(Pipeline p,
-      JDBCToSpannerDVTWithHashOptions options,
+  protected static List<TableFieldSchema> getBQWriteCols() {
+    return Arrays.asList(
+        new TableFieldSchema()
+            .setName("run_name")
+            .setType("STRING")
+            .setMode("REQUIRED"),
+        new TableFieldSchema()
+            .setName("table_or_query")
+            .setType("STRING")
+            .setMode("REQUIRED"),
+        new TableFieldSchema()
+            .setName("range")
+            .setType("STRING")
+            .setMode("REQUIRED"),
+        new TableFieldSchema()
+            .setName("source_count")
+            .setType("INT64")
+            .setMode("REQUIRED"),
+        new TableFieldSchema()
+            .setName("target_count")
+            .setType("INT64")
+            .setMode("REQUIRED"),
+        new TableFieldSchema()
+            .setName("match_count")
+            .setType("INT64")
+            .setMode("REQUIRED"),
+        new TableFieldSchema()
+            .setName("source_conflict_count")
+            .setType("INT64")
+            .setMode("REQUIRED"),
+        new TableFieldSchema()
+            .setName("target_conflict_count")
+            .setType("INT64")
+            .setMode("REQUIRED"));
+  }
+
+  protected static BigQueryIO.Write<ComparerResult> getBQWrite(DVTOptionsCore options,
       String tableName) {
 
-    TableSchema bqSchema = new TableSchema()
-        .setFields(
-            Arrays.asList(
-                new TableFieldSchema()
-                    .setName("run_name")
-                    .setType("STRING")
-                    .setMode("REQUIRED"),
-                new TableFieldSchema()
-                    .setName("table_or_query")
-                    .setType("STRING")
-                    .setMode("REQUIRED"),
-                new TableFieldSchema()
-                    .setName("range")
-                    .setType("STRING")
-                    .setMode("REQUIRED"),
-                new TableFieldSchema()
-                    .setName("source_count")
-                    .setType("INT64")
-                    .setMode("REQUIRED"),
-                new TableFieldSchema()
-                    .setName("target_count")
-                    .setType("INT64")
-                    .setMode("REQUIRED"),
-                new TableFieldSchema()
-                    .setName("match_count")
-                    .setType("INT64")
-                    .setMode("REQUIRED"),
-                new TableFieldSchema()
-                    .setName("source_conflict_count")
-                    .setType("INT64")
-                    .setMode("REQUIRED"),
-                new TableFieldSchema()
-                    .setName("target_conflict_count")
-                    .setType("INT64")
-                    .setMode("REQUIRED")
-            )
-        );
+    TableSchema bqSchema = new TableSchema().setFields(getBQWriteCols());
 
     BigQueryIO.Write<ComparerResult> bqWrite = BigQueryIO.<ComparerResult>write()
         .to(String.format("%s:%s.%s",
@@ -146,11 +150,11 @@ public class JDBCToSpannerDVTWithHash {
     return bqWrite;
   }
 
-  private static void configureComparisonPipeline(Pipeline p,
-      JDBCToSpannerDVTWithHashOptions options,
-      String connString,
+  protected static void configureComparisonPipeline(Pipeline p,
+      DVTOptionsCore options,
       TableSpec tableSpec,
       BigQueryIO.Write<ComparerResult> bqWrite) {
+
     PartitionRangeListFetcher fetcher =
         PartitionRangeListFetcherFactory.getFetcher(tableSpec.getRangeFieldType());
     List<PartitionRange> bRanges = fetcher.getPartitionRangesWithCoverage(tableSpec.getRangeStart(),
@@ -159,6 +163,7 @@ public class JDBCToSpannerDVTWithHash {
         tableSpec.getRangeCoverage());
 
     String tableName = tableSpec.getTableName();
+    Boolean supportShardedSource = options.getSupportShardedSource();
 
     PCollection<PartitionRange> pRanges = p.apply(Create.of(bRanges));
 
@@ -177,13 +182,24 @@ public class JDBCToSpannerDVTWithHash {
                 tableSpec.getRangeFieldType()))
             .withSideInputs(uuidRangesView));
 
-    PCollection<HashResult> jdbcRecords =
-        getJDBCRecords(tableSpec.getSourceQuery(),
-            tableSpec.getRangeFieldIndex(),
-            tableSpec.getRangeFieldType(),
-            options,
-            connString,
-            pRanges);
+    PCollection<HashResult> jdbcRecords;
+
+    if(!supportShardedSource) {
+      jdbcRecords =
+          getJDBCRecords(tableSpec.getSourceQuery(),
+              tableSpec.getRangeFieldIndex(),
+              tableSpec.getRangeFieldType(),
+              options,
+              pRanges);
+    } else {
+      jdbcRecords =
+          getJDBCRecordsWithSharding(tableSpec.getSourceQuery(),
+              tableSpec.getRangeFieldIndex(),
+              tableSpec.getRangeFieldType(),
+              options,
+              pRanges);
+    }
+
     PCollection<KV<String, HashResult>> mappedWithHashJdbcRecords =
         jdbcRecords.apply(ParDo.of(new MapWithRangeFn(uuidRangesView,
                 MapWithRangeType.RANGE_PLUS_HASH,
@@ -258,7 +274,7 @@ public class JDBCToSpannerDVTWithHash {
     reportOutput.apply(bqWrite);
   }
 
-  private static Long getCountForTag(CoGbkResult result, TupleTag<Long> tag) {
+  protected static Long getCountForTag(CoGbkResult result, TupleTag<Long> tag) {
     Iterable<Long> all = result.getAll(tag);
 
     if(all.iterator().hasNext()) return all.iterator().next();
@@ -266,11 +282,10 @@ public class JDBCToSpannerDVTWithHash {
     return 0L;
   }
 
-  private static PCollection<HashResult> getJDBCRecords(String query,
+  protected static PCollection<HashResult> getJDBCRecords(String query,
       Integer keyIndex,
       String rangeFieldType,
-      JDBCToSpannerDVTWithHashOptions options,
-      String connString,
+      DVTOptionsCore options,
       PCollection<PartitionRange> pRanges) {
 
     Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
@@ -279,6 +294,12 @@ public class JDBCToSpannerDVTWithHash {
     if(options.getProtocol().compareTo("mysql") == 0) {
       driver = MYSQL_JDBC_DRIVER;
     }
+
+    // JDBC conn string
+    String connString = String.format("jdbc:%s://%s:%d/%s", options.getProtocol(),
+        options.getServer(),
+        options.getPort(),
+        options.getSourceDB());
 
     PCollection<HashResult> jdbcRecords =
         pRanges.apply(String.format("Read%sInParallel", "MyTable"),
@@ -299,10 +320,60 @@ public class JDBCToSpannerDVTWithHash {
     return  jdbcRecords;
   }
 
-  private static PCollection<HashResult> getSpannerRecords(String query,
+  protected static PCollection<HashResult> getJDBCRecordsWithSharding(String query,
       Integer keyIndex,
       String rangeFieldType,
-      JDBCToSpannerDVTWithHashOptions options,
+      DVTOptionsCore options,
+      PCollection<PartitionRange> pRanges) {
+
+    Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
+
+    String driver = POSTGRES_JDBC_DRIVER;
+    if(options.getProtocol().compareTo("mysql") == 0) {
+      driver = MYSQL_JDBC_DRIVER;
+    }
+
+    List<ShardSpec> shardSpecs = ShardSpecList.getShardSpecs(options);
+    ArrayList<PCollection<HashResult>> pCollections = new ArrayList<>();
+
+    for(ShardSpec shardSpec: shardSpecs) {
+
+      // JDBC conn string
+      String connString = String.format("jdbc:%s://%s:%d/%s", options.getProtocol(),
+          shardSpec.getHost(),
+          options.getPort(),
+          shardSpec.getDb());
+
+      PCollection<HashResult> jdbcRecords =
+          pRanges.apply(String.format("Read%sInParallel", "MyTable"),
+              JdbcIO.<PartitionRange, HashResult>readAll()
+                  .withDataSourceConfiguration(DataSourceConfiguration.create(
+                          driver, connString)
+                      .withUsername(shardSpec.getUser())
+                      .withPassword(shardSpec.getPassword()))
+                  .withQuery(query)
+                  .withParameterSetter((input, preparedStatement) -> {
+                    preparedStatement.setString(1, input.getStartRange());
+                    preparedStatement.setString(2, input.getEndRange());
+                  })
+                  .withRowMapper(
+                      new JDBCRowMapper(keyIndex, rangeFieldType, adjustTimestampPrecision))
+                  .withOutputParallelization(false)
+          );
+
+      pCollections.add(jdbcRecords);
+    } // for
+
+    PCollection<HashResult> mergedJdbcRecords =
+        PCollectionList.of(pCollections).apply(Flatten.pCollections());
+
+    return mergedJdbcRecords;
+  }
+
+  protected static PCollection<HashResult> getSpannerRecords(String query,
+      Integer keyIndex,
+      String rangeFieldType,
+      DVTOptionsCore options,
       PCollection<PartitionRange> pRanges) {
 
     Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
@@ -333,6 +404,15 @@ public class JDBCToSpannerDVTWithHash {
                               .to(Integer.parseInt(input.getEndRange()))
                               .build();
                       break;
+                    case TableSpec.LONG_FIELD_TYPE:
+                      statement =
+                          Statement.newBuilder(query)
+                              .bind("p1")
+                              .to(Long.parseLong(input.getStartRange()))
+                              .bind("p2")
+                              .to(Long.parseLong(input.getEndRange()))
+                              .build();
+                      break;
                     default:
                       throw new RuntimeException(String.format("Unexpected range field type: %s", rangeFieldType));
                   }
@@ -361,16 +441,10 @@ public class JDBCToSpannerDVTWithHash {
     return spannerHashes;
   }
 
-  static void runDVT(JDBCToSpannerDVTWithHashOptions options) {
+  public static void runDVT(DVTOptionsCore options) {
     Pipeline p = Pipeline.create(options);
 
     p.getCoderRegistry().registerCoderForClass(HashResult.class, AvroCoder.of(HashResult.class));
-
-    // JDBC conn string
-    String connString = String.format("jdbc:%s://%s:%d/%s", options.getProtocol(),
-        options.getServer(),
-        options.getPort(),
-        options.getSourceDB());
 
     if(Helpers.isNullOrEmpty(options.getRunName())) {
       DateTimeFormatter formatter = DateTimeFormat.forPattern("yyyy-MM-dd-HH-mm-ss");
@@ -381,9 +455,9 @@ public class JDBCToSpannerDVTWithHash {
     List<TableSpec> tableSpecs = getTableSpecs();
 
     for(TableSpec tableSpec: tableSpecs) {
-      BigQueryIO.Write<ComparerResult> bqWrite = getBQWrite(p, options, tableSpec.getTableName());
+      BigQueryIO.Write<ComparerResult> bqWrite = getBQWrite(options, tableSpec.getTableName());
 
-      configureComparisonPipeline(p, options, connString, tableSpec, bqWrite);
+      configureComparisonPipeline(p, options, tableSpec, bqWrite);
     }
 
     p.run().waitUntilFinish();
@@ -393,6 +467,7 @@ public class JDBCToSpannerDVTWithHash {
     JDBCToSpannerDVTWithHashOptions options =
         PipelineOptionsFactory.fromArgs(args).withValidation().as(JDBCToSpannerDVTWithHashOptions.class);
 
-    runDVT(options);
+    JDBCToSpannerDVTWithHash dvtApp = new JDBCToSpannerDVTWithHash();
+    dvtApp.runDVT(options);
   }
 } // class JDBCToSpannerDVTWithHash

@@ -1,5 +1,7 @@
 package com.google.migration;
 
+import com.google.migration.common.DVTOptionsCore;
+import com.google.migration.dto.ShardSpec;
 import com.google.migration.dto.TableSpec;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,14 +14,14 @@ public class TableSpecList {
     // binder expects downstream
     TableSpec spec = new TableSpec(
         "customers",
-        "select * from customers where customerNumber > ? and customerNumber <= ?",
+        "select * from member_events where id > ? and id <= ?",
         "select * from customers where customerNumber > @p1 "
             + " and customerNumber <= @p2",
         0,
         2,
-        TableSpec.INT_FIELD_TYPE,
+        TableSpec.LONG_FIELD_TYPE,
         "0",
-        String.valueOf(Integer.MAX_VALUE)
+        String.valueOf(Long.MAX_VALUE)
     );
     tableSpecs.add(spec);
 
@@ -59,4 +61,33 @@ public class TableSpecList {
 
     return tableSpecs;
   }
+
+  public static class ShardSpecList {
+    public static List<ShardSpec> getShardSpecs(DVTOptionsCore options) {
+      ArrayList<ShardSpec> shardSpecs = new ArrayList<>();
+
+      String host = options.getServer();
+      String user = options.getUsername();
+      String pass = options.getPassword();
+      String db = options.getSourceDB();
+
+      ShardSpec spec = new ShardSpec(host,
+          user,
+          pass,
+          String.format("%s%d", db, 1),
+          String.format("id%d", 1),
+          0);
+      shardSpecs.add(spec);
+
+      spec = new ShardSpec(host,
+          user,
+          pass,
+          String.format("%s%d", db, 2),
+          String.format("id%d", 2),
+          1);
+      shardSpecs.add(spec);
+
+      return shardSpecs;
+    }
+  } // class
 }

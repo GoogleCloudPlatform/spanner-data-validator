@@ -108,6 +108,10 @@ public class MapWithRangeFn extends DoFn<HashResult, KV<String, HashResult>> {
         return getRangeFromList(result.key,
             siBRanges,
             intPartitionRangeComparator);
+      case TableSpec.LONG_FIELD_TYPE:
+        return getRangeFromList(result.key,
+            siBRanges,
+            longPartitionRangeComparator);
       default:
         break;
     }

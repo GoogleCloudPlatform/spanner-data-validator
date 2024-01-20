@@ -34,9 +34,10 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 -Dexec.args="--protocol=mysql \
 --server=localhost \
 --port=3306 \
---username=root \
---password=pass \
---sourceDB=classicmodels \
+--username=kt_user \
+--password=ktpas42* \
+--sourceDB=member_events_db \
+--supportShardedSource=true \
 --tempLocation=gs://bigdata-stuff/df1 \
 --projectId=kt-shared-project \
 --instanceId=dvt-test1 \

@@ -1,6 +1,7 @@
 package com.google;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import com.google.migration.Helpers;
 import com.google.migration.dofns.MapWithRangeFn;
@@ -36,6 +37,36 @@ public class MapWithRangeFnTest {
     hr.key = "1";
     pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
     assertEquals(pRange.getStartRange(), "1");
+
+    hr.key = String.valueOf(Integer.MAX_VALUE - 1);
+    pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    assertNotEquals(pRange.getStartRange(), "1");
+  }
+
+  @Test
+  public void mapWithRangeForLongTest()  {
+    String fieldType = TableSpec.LONG_FIELD_TYPE;
+
+    PartitionRangeListFetcher fetcher =
+        PartitionRangeListFetcherFactory.getFetcher(fieldType);
+    List<PartitionRange> pRanges = fetcher.getPartitionRanges(100);
+    assertEquals(pRanges.size(), 101);
+
+    HashResult hr = new HashResult("0", true, "orig", "hash");
+    MapWithRangeFn mapFn = new MapWithRangeFn(null,
+        MapWithRangeType.RANGE_PLUS_HASH,
+        fieldType);
+
+    PartitionRange pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    assertEquals(pRange.getStartRange(), "0");
+
+    hr.key = "1";
+    pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    assertEquals(pRange.getStartRange(), "1");
+
+    hr.key = String.valueOf(Long.MAX_VALUE - 1);
+    pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    assertNotEquals(pRange.getStartRange(), "1");
   }
 
   @Test

@@ -137,4 +137,10 @@ public interface DVTOptionsCore extends PipelineOptions {
   Boolean getAdjustTimestampPrecision();
 
   void setAdjustTimestampPrecision(Boolean value);
-}
+
+  @Description("Support sharded source")
+  @Default.Boolean(false)
+  Boolean getSupportShardedSource();
+
+  void setSupportShardedSource(Boolean value);
+} // class
