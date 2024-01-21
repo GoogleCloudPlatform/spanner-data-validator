@@ -37,11 +37,12 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 --username=kt_user \
 --password=ktpas42* \
 --sourceDB=member_events_db \
---supportShardedSource=true \
+--supportShardedSource=false \
 --tempLocation=gs://bigdata-stuff/df1 \
 --projectId=kt-shared-project \
 --instanceId=dvt-test1 \
 --spannerDatabaseId=dvt-test1-db \
+--streaming=false \
 " \
 -Pdirect-runner
 

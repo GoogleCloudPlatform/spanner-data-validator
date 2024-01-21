@@ -13,12 +13,25 @@ public class TableSpecList {
     // Must use p1 and p2 here because that's what the query expression
     // binder expects downstream
     TableSpec spec = new TableSpec(
-        "customers",
-        "select * from member_events where id > ? and id <= ?",
-        "select * from customers where customerNumber > @p1 "
-            + " and customerNumber <= @p2",
+        "member_events_type_mapping",
+        "select id, name, durationInDays from member_events_type_mapping where id >= ? and id < ?",
+        "select id, name, durationInDays from member_events_type_mapping where id >= @p1 "
+            + " and id < @p2",
         0,
-        2,
+        100,
+        TableSpec.LONG_FIELD_TYPE,
+        "0",
+        String.valueOf(Long.MAX_VALUE)
+    );
+    tableSpecs.add(spec);
+
+    spec = new TableSpec(
+        "member_events",
+        "select id, memberEventId, numericId, eventTypeId, eventCode, detail from member_events where id >= ? and id < ?",
+        "select id, memberEventId, numericId, eventTypeId, eventCode, detail from member_events where id >= @p1 "
+            + " and id < @p2",
+        0,
+        100,
         TableSpec.LONG_FIELD_TYPE,
         "0",
         String.valueOf(Long.MAX_VALUE)

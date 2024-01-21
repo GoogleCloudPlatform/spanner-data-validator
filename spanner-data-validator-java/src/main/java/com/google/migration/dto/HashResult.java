@@ -53,7 +53,7 @@ public class HashResult {
         case "JSON<PG_JSONB>":
           sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getString(i));
           break;
-        case "BYTEA":
+        case "BYTES":
           sbConcatCols.append(spannerStruct.isNull(i) ? "" : Base64.encodeBase64String(spannerStruct.getBytes(i).toByteArray()));
           break;
         case "INT64":

@@ -11,6 +11,7 @@ import com.google.migration.dto.PartitionRange;
 import com.google.migration.dto.TableSpec;
 import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
+import java.io.Console;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.UUID;
@@ -51,6 +52,10 @@ public class MapWithRangeFnTest {
         PartitionRangeListFetcherFactory.getFetcher(fieldType);
     List<PartitionRange> pRanges = fetcher.getPartitionRanges(100);
     assertEquals(pRanges.size(), 101);
+
+    for(PartitionRange pRange: pRanges) {
+      System.out.println(String.format("Start: %s, end: %s", pRange.getStartRange(), pRange.getEndRange()));
+    }
 
     HashResult hr = new HashResult("0", true, "orig", "hash");
     MapWithRangeFn mapFn = new MapWithRangeFn(null,

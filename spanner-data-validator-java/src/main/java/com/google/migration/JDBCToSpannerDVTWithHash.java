@@ -145,7 +145,7 @@ public class JDBCToSpannerDVTWithHash {
         .withCreateDisposition(CreateDisposition.CREATE_IF_NEEDED)
         .withSchema(bqSchema)
         .withWriteDisposition(WriteDisposition.WRITE_APPEND)
-        .withMethod(Write.Method.DEFAULT);
+        .withMethod(Write.Method.STORAGE_WRITE_API);
 
     return bqWrite;
   }
