@@ -87,7 +87,7 @@ public class TableSpecList {
       ShardSpec spec = new ShardSpec(host,
           user,
           pass,
-          String.format("%s%d", db, 1),
+          String.format("%s", db),
           String.format("id%d", 1),
           0);
       shardSpecs.add(spec);
