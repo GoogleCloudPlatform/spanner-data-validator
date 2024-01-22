@@ -11,7 +11,6 @@ import com.google.migration.dto.PartitionRange;
 import com.google.migration.dto.TableSpec;
 import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
-import java.io.Console;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.UUID;
