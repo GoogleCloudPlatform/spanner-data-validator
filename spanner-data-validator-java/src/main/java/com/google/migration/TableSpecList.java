@@ -5,6 +5,7 @@ import com.google.migration.dto.ShardSpec;
 import com.google.migration.dto.TableSpec;
 import java.util.ArrayList;
 import java.util.List;
+import org.joda.time.DateTime;
 
 public class TableSpecList {
   public static List<TableSpec> getTableSpecs() {
@@ -18,7 +19,7 @@ public class TableSpecList {
         "select id, name, durationInDays from member_events_type_mapping where id >= @p1 "
             + " and id < @p2",
         0,
-        100,
+        100, // percentage of range we want to retrieve
         TableSpec.LONG_FIELD_TYPE,
         "0",
         String.valueOf(Long.MAX_VALUE)
@@ -35,6 +36,46 @@ public class TableSpecList {
         TableSpec.LONG_FIELD_TYPE,
         "0",
         String.valueOf(Long.MAX_VALUE)
+    );
+    tableSpecs.add(spec);
+
+    return tableSpecs;
+  }
+
+  public static List<TableSpec> getTableSpecsWithLastUpdatedTimeCutoff() {
+    ArrayList<TableSpec> tableSpecs = new ArrayList<>();
+
+    // don't want to filter out by last updated time in the query because it's not indexed
+    TableSpec spec = new TableSpec(
+        "member_events_type_mapping",
+        "select id, name, durationInDays from member_events_type_mapping where id >= ? and id < ?",
+        // Must use p1 and p2 here because that's what the query expression
+        // binder expects downstream
+        "select id, name, durationInDays from member_events_type_mapping where id >= @p1 "
+            + " and id < @p2",
+        0,
+        100,
+        TableSpec.LONG_FIELD_TYPE,
+        "0",
+        String.valueOf(Long.MAX_VALUE),
+        DateTime.now().minusHours(1),
+        3
+    );
+    tableSpecs.add(spec);
+
+    // don't want to filter out by last updated time in the query because it's not indexed
+    spec = new TableSpec(
+        "member_events",
+        "select id, memberEventId, numericId, eventTypeId, eventCode, detail from member_events where id >= ? and id < ?",
+        "select id, memberEventId, numericId, eventTypeId, eventCode, detail from member_events where id >= @p1 "
+            + " and id < @p2",
+        0,
+        100,
+        TableSpec.LONG_FIELD_TYPE,
+        "0",
+        String.valueOf(Long.MAX_VALUE),
+        DateTime.now().minusHours(1),
+        7
     );
     tableSpecs.add(spec);
 

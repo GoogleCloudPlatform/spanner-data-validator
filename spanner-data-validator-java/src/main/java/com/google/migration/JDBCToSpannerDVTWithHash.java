@@ -461,7 +461,7 @@ public class JDBCToSpannerDVTWithHash {
         .withDatabaseId(options.getSpannerDatabaseId()));
 
     String convertToHashResultStepName =
-        String.format("%ConvertToHashResultForTable-%s", tableName);
+        String.format("ConvertToHashResultForTable-%s", tableName);
     PCollection<HashResult> spannerHashes = spannerRecords.apply(convertToHashResultStepName,
         MapElements.into(TypeDescriptor.of(HashResult.class))
             .via(

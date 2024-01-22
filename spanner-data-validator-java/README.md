@@ -30,6 +30,7 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 --sourceDB=member_events_db \
 --supportShardedSource=false \
 --tempLocation=gs://bigdata-stuff/df1 \
+--partitionCount=100 \
 --projectId=kt-shared-project \
 --instanceId=dvt-test1 \
 --spannerDatabaseId=dvt-test1-db \

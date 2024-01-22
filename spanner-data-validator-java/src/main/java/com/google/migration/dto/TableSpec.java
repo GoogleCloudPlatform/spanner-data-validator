@@ -1,9 +1,8 @@
 package com.google.migration.dto;
 
-import java.io.IOException;
-import java.io.InputStream;
 import org.apache.beam.sdk.coders.DefaultCoder;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
+import org.joda.time.DateTime;
 
 @DefaultCoder(AvroCoder.class)
 public class TableSpec {
@@ -20,6 +19,9 @@ public class TableSpec {
   private Integer rangeCoverage;
   private String rangeStart;
   private String rangeEnd;
+  private DateTime lastUpdatedTimeCutoff;
+  private Integer lastUpdatedTimeFieldIndex;
+  private Integer partitionCount;
 
   public TableSpec() {
   }
@@ -40,6 +42,28 @@ public class TableSpec {
     rangeFieldType = rangeFieldTypeIn;
     rangeStart = rangeStartIn;
     rangeEnd = rangeEndIn;
+  }
+
+  public TableSpec(String tableNameIn,
+      String sourceQueryIn,
+      String destQueryIn,
+      Integer rangeFieldIndexIn,
+      Integer rangeCoverageIn,
+      String rangeFieldTypeIn,
+      String rangeStartIn,
+      String rangeEndIn,
+      DateTime lastUpdatedTimeCutoffIn,
+      Integer lastUpdatedTimeFieldIndexIn) {
+    tableName = tableNameIn;
+    sourceQuery = sourceQueryIn;
+    destQuery = destQueryIn;
+    rangeFieldIndex = rangeFieldIndexIn;
+    rangeCoverage = rangeCoverageIn;
+    rangeFieldType = rangeFieldTypeIn;
+    rangeStart = rangeStartIn;
+    rangeEnd = rangeEndIn;
+    lastUpdatedTimeCutoff = lastUpdatedTimeCutoffIn;
+    lastUpdatedTimeFieldIndex = lastUpdatedTimeFieldIndexIn;
   }
 
   public String getTableName() {
@@ -104,5 +128,29 @@ public class TableSpec {
 
   public void setRangeEnd(String rangeEnd) {
     this.rangeEnd = rangeEnd;
+  }
+
+  public DateTime getLastUpdatedTimeCutoff() {
+    return lastUpdatedTimeCutoff;
+  }
+
+  public void setLastUpdatedTimeCutoff(DateTime lastUpdatedTimeCutoff) {
+    this.lastUpdatedTimeCutoff = lastUpdatedTimeCutoff;
+  }
+
+  public Integer getPartitionCount() {
+    return partitionCount;
+  }
+
+  public void setPartitionCount(Integer partitionCount) {
+    this.partitionCount = partitionCount;
+  }
+
+  public Integer getLastUpdatedTimeFieldIndex() {
+    return lastUpdatedTimeFieldIndex;
+  }
+
+  public void setLastUpdatedTimeFieldIndex(Integer lastUpdatedTimeFieldIndex) {
+    this.lastUpdatedTimeFieldIndex = lastUpdatedTimeFieldIndex;
   }
 } // class TableSpec
