@@ -1,8 +1,8 @@
-# Readme for Spanner DVT (with hashing)
+# Readme for Spanner DVT
 
-Spanner DVT is a Dataflow based application that can be used to validate data between Postgres and Spangres. At high level,
+Spanner DVT is a Dataflow based application that can be used to validate data between JDBC and Spanner (both Google SQL and PostgreSQL). At high level,
 1. The application uses Beam's JDBCIO to perform partitioned reads from Postgres
-2. It then groups the results by partition range. For each range, it queries Spangres
+2. It then groups the results by partition range. For each range, it queries Spanner
 3. And within a group, it compares the results from Postgres and Spangres.
 
 Example:
@@ -64,12 +64,20 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 
 ## Important topics (in no particular order)
 
-## Installing pre-requisites
+### Installing pre-requisites
 
 1. Install JDK 11
 2. Install Maven
 
-## Specifying partitions
+### Permissions
+
+Ensure that the Dataflow worker service account (typically the compute engine service account) has the following permissions
+
+- Database reader for Spanner (the specific DB being validated)
+- GCS read permissions (bucket used for temp/staging)
+- Write permissions to BQ dataset
+
+### Specifying partitions
 
 The application expects the user to specify the following via the TableSpec type in code
 
@@ -77,7 +85,25 @@ The application expects the user to specify the following via the TableSpec type
 2. The type of the range field (only UUID, int32 and int64 are currently supported)
 3. The coverage (as a percentage) across the range field type space
 
+### BigQuery for reporting
+
+blah blah
+
 ### Specifying coverage
+
+blah blah
+
+### Estimating the number of workers
+
+Don't just rely on auto-scaling. Based on a rough estimate of how much data you think will be processed by the validation job, allocate Dataflow VMs appropriately.
+
+Blah blah.
+
+### Coming up with number of partitions
+
+blah blah
+
+### Use max(key column) to constrain overall partition range
 
 blah blah
 
