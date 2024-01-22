@@ -50,8 +50,13 @@ public class HashResult {
 
       switch (colType.toString()) {
         case "STRING":
-        case "JSON<PG_JSONB>":
           sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getString(i));
+          break;
+        case "JSON":
+          sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getJson(i));
+          break;
+        case "JSON<PG_JSONB>":
+          sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getPgJsonb(i));
           break;
         case "BYTES":
           sbConcatCols.append(spannerStruct.isNull(i) ? "" : Base64.encodeBase64String(spannerStruct.getBytes(i).toByteArray()));
