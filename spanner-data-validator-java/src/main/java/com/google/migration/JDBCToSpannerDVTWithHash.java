@@ -165,10 +165,13 @@ public class JDBCToSpannerDVTWithHash {
     String tableName = tableSpec.getTableName();
     Boolean supportShardedSource = options.getSupportShardedSource();
 
-    PCollection<PartitionRange> pRanges = p.apply(Create.of(bRanges));
+    String createRangesForTableStep = String.format("CreateRangesForTable-%s", tableName);
+    PCollection<PartitionRange> pRanges = p.apply(createRangesForTableStep, Create.of(bRanges));
 
     // get ranges of keys
-    final PCollectionView<List<PartitionRange>> uuidRangesView = pRanges.apply(View.asList());
+    String partitionRangesViewStep = String.format("PartitionRangesForTable-%s", tableName);
+    final PCollectionView<List<PartitionRange>> partitionRangesView =
+        pRanges.apply(partitionRangesViewStep, View.asList());
 
     PCollection<HashResult> spannerRecords =
         getSpannerRecords(tableSpec.getDestQuery(),
@@ -176,11 +179,15 @@ public class JDBCToSpannerDVTWithHash {
             tableSpec.getRangeFieldType(),
             options,
             pRanges);
+
+    // Map Range [start, end) + hash => HashResult (spanner)
+    String mapWithRangesForSpannerStep =
+        String.format("MapWithRangesSpannerRecordsForTable-%s", tableName);
     PCollection<KV<String, HashResult>> mappedWithHashSpannerRecords =
-        spannerRecords.apply(ParDo.of(new MapWithRangeFn(uuidRangesView,
+        spannerRecords.apply(mapWithRangesForSpannerStep, ParDo.of(new MapWithRangeFn(partitionRangesView,
                 MapWithRangeType.RANGE_PLUS_HASH,
                 tableSpec.getRangeFieldType()))
-            .withSideInputs(uuidRangesView));
+            .withSideInputs(partitionRangesView));
 
     PCollection<HashResult> jdbcRecords;
 
@@ -200,51 +207,71 @@ public class JDBCToSpannerDVTWithHash {
               pRanges);
     }
 
+    // Map Range [start, end) + hash => HashResult (JDBC)
+    String mapWithRangesForJDBCStep =
+        String.format("MapWithRangesJDBCRecordsForTable-%s", tableName);
     PCollection<KV<String, HashResult>> mappedWithHashJdbcRecords =
-        jdbcRecords.apply(ParDo.of(new MapWithRangeFn(uuidRangesView,
+        jdbcRecords.apply(mapWithRangesForJDBCStep, ParDo.of(new MapWithRangeFn(partitionRangesView,
                 MapWithRangeType.RANGE_PLUS_HASH,
                 tableSpec.getRangeFieldType()))
-            .withSideInputs(uuidRangesView));
+            .withSideInputs(partitionRangesView));
 
+    // Group by range [start, end) + hash => {JDBC HashResult if it exists, Spanner HashResult if it exists}
+    String groupByKeyStep = String.format("GroupByKeyForTable-%s", tableName);
     PCollection<KV<String, CoGbkResult>> results =
         KeyedPCollectionTuple.of(jdbcTag, mappedWithHashJdbcRecords)
             .and(spannerTag, mappedWithHashSpannerRecords)
-            .apply(CoGroupByKey.create());
+            .apply(groupByKeyStep, CoGroupByKey.create());
 
-    PCollectionTuple countMatches = results.apply(String.format("Countmatches-%s", tableName),
+    // Now tag the results by range
+    PCollectionTuple countMatches = results.apply(String.format("CountMatchesForTable-%s", tableName),
         ParDo.of(new CountMatchesDoFn()).withOutputTags(matchedRecordsTag,
             TupleTagList.of(unmatchedSpannerRecordsTag)
                 .and(unmatchedJDBCRecordsTag)
                 .and(sourceRecordsTag)
                 .and(targetRecordsTag)));
 
+    // Count the tagged results by range
+
     PCollection<KV<String, Long>> matchedRecordCount =
-        countMatches.get(matchedRecordsTag).apply(Count.perKey());
+        countMatches
+            .get(matchedRecordsTag)
+            .apply(String.format("MatchedCountForTable-%s", tableName), Count.perKey());
 
     PCollection<KV<String, Long>> unmatchedJDBCRecordCount =
-        countMatches.get(unmatchedJDBCRecordsTag).apply(Count.perKey());
+        countMatches
+            .get(unmatchedJDBCRecordsTag)
+            .apply(String.format("UnmatchedCountForTable-%s", tableName), Count.perKey());
 
     PCollection<KV<String, Long>> unmatchedSpannerRecordCount =
-        countMatches.get(unmatchedSpannerRecordsTag).apply(Count.perKey());
+        countMatches
+            .get(unmatchedSpannerRecordsTag)
+            .apply(String.format("UnmatchedSpannerCountForTable-%s", tableName), Count.perKey());
 
     PCollection<KV<String, Long>> sourceRecordCount =
-        countMatches.get(sourceRecordsTag).apply(Count.perKey());
+        countMatches
+            .get(sourceRecordsTag)
+            .apply(String.format("UnmatchedJDBCCountForTable-%s", tableName), Count.perKey());
 
     PCollection<KV<String, Long>> targetRecordCount =
-        countMatches.get(targetRecordsTag).apply(Count.perKey());
+        countMatches
+            .get(targetRecordsTag)
+            .apply(String.format("TargetCountForTable-%s", tableName), Count.perKey());
 
+    // group above counts by key
     PCollection<KV<String, CoGbkResult>> comparerResults =
         KeyedPCollectionTuple.of(matchedRecordCountTag, matchedRecordCount)
             .and(unmatchedSpannerRecordCountTag, unmatchedSpannerRecordCount)
             .and(unmatchedJDBCRecordCountTag, unmatchedJDBCRecordCount)
             .and(sourceRecordCountTag, sourceRecordCount)
             .and(targetRecordCountTag, targetRecordCount)
-            .apply(CoGroupByKey.create());
+            .apply(String.format("GroupCountsByKeyForTable-%s", tableName), CoGroupByKey.create());
 
     String runName = options.getRunName();
 
+    // assigned grouped counts to object that can then be written to BQ
     PCollection<ComparerResult> reportOutput =
-        comparerResults.apply(String.format("reportOutput-%s", tableName),
+        comparerResults.apply(String.format("ReportOutputForTable-%s", tableName),
             ParDo.of(
             new DoFn<KV<String, CoGbkResult>, ComparerResult>() {
               @ProcessElement

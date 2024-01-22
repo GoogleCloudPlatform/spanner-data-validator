@@ -56,15 +56,18 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 --numWorkers=10 \
 --maxNumWorkers=20 \
 --region=us-central1 \
---server=10.128.0.24 \
---port=5432 \
+--protocol=mysql \
+--server=10.128.15.212 \
+--port=3306 \
 --username=kt_user \
 --password=ktpas42* \
---sourceDB=kt_db \
+--sourceDB=member_events_db \
+--supportShardedSource=false \
 --tempLocation=gs://bigdata-stuff/df1 \
 --projectId=kt-shared-project \
---instanceId=tempus-test1 \
---spannerDatabaseId=tempus_db1 \
+--instanceId=dvt-test1 \
+--spannerDatabaseId=dvt-test1-db \
+--streaming=false \
 " \
 -Pdataflow-runner
 
