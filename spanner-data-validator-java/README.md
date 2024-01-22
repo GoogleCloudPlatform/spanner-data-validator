@@ -64,6 +64,11 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 
 ## Important topics (in no particular order)
 
+## Installing pre-requisites
+
+1. Install JDK 11
+2. Install Maven
+
 ## Specifying partitions
 
 The application expects the user to specify the following via the TableSpec type in code

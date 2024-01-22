@@ -169,7 +169,8 @@ public class JDBCToSpannerDVTWithHash {
         pRanges.apply(partitionRangesViewStep, View.asList());
 
     PCollection<HashResult> spannerRecords =
-        getSpannerRecords(tableSpec.getDestQuery(),
+        getSpannerRecords(tableName,
+            tableSpec.getDestQuery(),
             tableSpec.getRangeFieldIndex(),
             tableSpec.getRangeFieldType(),
             options,
@@ -188,14 +189,16 @@ public class JDBCToSpannerDVTWithHash {
 
     if(!supportShardedSource) {
       jdbcRecords =
-          getJDBCRecords(tableSpec.getSourceQuery(),
+          getJDBCRecords(tableName,
+              tableSpec.getSourceQuery(),
               tableSpec.getRangeFieldIndex(),
               tableSpec.getRangeFieldType(),
               options,
               pRanges);
     } else {
       jdbcRecords =
-          getJDBCRecordsWithSharding(tableSpec.getSourceQuery(),
+          getJDBCRecordsWithSharding(tableName,
+              tableSpec.getSourceQuery(),
               tableSpec.getRangeFieldIndex(),
               tableSpec.getRangeFieldType(),
               options,
@@ -293,7 +296,7 @@ public class JDBCToSpannerDVTWithHash {
               }
             }));
 
-    reportOutput.apply(bqWrite);
+    reportOutput.apply(String.format("BQWriteForTable-%s", tableName), bqWrite);
   }
 
   protected static Long getCountForTag(CoGbkResult result, TupleTag<Long> tag) {
@@ -304,7 +307,8 @@ public class JDBCToSpannerDVTWithHash {
     return 0L;
   }
 
-  protected static PCollection<HashResult> getJDBCRecords(String query,
+  protected static PCollection<HashResult> getJDBCRecords(String tableName,
+      String query,
       Integer keyIndex,
       String rangeFieldType,
       DVTOptionsCore options,
@@ -324,7 +328,7 @@ public class JDBCToSpannerDVTWithHash {
         options.getSourceDB());
 
     PCollection<HashResult> jdbcRecords =
-        pRanges.apply(String.format("Read%sInParallel", "MyTable"),
+        pRanges.apply(String.format("ReadInParallelForTable-%s", tableName),
             JdbcIO.<PartitionRange, HashResult>readAll()
                 .withDataSourceConfiguration(DataSourceConfiguration.create(
                         driver, connString)
@@ -342,7 +346,8 @@ public class JDBCToSpannerDVTWithHash {
     return  jdbcRecords;
   }
 
-  protected static PCollection<HashResult> getJDBCRecordsWithSharding(String query,
+  protected static PCollection<HashResult> getJDBCRecordsWithSharding(String tableName,
+      String query,
       Integer keyIndex,
       String rangeFieldType,
       DVTOptionsCore options,
@@ -367,7 +372,7 @@ public class JDBCToSpannerDVTWithHash {
           shardSpec.getDb());
 
       PCollection<HashResult> jdbcRecords =
-          pRanges.apply(String.format("Read%sInParallel", "MyTable"),
+          pRanges.apply(String.format("ReadInParallelWithShardsForTable-%s", tableName),
               JdbcIO.<PartitionRange, HashResult>readAll()
                   .withDataSourceConfiguration(DataSourceConfiguration.create(
                           driver, connString)
@@ -386,13 +391,15 @@ public class JDBCToSpannerDVTWithHash {
       pCollections.add(jdbcRecords);
     } // for
 
+    String flattenStepName = String.format("FlattenJDBCRecordsForTable-%s", tableName);
     PCollection<HashResult> mergedJdbcRecords =
-        PCollectionList.of(pCollections).apply(Flatten.pCollections());
+        PCollectionList.of(pCollections).apply(flattenStepName, Flatten.pCollections());
 
     return mergedJdbcRecords;
   }
 
-  protected static PCollection<HashResult> getSpannerRecords(String query,
+  protected static PCollection<HashResult> getSpannerRecords(String tableName,
+      String query,
       Integer keyIndex,
       String rangeFieldType,
       DVTOptionsCore options,
@@ -400,8 +407,10 @@ public class JDBCToSpannerDVTWithHash {
 
     Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
 
+    String readOpsStepName = String.format("ConvertToSpannerIOReadOperationsForTable-%s",
+        tableName);
     // https://cloud.google.com/spanner/docs/samples/spanner-dataflow-readall
-    PCollection<ReadOperation> readOps = pRanges.apply("ConvertToSpannerIOReadOperations",
+    PCollection<ReadOperation> readOps = pRanges.apply(readOpsStepName,
         MapElements.into(TypeDescriptor.of(ReadOperation.class))
         .via(
             (SerializableFunction<PartitionRange, ReadOperation>)
@@ -444,13 +453,16 @@ public class JDBCToSpannerDVTWithHash {
                   return readOperation;
                 }));
 
+    String spannerReadStepName = String.format("SpannerReadAllForTable-%s", tableName);
     PCollection<Struct> spannerRecords =
-        readOps.apply("SpannerReadAll", SpannerIO.readAll()
+        readOps.apply(spannerReadStepName, SpannerIO.readAll()
         .withProjectId(options.getProjectId())
         .withInstanceId(options.getInstanceId())
         .withDatabaseId(options.getSpannerDatabaseId()));
 
-    PCollection<HashResult> spannerHashes = spannerRecords.apply("ConvertToHashResult",
+    String convertToHashResultStepName =
+        String.format("%ConvertToHashResultForTable-%s", tableName);
+    PCollection<HashResult> spannerHashes = spannerRecords.apply(convertToHashResultStepName,
         MapElements.into(TypeDescriptor.of(HashResult.class))
             .via(
                 (SerializableFunction<? super Struct, HashResult>)
