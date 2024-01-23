@@ -150,11 +150,16 @@ public class JDBCToSpannerDVTWithHash {
       TableSpec tableSpec,
       BigQueryIO.Write<ComparerResult> bqWrite) {
 
+    Integer partitionCount = options.getPartitionCount();
+    if(tableSpec.getPartitionCount() > 0) {
+      partitionCount = tableSpec.getPartitionCount();
+    }
+
     PartitionRangeListFetcher fetcher =
         PartitionRangeListFetcherFactory.getFetcher(tableSpec.getRangeFieldType());
     List<PartitionRange> bRanges = fetcher.getPartitionRangesWithCoverage(tableSpec.getRangeStart(),
         tableSpec.getRangeEnd(),
-        options.getPartitionCount(),
+        partitionCount,
         tableSpec.getRangeCoverage());
 
     String tableName = tableSpec.getTableName();

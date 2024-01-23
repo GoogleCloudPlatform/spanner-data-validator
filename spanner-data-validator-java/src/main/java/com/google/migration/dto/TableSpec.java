@@ -21,7 +21,7 @@ public class TableSpec {
   private String rangeEnd;
   private DateTime lastUpdatedTimeCutoff;
   private Integer lastUpdatedTimeFieldIndex;
-  private Integer partitionCount;
+  private Integer partitionCount = -1;
 
   public TableSpec() {
   }
@@ -42,6 +42,26 @@ public class TableSpec {
     rangeFieldType = rangeFieldTypeIn;
     rangeStart = rangeStartIn;
     rangeEnd = rangeEndIn;
+  }
+
+  public TableSpec(String tableNameIn,
+      String sourceQueryIn,
+      String destQueryIn,
+      Integer rangeFieldIndexIn,
+      Integer rangeCoverageIn,
+      String rangeFieldTypeIn,
+      String rangeStartIn,
+      String rangeEndIn,
+      Integer partitionCountIn) {
+    tableName = tableNameIn;
+    sourceQuery = sourceQueryIn;
+    destQuery = destQueryIn;
+    rangeFieldIndex = rangeFieldIndexIn;
+    rangeCoverage = rangeCoverageIn;
+    rangeFieldType = rangeFieldTypeIn;
+    rangeStart = rangeStartIn;
+    rangeEnd = rangeEndIn;
+    partitionCount = partitionCountIn;
   }
 
   public TableSpec(String tableNameIn,
