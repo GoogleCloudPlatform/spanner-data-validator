@@ -165,9 +165,9 @@ public class TableSpecList {
                 jsonObject.getInt("partitionFilterRatio"));
 
         tableSpecs.add(tableSpec);
-
-        return tableSpecs;
       } // for
+
+      return tableSpecs;
     } catch (Exception ex) {
       LOG.error("Exception while loading table specs from json file");
       LOG.error(ex.getMessage());

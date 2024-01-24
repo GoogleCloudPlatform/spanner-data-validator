@@ -6,9 +6,9 @@
     "rangeFieldIndex": "0",
     "rangeFieldType": "Long",
     "rangeStart": "0",
-    "rangeEnd": "9223372036854775807",
-    "partitionCount": "1000000",
-    "partitionFilterRatio": "10000"
+    "rangeEnd": "1000000",
+    "partitionCount": "100",
+    "rangeCoverage": "0.2"
   },
   {
     "tableName": "member_events",
@@ -17,8 +17,8 @@
     "rangeFieldIndex": "0",
     "rangeFieldType": "Long",
     "rangeStart": "0",
-    "rangeEnd": "9223372036854775807",
-    "partitionCount": "1000000",
-    "partitionFilterRatio": "100000"
+    "rangeEnd": "10000000",
+    "partitionCount": "100",
+    "rangeCoverage": "0.2"
   }
 ]
