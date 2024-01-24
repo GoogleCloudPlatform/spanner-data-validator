@@ -22,6 +22,7 @@ public class TableSpec {
   private DateTime lastUpdatedTimeCutoff;
   private Integer lastUpdatedTimeFieldIndex;
   private Integer partitionCount = -1;
+  private Integer partitionFilterRatio = -1;
 
   public TableSpec() {
   }
@@ -62,6 +63,28 @@ public class TableSpec {
     rangeStart = rangeStartIn;
     rangeEnd = rangeEndIn;
     partitionCount = partitionCountIn;
+  }
+
+  public TableSpec(String tableNameIn,
+      String sourceQueryIn,
+      String destQueryIn,
+      Integer rangeFieldIndexIn,
+      Integer rangeCoverageIn,
+      String rangeFieldTypeIn,
+      String rangeStartIn,
+      String rangeEndIn,
+      Integer partitionCountIn,
+      Integer partitionFilterRatioIn) {
+    tableName = tableNameIn;
+    sourceQuery = sourceQueryIn;
+    destQuery = destQueryIn;
+    rangeFieldIndex = rangeFieldIndexIn;
+    rangeCoverage = rangeCoverageIn;
+    rangeFieldType = rangeFieldTypeIn;
+    rangeStart = rangeStartIn;
+    rangeEnd = rangeEndIn;
+    partitionCount = partitionCountIn;
+    partitionFilterRatio = partitionFilterRatioIn;
   }
 
   public TableSpec(String tableNameIn,
@@ -172,5 +195,13 @@ public class TableSpec {
 
   public void setLastUpdatedTimeFieldIndex(Integer lastUpdatedTimeFieldIndex) {
     this.lastUpdatedTimeFieldIndex = lastUpdatedTimeFieldIndex;
+  }
+
+  public Integer getPartitionFilterRatio() {
+    return partitionFilterRatio;
+  }
+
+  public void setPartitionFilterRatio(Integer partitionFilterRatio) {
+    this.partitionFilterRatio = partitionFilterRatio;
   }
 } // class TableSpec

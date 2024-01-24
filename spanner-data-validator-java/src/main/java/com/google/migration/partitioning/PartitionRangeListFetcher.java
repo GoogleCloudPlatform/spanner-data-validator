@@ -13,4 +13,8 @@ public interface PartitionRangeListFetcher {
       String endStr,
       Integer partitionCount,
       Integer coveragePercent);
+  public List<PartitionRange> getPartitionRangesWithPartitionFilter(String startStr,
+      String endStr,
+      Integer partitionCount,
+      Integer partitionFilterRatio);
 } // interface

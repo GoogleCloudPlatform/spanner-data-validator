@@ -1,5 +1,6 @@
 package com.google.migration.partitioning;
 
+import com.google.migration.Constants;
 import com.google.migration.dto.PartitionRange;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +12,7 @@ public class LongPartitionRangeListFetcher implements PartitionRangeListFetcher 
 
   @Override
   public List<PartitionRange> getPartitionRanges(Integer partitionCount) {
-    return getPartitionRangesWithCoverage(partitionCount, 100);
+    return getPartitionRangesWithCoverage(partitionCount, Constants.PERCENTAGE_CALCULATION_DENOMINATOR);
   }
 
   @Override
@@ -33,8 +34,12 @@ public class LongPartitionRangeListFetcher implements PartitionRangeListFetcher 
     Long stepSize = fullRange/partitionCount;
 
     // Simple implementation of "coverage" - just reduce the step size
-    if(coveragePercent < 100) {
-      stepSize = (stepSize/100) * coveragePercent;
+    if(coveragePercent < Constants.PERCENTAGE_CALCULATION_DENOMINATOR) {
+      stepSize = (stepSize/Constants.PERCENTAGE_CALCULATION_DENOMINATOR) * coveragePercent;
+
+      if(stepSize <= 0) {
+        throw new RuntimeException("Integer step size <= 0!");
+      }
     }
 
     ArrayList<PartitionRange> bRanges = new ArrayList<>();
@@ -46,6 +51,47 @@ public class LongPartitionRangeListFetcher implements PartitionRangeListFetcher 
     for(Integer i = 0; i < partitionCount - 1; i++) {
       Long minRange = maxRange;
       maxRange = minRange + stepSize;
+
+      PartitionRange range = new PartitionRange(minRange.toString(), maxRange.toString());
+
+      bRanges.add(range);
+    }
+
+    PartitionRange range = new PartitionRange(maxRange.toString(), end.toString());
+    bRanges.add(range);
+
+    return bRanges;
+  }
+
+  @Override
+  public List<PartitionRange> getPartitionRangesWithPartitionFilter(String startStr,
+      String endStr,
+      Integer partitionCount,
+      Integer partitionFilterRatio) {
+
+    Long start = Long.parseLong(startStr);
+    Long end = Long.parseLong(endStr);
+    Long fullRange = end - start;
+    Long stepSize = fullRange/partitionCount;
+
+    if(partitionFilterRatio > 0) {
+      if(partitionFilterRatio > partitionCount) {
+        throw new RuntimeException("PartitionFilterRatio < PartitionCount!");
+      }
+    }
+
+    ArrayList<PartitionRange> bRanges = new ArrayList<>();
+
+    // Account for first item
+    bRanges.add(new PartitionRange(start.toString(), start.toString()));
+
+    Long maxRange = start + 1;
+    for(Integer i = 0; i < partitionCount - 1; i++) {
+
+      Long minRange = maxRange;
+      maxRange = minRange + stepSize;
+
+      if(partitionFilterRatio > 0 && i % partitionFilterRatio != 0) continue;
 
       PartitionRange range = new PartitionRange(minRange.toString(), maxRange.toString());
 

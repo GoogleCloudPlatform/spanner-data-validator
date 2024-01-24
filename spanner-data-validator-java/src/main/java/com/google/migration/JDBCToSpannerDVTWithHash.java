@@ -32,6 +32,7 @@ import com.google.migration.dto.ShardSpec;
 import com.google.migration.dto.TableSpec;
 import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -155,12 +156,14 @@ public class JDBCToSpannerDVTWithHash {
       partitionCount = tableSpec.getPartitionCount();
     }
 
-    PartitionRangeListFetcher fetcher =
-        PartitionRangeListFetcherFactory.getFetcher(tableSpec.getRangeFieldType());
-    List<PartitionRange> bRanges = fetcher.getPartitionRangesWithCoverage(tableSpec.getRangeStart(),
-        tableSpec.getRangeEnd(),
+    Integer partitionFilterRatio = options.getPartitionFilterRatio();
+    if(tableSpec.getPartitionFilterRatio() > 0) {
+      partitionFilterRatio = tableSpec.getPartitionFilterRatio();
+    }
+
+    List<PartitionRange> bRanges = getPartitionRanges(tableSpec,
         partitionCount,
-        tableSpec.getRangeCoverage());
+        partitionFilterRatio);
 
     String tableName = tableSpec.getTableName();
     Boolean supportShardedSource = options.getSupportShardedSource();
@@ -480,7 +483,29 @@ public class JDBCToSpannerDVTWithHash {
     return spannerHashes;
   }
 
-  public static void runDVT(DVTOptionsCore options) {
+  private static List<PartitionRange> getPartitionRanges(TableSpec tableSpec,
+      Integer partitionCount,
+      Integer partitionFilterRatio) {
+    PartitionRangeListFetcher fetcher =
+        PartitionRangeListFetcherFactory.getFetcher(tableSpec.getRangeFieldType());
+    List<PartitionRange> bRanges;
+
+    if(partitionFilterRatio > 0) {
+      bRanges = fetcher.getPartitionRangesWithPartitionFilter(tableSpec.getRangeStart(),
+          tableSpec.getRangeEnd(),
+          partitionCount,
+          partitionFilterRatio);
+    } else {
+      bRanges = fetcher.getPartitionRangesWithCoverage(tableSpec.getRangeStart(),
+          tableSpec.getRangeEnd(),
+          partitionCount,
+          tableSpec.getRangeCoverage());
+    }
+
+    return bRanges;
+  }
+
+  public static void runDVT(DVTOptionsCore options) throws IOException {
     Pipeline p = Pipeline.create(options);
 
     p.getCoderRegistry().registerCoderForClass(HashResult.class, AvroCoder.of(HashResult.class));
@@ -492,6 +517,10 @@ public class JDBCToSpannerDVTWithHash {
     }
 
     List<TableSpec> tableSpecs = getTableSpecs();
+    String tableSpecJson = options.getTableSpecJson();
+    if(!Helpers.isNullOrEmpty(tableSpecJson)) {
+      tableSpecs = TableSpecList.getFromJsonFile(tableSpecJson);
+    }
 
     for(TableSpec tableSpec: tableSpecs) {
       BigQueryIO.Write<ComparerResult> bqWrite = getBQWrite(options, tableSpec.getTableName());
@@ -502,7 +531,7 @@ public class JDBCToSpannerDVTWithHash {
     p.run().waitUntilFinish();
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws IOException {
     JDBCToSpannerDVTWithHashOptions options =
         PipelineOptionsFactory.fromArgs(args).withValidation().as(JDBCToSpannerDVTWithHashOptions.class);
 

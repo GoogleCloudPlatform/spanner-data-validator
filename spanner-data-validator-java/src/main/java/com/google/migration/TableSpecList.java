@@ -1,13 +1,23 @@
 package com.google.migration;
 
+import com.google.gson.JsonObject;
 import com.google.migration.common.DVTOptionsCore;
 import com.google.migration.dto.ShardSpec;
 import com.google.migration.dto.TableSpec;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.joda.time.DateTime;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TableSpecList {
+  private static final Logger LOG = LoggerFactory.getLogger(TableSpecList.class);
+
   public static List<TableSpec> getTableSpecs() {
     ArrayList<TableSpec> tableSpecs = new ArrayList<>();
 
@@ -19,7 +29,7 @@ public class TableSpecList {
         "select id, name, durationInDays from member_events_type_mapping where id >= @p1 "
             + " and id < @p2",
         0,
-        100, // percentage of range we want to retrieve
+        Constants.PERCENTAGE_CALCULATION_DENOMINATOR, // percentage of range we want to retrieve
         TableSpec.LONG_FIELD_TYPE,
         "0",
         String.valueOf(Long.MAX_VALUE)
@@ -32,7 +42,7 @@ public class TableSpecList {
         "select id, memberEventId, numericId, eventTypeId, eventCode, detail from member_events where id >= @p1 "
             + " and id < @p2",
         0,
-        100,
+        Constants.PERCENTAGE_CALCULATION_DENOMINATOR,
         TableSpec.LONG_FIELD_TYPE,
         "0",
         String.valueOf(Long.MAX_VALUE)
@@ -54,7 +64,7 @@ public class TableSpecList {
         "select id, name, durationInDays from member_events_type_mapping where id >= @p1 "
             + " and id < @p2",
         0,
-        100,
+        Constants.PERCENTAGE_CALCULATION_DENOMINATOR,
         TableSpec.LONG_FIELD_TYPE,
         "0",
         String.valueOf(Long.MAX_VALUE),
@@ -70,7 +80,7 @@ public class TableSpecList {
         "select id, memberEventId, numericId, eventTypeId, eventCode, detail from member_events where id >= @p1 "
             + " and id < @p2",
         0,
-        100,
+        Constants.PERCENTAGE_CALCULATION_DENOMINATOR,
         TableSpec.LONG_FIELD_TYPE,
         "0",
         String.valueOf(Long.MAX_VALUE),
@@ -91,7 +101,7 @@ public class TableSpecList {
         "SELECT key, value, data_product_id FROM data_product_metadata "
             + "WHERE data_product_id > $1 AND data_product_id <= $2", // Spangres
         2,
-        2,
+        2/100 * Constants.PERCENTAGE_CALCULATION_DENOMINATOR,
         TableSpec.UUID_FIELD_TYPE,
         "00000000-0000-0000-0000-000000000000",
         "ffffffff-ffff-ffff-ffff-ffffffffffff"
@@ -105,7 +115,7 @@ public class TableSpecList {
         "SELECT * FROM data_product_records "
             + "WHERE id > $1 AND id <= $2",
         0, // zero based index of column that is key (in this case, it's id)
-        2, // integer percentage of rows per partition range - top 2 percent *within range*
+        2/100 * Constants.PERCENTAGE_CALCULATION_DENOMINATOR, // integer percentage of rows per partition range - top 2 percent *within range*
         TableSpec.UUID_FIELD_TYPE,
         "00000000-0000-0000-0000-000000000000",
         //"02010000-0000-0000-ffff-ffffffffffff"
@@ -114,6 +124,43 @@ public class TableSpecList {
     tableSpecs.add(spec);
 
     return tableSpecs;
+  }
+
+  public static List<TableSpec> getFromJsonFile(String jsonFile) throws IOException {
+    try {
+      ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+      InputStream is = classloader.getResourceAsStream(jsonFile);
+
+      String jsonStr = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+      JSONArray jsonarray = new JSONArray(jsonStr);
+
+      List<TableSpec> tableSpecs = new ArrayList<>();
+
+      for (int i = 0; i < jsonarray.length(); i++) {
+        TableSpec tableSpec = new TableSpec();
+
+        JSONObject jsonObject = jsonarray.getJSONObject(i);
+        tableSpec.setTableName(jsonObject.getString("tableName"));
+        tableSpec.setSourceQuery(jsonObject.getString("sourceQuery"));
+        tableSpec.setDestQuery(jsonObject.getString("destQuery"));
+        tableSpec.setRangeFieldIndex(jsonObject.getInt("rangeFieldIndex"));
+        tableSpec.setRangeFieldType(jsonObject.getString("rangeFieldType"));
+        tableSpec.setRangeStart(jsonObject.getString("rangeStart"));
+        tableSpec.setRangeEnd(jsonObject.getString("rangeEnd"));
+        tableSpec.setPartitionCount(jsonObject.getInt("partitionCount"));
+        tableSpec.setPartitionFilterRatio(jsonObject.getInt("partitionFilterRatio"));
+
+        tableSpecs.add(tableSpec);
+
+        return tableSpecs;
+      } // for
+    } catch (Exception ex) {
+      LOG.error("Exception while loading table specs from json file");
+      LOG.error(ex.getMessage());
+      LOG.error(ex.getStackTrace().toString());
+    }
+
+    return null;
   }
 
   public static class ShardSpecList {

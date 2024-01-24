@@ -38,6 +38,7 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 --password=ktpas42* \
 --sourceDB=member_events_db \
 --supportShardedSource=false \
+--tableSpecJson=json/member-events-spec.json \
 --tempLocation=gs://bigdata-stuff/df1 \
 --projectId=kt-shared-project \
 --instanceId=dvt-test1 \

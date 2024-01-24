@@ -130,6 +130,24 @@ public interface DVTOptionsCore extends PipelineOptions {
   void setPartitionCount(Integer value);
 
   /**
+   * Partition filter ratio
+   */
+  @Description("Partition filter ratio")
+  @Default.Integer(-1)
+  Integer getPartitionFilterRatio();
+
+  void setPartitionFilterRatio(Integer value);
+
+  /**
+   * Table spec json
+   */
+  @Description("Table spec json")
+  @Default.String("")
+  String getTableSpecJson();
+
+  void setTableSpecJson(String value);
+
+  /**
    * Adjust timestamp precision
    */
   @Description("Adjust timestamp precision")
