@@ -1,7 +1,7 @@
 package com.google.migration.partitioning;
 
-import com.google.migration.Constants;
 import com.google.migration.dto.PartitionRange;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -12,12 +12,13 @@ public class LongPartitionRangeListFetcher implements PartitionRangeListFetcher 
 
   @Override
   public List<PartitionRange> getPartitionRanges(Integer partitionCount) {
-    return getPartitionRangesWithCoverage(partitionCount, Constants.PERCENTAGE_CALCULATION_DENOMINATOR);
+    return getPartitionRangesWithCoverage(partitionCount,
+        BigDecimal.ONE);
   }
 
   @Override
   public List<PartitionRange> getPartitionRangesWithCoverage(Integer partitionCount,
-      Integer coveragePercent) {
+      BigDecimal coveragePercent) {
     return getPartitionRangesWithCoverage("0",
         String.valueOf(Long.MAX_VALUE),
         partitionCount,
@@ -25,8 +26,10 @@ public class LongPartitionRangeListFetcher implements PartitionRangeListFetcher 
   }
 
   @Override
-  public List<PartitionRange> getPartitionRangesWithCoverage(String startStr, String endStr,
-      Integer partitionCount, Integer coveragePercent) {
+  public List<PartitionRange> getPartitionRangesWithCoverage(String startStr,
+      String endStr,
+      Integer partitionCount,
+      BigDecimal coveragePercent) {
 
     Long start = Long.parseLong(startStr);
     Long end = Long.parseLong(endStr);
@@ -34,8 +37,11 @@ public class LongPartitionRangeListFetcher implements PartitionRangeListFetcher 
     Long stepSize = fullRange/partitionCount;
 
     // Simple implementation of "coverage" - just reduce the step size
-    if(coveragePercent < Constants.PERCENTAGE_CALCULATION_DENOMINATOR) {
-      stepSize = (stepSize/Constants.PERCENTAGE_CALCULATION_DENOMINATOR) * coveragePercent;
+    if(coveragePercent.compareTo(BigDecimal.ONE) < 0) {
+      stepSize = BigDecimal.valueOf(stepSize).multiply(coveragePercent).longValue();
+
+      LOG.info(String.format("Step size: %d in "
+          + "LongPartitionRangeListFetcher.getPartitionRangesWithCoverage", stepSize));
 
       if(stepSize <= 0) {
         throw new RuntimeException("Integer step size <= 0!");

@@ -1,11 +1,11 @@
 package com.google.migration;
 
-import com.google.gson.JsonObject;
 import com.google.migration.common.DVTOptionsCore;
 import com.google.migration.dto.ShardSpec;
 import com.google.migration.dto.TableSpec;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +29,7 @@ public class TableSpecList {
         "select id, name, durationInDays from member_events_type_mapping where id >= @p1 "
             + " and id < @p2",
         0,
-        Constants.PERCENTAGE_CALCULATION_DENOMINATOR, // percentage of range we want to retrieve
+        BigDecimal.ONE,
         TableSpec.LONG_FIELD_TYPE,
         "0",
         String.valueOf(Long.MAX_VALUE)
@@ -42,7 +42,7 @@ public class TableSpecList {
         "select id, memberEventId, numericId, eventTypeId, eventCode, detail from member_events where id >= @p1 "
             + " and id < @p2",
         0,
-        Constants.PERCENTAGE_CALCULATION_DENOMINATOR,
+        BigDecimal.ONE,
         TableSpec.LONG_FIELD_TYPE,
         "0",
         String.valueOf(Long.MAX_VALUE)
@@ -64,7 +64,7 @@ public class TableSpecList {
         "select id, name, durationInDays from member_events_type_mapping where id >= @p1 "
             + " and id < @p2",
         0,
-        Constants.PERCENTAGE_CALCULATION_DENOMINATOR,
+        BigDecimal.ONE,
         TableSpec.LONG_FIELD_TYPE,
         "0",
         String.valueOf(Long.MAX_VALUE),
@@ -80,7 +80,7 @@ public class TableSpecList {
         "select id, memberEventId, numericId, eventTypeId, eventCode, detail from member_events where id >= @p1 "
             + " and id < @p2",
         0,
-        Constants.PERCENTAGE_CALCULATION_DENOMINATOR,
+        BigDecimal.ONE,
         TableSpec.LONG_FIELD_TYPE,
         "0",
         String.valueOf(Long.MAX_VALUE),
@@ -101,7 +101,7 @@ public class TableSpecList {
         "SELECT key, value, data_product_id FROM data_product_metadata "
             + "WHERE data_product_id > $1 AND data_product_id <= $2", // Spangres
         2,
-        2/100 * Constants.PERCENTAGE_CALCULATION_DENOMINATOR,
+        BigDecimal.ONE,
         TableSpec.UUID_FIELD_TYPE,
         "00000000-0000-0000-0000-000000000000",
         "ffffffff-ffff-ffff-ffff-ffffffffffff"
@@ -115,7 +115,7 @@ public class TableSpecList {
         "SELECT * FROM data_product_records "
             + "WHERE id > $1 AND id <= $2",
         0, // zero based index of column that is key (in this case, it's id)
-        2/100 * Constants.PERCENTAGE_CALCULATION_DENOMINATOR, // integer percentage of rows per partition range - top 2 percent *within range*
+        BigDecimal.ONE,
         TableSpec.UUID_FIELD_TYPE,
         "00000000-0000-0000-0000-000000000000",
         //"02010000-0000-0000-ffff-ffffffffffff"
@@ -140,6 +140,7 @@ public class TableSpecList {
         TableSpec tableSpec = new TableSpec();
 
         JSONObject jsonObject = jsonarray.getJSONObject(i);
+
         tableSpec.setTableName(jsonObject.getString("tableName"));
         tableSpec.setSourceQuery(jsonObject.getString("sourceQuery"));
         tableSpec.setDestQuery(jsonObject.getString("destQuery"));
@@ -147,8 +148,21 @@ public class TableSpecList {
         tableSpec.setRangeFieldType(jsonObject.getString("rangeFieldType"));
         tableSpec.setRangeStart(jsonObject.getString("rangeStart"));
         tableSpec.setRangeEnd(jsonObject.getString("rangeEnd"));
-        tableSpec.setPartitionCount(jsonObject.getInt("partitionCount"));
-        tableSpec.setPartitionFilterRatio(jsonObject.getInt("partitionFilterRatio"));
+
+        tableSpec.setRangeCoverage(
+            jsonObject.isNull("rangeCoverage") ?
+                BigDecimal.valueOf(100) :
+                jsonObject.getBigDecimal("rangeCoverage"));
+
+        tableSpec.setPartitionCount(
+            jsonObject.isNull("partitionCount") ?
+                100 :
+                jsonObject.getInt("partitionCount"));
+
+        tableSpec.setPartitionFilterRatio(
+            jsonObject.isNull("partitionFilterRatio") ?
+                -1 :
+                jsonObject.getInt("partitionFilterRatio"));
 
         tableSpecs.add(tableSpec);
 

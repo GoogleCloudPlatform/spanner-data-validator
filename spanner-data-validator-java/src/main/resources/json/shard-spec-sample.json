@@ -1,0 +1,9 @@
+{
+  "hostname-prefix": "testhost-",
+  "dbname-prefix": "test-",
+  "host-count": "2",
+  "hostname-start": "001",
+  "shards-per-host": "8",
+  "shard-count": "16",
+  "shard-start": "0000"
+}

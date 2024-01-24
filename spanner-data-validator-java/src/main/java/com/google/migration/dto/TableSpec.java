@@ -1,5 +1,6 @@
 package com.google.migration.dto;
 
+import java.math.BigDecimal;
 import org.apache.beam.sdk.coders.DefaultCoder;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
 import org.joda.time.DateTime;
@@ -16,7 +17,7 @@ public class TableSpec {
   private Integer rangeFieldIndex;
   private String rangeFieldType;
   private String destQuery;
-  private Integer rangeCoverage;
+  private BigDecimal rangeCoverage;
   private String rangeStart;
   private String rangeEnd;
   private DateTime lastUpdatedTimeCutoff;
@@ -31,7 +32,7 @@ public class TableSpec {
       String sourceQueryIn,
       String destQueryIn,
       Integer rangeFieldIndexIn,
-      Integer rangeCoverageIn,
+      BigDecimal rangeCoverageIn,
       String rangeFieldTypeIn,
       String rangeStartIn,
       String rangeEndIn) {
@@ -49,7 +50,7 @@ public class TableSpec {
       String sourceQueryIn,
       String destQueryIn,
       Integer rangeFieldIndexIn,
-      Integer rangeCoverageIn,
+      BigDecimal rangeCoverageIn,
       String rangeFieldTypeIn,
       String rangeStartIn,
       String rangeEndIn,
@@ -69,7 +70,7 @@ public class TableSpec {
       String sourceQueryIn,
       String destQueryIn,
       Integer rangeFieldIndexIn,
-      Integer rangeCoverageIn,
+      BigDecimal rangeCoverageIn,
       String rangeFieldTypeIn,
       String rangeStartIn,
       String rangeEndIn,
@@ -91,7 +92,7 @@ public class TableSpec {
       String sourceQueryIn,
       String destQueryIn,
       Integer rangeFieldIndexIn,
-      Integer rangeCoverageIn,
+      BigDecimal rangeCoverageIn,
       String rangeFieldTypeIn,
       String rangeStartIn,
       String rangeEndIn,
@@ -141,11 +142,11 @@ public class TableSpec {
     this.destQuery = destQuery;
   }
 
-  public Integer getRangeCoverage() {
+  public BigDecimal getRangeCoverage() {
     return rangeCoverage;
   }
 
-  public void setRangeCoverage(Integer rangeCoverage) {
+  public void setRangeCoverage(BigDecimal rangeCoverage) {
     this.rangeCoverage = rangeCoverage;
   }
 

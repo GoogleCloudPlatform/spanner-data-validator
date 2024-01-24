@@ -74,7 +74,7 @@ import org.slf4j.LoggerFactory;
 
 public class JDBCToSpannerDVTWithHash {
   protected static final String POSTGRES_JDBC_DRIVER = "org.postgresql.Driver";
-  protected static final String MYSQL_JDBC_DRIVER = "com.mysql.jdbc.Driver";
+  protected static final String MYSQL_JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";
   private static final Logger LOG = LoggerFactory.getLogger(JDBCToSpannerDVTWithHash.class);
 
   // [START JDBCToSpannerDVTWithHash_options]
@@ -491,11 +491,14 @@ public class JDBCToSpannerDVTWithHash {
     List<PartitionRange> bRanges;
 
     if(partitionFilterRatio > 0) {
+      LOG.info("Getting partition ranges w/ filtering");
       bRanges = fetcher.getPartitionRangesWithPartitionFilter(tableSpec.getRangeStart(),
           tableSpec.getRangeEnd(),
           partitionCount,
           partitionFilterRatio);
     } else {
+      LOG.info("Getting partition ranges w/ coverage");
+
       bRanges = fetcher.getPartitionRangesWithCoverage(tableSpec.getRangeStart(),
           tableSpec.getRangeEnd(),
           partitionCount,

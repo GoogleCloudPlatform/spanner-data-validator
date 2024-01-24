@@ -2,6 +2,7 @@ package com.google.migration.partitioning;
 
 import com.google.migration.Constants;
 import com.google.migration.dto.PartitionRange;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,13 +15,13 @@ public class UUIDPartitionRangeListFetcher implements PartitionRangeListFetcher 
   @Override
   public List<PartitionRange> getPartitionRanges(Integer partitionCount) {
     return getPartitionRangesWithCoverage(partitionCount,
-        Constants.PERCENTAGE_CALCULATION_DENOMINATOR);
+        BigDecimal.ONE);
   }
 
   @Override
   public List<PartitionRange> getPartitionRangesWithCoverage(
       Integer partitionCount,
-      Integer coveragePercent) {
+      BigDecimal coveragePercent) {
     return getPartitionRangesWithCoverage("00000000-0000-0000-0000-000000000000",
         "ffffffff-ffff-ffff-ffff-ffffffffffff",
         partitionCount,
@@ -31,7 +32,7 @@ public class UUIDPartitionRangeListFetcher implements PartitionRangeListFetcher 
   public List<PartitionRange> getPartitionRangesWithCoverage(String startStr,
       String endStr,
       Integer partitionCount,
-      Integer coveragePercent) {
+      BigDecimal coveragePercent) {
     UUID start = UUID.fromString(startStr);
     UUID end = UUID.fromString(endStr);
 
@@ -42,15 +43,16 @@ public class UUIDPartitionRangeListFetcher implements PartitionRangeListFetcher 
     BigInteger stepSize = fullRange.divide(BigInteger.valueOf(partitionCount.intValue()));
 
     // Simple implementation of "coverage" - just reduce the step size
-    if(coveragePercent < Constants.PERCENTAGE_CALCULATION_DENOMINATOR) {
-      stepSize = stepSize
-          .divide(BigInteger.valueOf(Constants.PERCENTAGE_CALCULATION_DENOMINATOR))
-          .multiply(BigInteger.valueOf(coveragePercent));
+    if(coveragePercent.compareTo(BigDecimal.ONE) < 0) {
+      BigDecimal stepSizeDecimal = new BigDecimal(stepSize);
+      stepSize = stepSizeDecimal.multiply(coveragePercent).toBigInteger();
+
+      LOG.info(String.format("Step size: %s in "
+          + "UUIDPartitionRangeListFetcher.getPartitionRangesWithCoverage", stepSize));
 
       if(stepSize.compareTo(BigInteger.ONE) <= 0) {
         throw new RuntimeException("UUID step size <= 0!");
       }
-
     }
 
     ArrayList<PartitionRange> bRanges = new ArrayList<>();
