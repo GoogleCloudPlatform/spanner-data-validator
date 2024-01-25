@@ -18,13 +18,13 @@ Example:
 
 ```java
     TableSpec spec = new TableSpec(
-        "DataProductMetadata",
-        "select * from \"data-products\".data_product_metadata where data_product_id > uuid(?) and data_product_id <= uuid(?)",
-        "SELECT key, value, data_product_id FROM data_product_metadata "
-            + "WHERE data_product_id > $1 AND data_product_id <= $2",
-        2,
-        100,
-        TableSpec.UUID_FIELD_TYPE
+    "DataProductMetadata",
+    "select * from \"data-products\".data_product_metadata where data_product_id > uuid(?) and data_product_id <= uuid(?)",
+    "SELECT key, value, data_product_id FROM data_product_metadata "
+    + "WHERE data_product_id > $1 AND data_product_id <= $2",
+    2,
+    100,
+    TableSpec.UUID_FIELD_TYPE
     );
 ```
 
@@ -63,7 +63,7 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 --username=kt_user \
 --password=ktpas42* \
 --sourceDB=member_events_db \
---tableSpecJson=json/member-events-only-with-coverage-spec.json \
+--tableSpecJson=json/member-events-spec.json \
 --supportShardedSource=false \
 --tempLocation=gs://bigdata-stuff/df1 \
 --projectId=kt-shared-project \
