@@ -1,0 +1,30 @@
+# Some examples showing how to configure your TableSpec
+
+Two tables
+
+```
+[
+  {
+    "tableName": "member_events_type_mapping",
+    "sourceQuery": "select id, name, durationInDays from member_events_type_mapping where id >= ? and id < ?",
+    "destQuery": "select id, name, durationInDays from member_events_type_mapping where id >= @p1 and id < @p2",
+    "rangeFieldIndex": "0",
+    "rangeFieldType": "Long",
+    "rangeStart": "0",
+    "rangeEnd": "1000000",
+    "partitionCount": "100",
+    "rangeCoverage": "0.2"
+  },
+  {
+    "tableName": "member_events",
+    "sourceQuery": "select id, memberEventId, numericId, eventTypeId, eventCode, detail from member_events where id >= ? and id < ?",
+    "destQuery": "select id, memberEventId, numericId, eventTypeId, eventCode, detail from member_events where id >= @p1 and id < @p2",
+    "rangeFieldIndex": "0",
+    "rangeFieldType": "Long",
+    "rangeStart": "0",
+    "rangeEnd": "10000000",
+    "partitionCount": "100",
+    "rangeCoverage": "0.2"
+  }
+]
+```

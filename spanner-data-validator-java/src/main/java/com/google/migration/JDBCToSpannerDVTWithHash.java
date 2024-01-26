@@ -19,7 +19,6 @@ import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.Struct;
-import com.google.migration.TableSpecList.ShardSpecList;
 import com.google.migration.common.DVTOptionsCore;
 import com.google.migration.common.JDBCRowMapper;
 import com.google.migration.dofns.CountMatchesDoFn;
@@ -166,7 +165,7 @@ public class JDBCToSpannerDVTWithHash {
         partitionFilterRatio);
 
     String tableName = tableSpec.getTableName();
-    Boolean supportShardedSource = options.getSupportShardedSource();
+    String shardSpecJsonFile = options.getShardSpecJson();
 
     String createRangesForTableStep = String.format("CreateRangesForTable-%s", tableName);
     PCollection<PartitionRange> pRanges = p.apply(createRangesForTableStep, Create.of(bRanges));
@@ -195,7 +194,7 @@ public class JDBCToSpannerDVTWithHash {
 
     PCollection<HashResult> jdbcRecords;
 
-    if(!supportShardedSource) {
+    if(!Helpers.isNullOrEmpty(shardSpecJsonFile)) {
       jdbcRecords =
           getJDBCRecords(tableName,
               tableSpec.getSourceQuery(),
@@ -368,7 +367,9 @@ public class JDBCToSpannerDVTWithHash {
       driver = MYSQL_JDBC_DRIVER;
     }
 
-    List<ShardSpec> shardSpecs = ShardSpecList.getShardSpecs(options);
+    String shardSpecJsonFile = options.getShardSpecJson();
+
+    List<ShardSpec> shardSpecs = ShardSpecList.getShardSpecsFromJsonFile(shardSpecJsonFile);
     ArrayList<PCollection<HashResult>> pCollections = new ArrayList<>();
 
     for(ShardSpec shardSpec: shardSpecs) {

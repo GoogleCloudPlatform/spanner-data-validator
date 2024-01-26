@@ -156,9 +156,9 @@ public interface DVTOptionsCore extends PipelineOptions {
 
   void setAdjustTimestampPrecision(Boolean value);
 
-  @Description("Support sharded source")
-  @Default.Boolean(false)
-  Boolean getSupportShardedSource();
+  @Description("Shard spec json file")
+  @Default.String("")
+  String getShardSpecJson();
 
-  void setSupportShardedSource(Boolean value);
+  void setShardSpecJson(String value);
 } // class

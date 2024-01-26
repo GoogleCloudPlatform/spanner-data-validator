@@ -126,7 +126,7 @@ public class TableSpecList {
     return tableSpecs;
   }
 
-  public static List<TableSpec> getFromJsonFile(String jsonFile) throws IOException {
+  public static List<TableSpec> getFromJsonFile(String jsonFile) {
     try {
       ClassLoader classloader = Thread.currentThread().getContextClassLoader();
       InputStream is = classloader.getResourceAsStream(jsonFile);
@@ -176,33 +176,4 @@ public class TableSpecList {
 
     return null;
   }
-
-  public static class ShardSpecList {
-    public static List<ShardSpec> getShardSpecs(DVTOptionsCore options) {
-      ArrayList<ShardSpec> shardSpecs = new ArrayList<>();
-
-      String host = options.getServer();
-      String user = options.getUsername();
-      String pass = options.getPassword();
-      String db = options.getSourceDB();
-
-      ShardSpec spec = new ShardSpec(host,
-          user,
-          pass,
-          String.format("%s", db),
-          String.format("id%d", 1),
-          0);
-      shardSpecs.add(spec);
-
-      spec = new ShardSpec(host,
-          user,
-          pass,
-          String.format("%s%d", db, 2),
-          String.format("id%d", 2),
-          1);
-      shardSpecs.add(spec);
-
-      return shardSpecs;
-    }
-  } // class
-}
+} // class

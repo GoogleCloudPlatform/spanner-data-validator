@@ -64,7 +64,7 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 --password=ktpas42* \
 --sourceDB=member_events_db \
 --tableSpecJson=json/member-events-spec.json \
---supportShardedSource=false \
+--shardSpecJson=json/shard-spec-sample-v1.json \
 --tempLocation=gs://bigdata-stuff/df1 \
 --projectId=kt-shared-project \
 --instanceId=dvt-test1 \
@@ -72,9 +72,3 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 --streaming=false \
 " \
 -Pdataflow-runner
-
-## Potential improvements/ TODOs (not in priority order)
-1. Read tablespec from Json (in GCS?)
-2. Fine tuning of reporting schema and data (BQ)
-3. General cleanup and reorg/refactor
-4. BigQueryIO write method (use direct write)

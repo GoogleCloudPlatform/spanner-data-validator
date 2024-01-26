@@ -63,7 +63,11 @@ public class ShardSpec {
   public ShardSpec() {
   }
 
-  public ShardSpec(String hostIn, String userIn, String passIn, String dbIn, String shardId,
+  public ShardSpec(String hostIn,
+      String userIn,
+      String passIn,
+      String dbIn,
+      String shardId,
       Integer shardIndex) {
     host = hostIn;
     user = userIn;

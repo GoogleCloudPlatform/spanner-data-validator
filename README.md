@@ -23,24 +23,37 @@ Partitioning is key to performing data validation at scale.
 
 1. Access to a GCP account
 2. Access to Spanner (Since you'll be performing validation against Spanner :))
-3. Access to BigQuery
+3. Access to BigQuery 
 4. Access to Dataflow
+
+NOTE: See section below for specific permissions
+
+## Permissions
+
+1. User should have permissions to kick off Dataflow jobs
+2. Default Dataflow service agent should permissions to read/write from buckets: See [link](https://cloud.google.com/dataflow/docs/concepts/security-and-permissions#df-service-account)
+3. Dataflow worker account (default is compute engine service account) should have
+   - Ability to create tables in specified dataset
+   - Ability to write to the specified dataset
+   - Read from Spanner
+   - Read from JDBC (MySQL or Postgres)
+
+## BigQuery datasets
+
+In order to perform reporting, the validator expects you supply a BigQuery Dataset (has to exist) and Table name (will be created if it doesn't exist).
+
+## Connectivity
+
+1. The machine from which you're kicking off the Dataflow job must have connectivity to the MySQL/Postgres database(s) and the Spanner database. This is true whether you intend for the comparison job to run locally or on Dataflow.
+2. When running on Dataflow, the Dataflow workers must be able to talk to the MySQL/Postgres database(s) and the Spanner database.
 
 ## Installation
 
 Please refer to the [installation instructions](Installation.md) to get started.
 
-## Running validation from your local machine
+## Common scenarios
 
-NOTE: need connectivity
-
-## Running validation using Dataflow
-
-As alluded to above, Dataflow is a fully managed and scalable service for running Apache Beam applications on GCP. And once again, don't worry if you're new to Dataflow - simply follow the steps below to get your own validation job up and running.
-
-1. 
-
-
+See [CLI options for common scenarios](Scenarios.md)
 
 ## Supported configurations
 

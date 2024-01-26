@@ -1,0 +1,12 @@
+{
+  "hostname-prefix": "testhost-",
+  "dbname-prefix": "test-",
+  "host-count": "2",
+  "hostname-suffix-start": "1",
+  "hostname-suffix-digits": "3",
+  "shard-count": "16",
+  "shard-suffix-start": "0",
+  "shard-suffix-digits": "4",
+  "username": "user",
+  "password": "pass"
+}

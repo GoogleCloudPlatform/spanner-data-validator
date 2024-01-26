@@ -88,4 +88,13 @@ public class BigIntUUIDTest {
     result = Helpers.isUUIDInRange(valueToCheckUUID, KV.of(rangeStartUUID, rangeEndUUID));
     assertTrue(result);
   }
+
+  @Test
+  public void scaleTest() throws Exception {
+    BigInteger bigMax = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", 16);
+    BigInteger intMax = BigInteger.valueOf(Integer.MAX_VALUE);
+
+    BigInteger scale = bigMax.divide(intMax);
+    System.out.println(String.format("Scale: %s", scale));
+  }
 } // class BigIntUUIDTest
