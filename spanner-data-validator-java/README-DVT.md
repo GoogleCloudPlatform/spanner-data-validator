@@ -48,7 +48,7 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 
 ## Running locally (with java and compiled jar)
 
-NOTE: This requires a previously compiled jar file
+NOTE: This requires a previously compiled jar file; and please adjust the path to reflect the location of the jar in your environment.
 
 java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
 --protocol=mysql \
@@ -62,6 +62,7 @@ java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
 --projectId=kt-shared-project \
 --instanceId=dvt-test1 \
 --spannerDatabaseId=dvt-test1-db \
+--BQDatasetName=SpannerDVTDataset \
 --streaming=false \
 --runner=DirectRunner
 
@@ -93,7 +94,7 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 
 ## Running on Dataflow (with java and compiled jar)
 
-NOTE: This requires a previously compiled jar file
+NOTE: This requires a previously compiled jar file; and please adjust the path to reflect the location of the jar in your environment.
 
 java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
 --project=kt-shared-project \
