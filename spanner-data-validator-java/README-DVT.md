@@ -90,3 +90,28 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 --streaming=false \
 " \
 -Pdataflow-runner
+
+## Running on Dataflow (with java and compiled jar)
+
+NOTE: This requires a previously compiled jar file
+
+java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
+--project=kt-shared-project \
+--network=default \
+--subnetwork=https://www.googleapis.com/compute/v1/projects/kt-shared-project/regions/us-central1/subnetworks/default \
+--numWorkers=10 \
+--maxNumWorkers=20 \
+--region=us-central1 \
+--protocol=mysql \
+--server=10.128.15.212 \
+--port=3306 \
+--username=kt_user \
+--password=ktpas42* \
+--sourceDB=member_events_db \
+--tableSpecJson=src/main/resources/json/member-events-only-with-coverage-spec.json \
+--tempLocation=gs://bigdata-stuff/df1 \
+--projectId=kt-shared-project \
+--instanceId=dvt-test1 \
+--spannerDatabaseId=dvt-test1-db \
+--streaming=false \
+--runner=DataflowRunner
