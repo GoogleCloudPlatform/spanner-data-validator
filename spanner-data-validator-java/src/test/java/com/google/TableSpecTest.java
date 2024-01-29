@@ -11,7 +11,7 @@ public class TableSpecTest {
   @Test
   public void tableSpecReadFromJsonTest() throws Exception {
     List<TableSpec> tsList =
-        TableSpecList.getFromJsonFile("json/sample-tablespec.json");
+        TableSpecList.getFromJsonResource("json/sample-tablespec.json");
 
     assertEquals(tsList.size(), 1);
   }

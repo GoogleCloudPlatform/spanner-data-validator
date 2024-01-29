@@ -34,10 +34,20 @@ public class ShardSpecList {
     return shardSpecs;
   }
 
-  public static List<ShardSpec> getShardSpecsFromJsonFile(String resourceFilename) {
-    ArrayList<ShardSpec> shardSpecs = new ArrayList<>();
-
+  public static List<ShardSpec> getShardSpecsFromJsonResource(String resourceFilename) {
     ShardSpecJsonDef ssDef = ShardSpecJsonDef.fromJsonResourceFile(resourceFilename);
+
+    return getShardSpecsFromShardSpecJsonDef(ssDef);
+  }
+
+  public static List<ShardSpec> getShardSpecsFromJsonFile(String jsonFile) {
+    ShardSpecJsonDef ssDef = ShardSpecJsonDef.fromJsonFile(jsonFile);
+
+    return getShardSpecsFromShardSpecJsonDef(ssDef);
+  }
+
+  private static List<ShardSpec> getShardSpecsFromShardSpecJsonDef(ShardSpecJsonDef ssDef) {
+    ArrayList<ShardSpec> shardSpecs = new ArrayList<>();
 
     Integer hostCount = ssDef.getHostCount();
     Integer shardCount = ssDef.getShardCount();

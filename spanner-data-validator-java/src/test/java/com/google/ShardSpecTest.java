@@ -11,7 +11,7 @@ public class ShardSpecTest {
   @Test
   public void shardSpecReadFromJsonTest() throws Exception {
     List<ShardSpec> sList =
-        ShardSpecList.getShardSpecsFromJsonFile("json/shard-spec-sample-v1.json");
+        ShardSpecList.getShardSpecsFromJsonResource("json/shard-spec-sample-v1.json");
 
     assertEquals(16, sList.size());
     assertEquals("testhost-001", sList.get(0).getHost());
@@ -26,7 +26,7 @@ public class ShardSpecTest {
   @Test
   public void singleShardSpecTest() throws Exception {
     List<ShardSpec> sList =
-        ShardSpecList.getShardSpecsFromJsonFile("json/shard-spec-single-shard-sample.json");
+        ShardSpecList.getShardSpecsFromJsonResource("json/shard-spec-single-shard-sample.json");
 
     assertEquals(1, sList.size());
     assertEquals("testhost-001", sList.get(0).getHost());

@@ -1,14 +1,13 @@
 package com.google.migration;
 
-import com.google.migration.common.DVTOptionsCore;
-import com.google.migration.dto.ShardSpec;
 import com.google.migration.dto.TableSpec;
-import java.io.IOException;
+import java.io.File;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -126,12 +125,8 @@ public class TableSpecList {
     return tableSpecs;
   }
 
-  public static List<TableSpec> getFromJsonFile(String jsonFile) {
+  public static List<TableSpec> getFromJsonString(String jsonStr) {
     try {
-      ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-      InputStream is = classloader.getResourceAsStream(jsonFile);
-
-      String jsonStr = new String(is.readAllBytes(), StandardCharsets.UTF_8);
       JSONArray jsonarray = new JSONArray(jsonStr);
 
       List<TableSpec> tableSpecs = new ArrayList<>();
@@ -168,6 +163,35 @@ public class TableSpecList {
       } // for
 
       return tableSpecs;
+    } catch (Exception ex) {
+      LOG.error("Exception while loading table specs from json string");
+      LOG.error(ex.getMessage());
+      LOG.error(ex.getStackTrace().toString());
+    }
+
+    return null;
+  }
+
+  public static List<TableSpec> getFromJsonResource(String jsonFile) {
+    try {
+      ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+      InputStream is = classloader.getResourceAsStream(jsonFile);
+
+      String jsonStr = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+      return getFromJsonString(jsonStr);
+    } catch (Exception ex) {
+      LOG.error("Exception while loading table specs from json resource");
+      LOG.error(ex.getMessage());
+      LOG.error(ex.getStackTrace().toString());
+    }
+
+    return null;
+  }
+
+  public static List<TableSpec> getFromJsonFile(String jsonFile) {
+    try {
+      String jsonStr = FileUtils.readFileToString(new File(jsonFile), StandardCharsets.UTF_8);
+      return getFromJsonString(jsonStr);
     } catch (Exception ex) {
       LOG.error("Exception while loading table specs from json file");
       LOG.error(ex.getMessage());

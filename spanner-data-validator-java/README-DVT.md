@@ -28,7 +28,7 @@ Example:
     );
 ```
 
-## Running locally
+## Running locally (with Maven)
 
 mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWithHash \
 -Dexec.args="--protocol=mysql \
@@ -37,8 +37,7 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 --username=kt_user \
 --password=ktpas42* \
 --sourceDB=member_events_db \
---supportShardedSource=false \
---tableSpecJson=json/member-events-only-with-coverage-spec.json \
+--tableSpecJson=src/main/resources/json/member-events-only-with-coverage-spec.json \
 --tempLocation=gs://bigdata-stuff/df1 \
 --projectId=kt-shared-project \
 --instanceId=dvt-test1 \
@@ -46,6 +45,25 @@ mvn compile exec:java -Dexec.mainClass=com.google.migration.JDBCToSpannerDVTWith
 --streaming=false \
 " \
 -Pdirect-runner
+
+## Running locally (with java and compiled jar)
+
+NOTE: This requires a previously compiled jar file
+
+java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
+--protocol=mysql \
+--server=localhost \
+--port=3306 \
+--username=kt_user \
+--password=ktpas42* \
+--sourceDB=member_events_db \
+--tableSpecJson=src/main/resources/json/member-events-only-with-coverage-spec.json \
+--tempLocation=gs://bigdata-stuff/df1 \
+--projectId=kt-shared-project \
+--instanceId=dvt-test1 \
+--spannerDatabaseId=dvt-test1-db \
+--streaming=false \
+--runner=DirectRunner
 
 ## Running on Dataflow
 

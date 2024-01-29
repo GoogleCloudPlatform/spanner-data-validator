@@ -1,11 +1,13 @@
 package com.google.migration.dto;
 
 import com.google.migration.TableSpecList;
+import java.io.File;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -34,6 +36,31 @@ public class ShardSpecJsonDef {
       InputStream is = classloader.getResourceAsStream(resourceName);
 
       String jsonStr = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+      return fromJsonString(jsonStr);
+    } catch (Exception ex) {
+      LOG.error("Exception while loading shard spec from json file");
+      LOG.error(ex.getMessage());
+      LOG.error(ex.getStackTrace().toString());
+    }
+
+    return null;
+  }
+
+  public static ShardSpecJsonDef fromJsonFile(String jsonFile) {
+    try {
+      String jsonStr = FileUtils.readFileToString(new File(jsonFile), StandardCharsets.UTF_8);
+      return fromJsonString(jsonStr);
+    } catch (Exception ex) {
+      LOG.error("Exception while loading shard spec from json file");
+      LOG.error(ex.getMessage());
+      LOG.error(ex.getStackTrace().toString());
+    }
+
+    return null;
+  }
+
+  public static ShardSpecJsonDef fromJsonString(String jsonStr) {
+    try {
       JSONObject jsonObject = new JSONObject(jsonStr);
 
       ShardSpecJsonDef ssJsonDef = new ShardSpecJsonDef();

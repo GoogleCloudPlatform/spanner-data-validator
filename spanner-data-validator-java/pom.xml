@@ -105,6 +105,21 @@
         <version>${maven-jar-plugin.version}</version>
       </plugin>
 
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>${maven-jar-plugin.version}</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <addClasspath>true</addClasspath>
+              <classpathPrefix>lib/</classpathPrefix>
+              <mainClass>com.google.migration.JDBCToSpannerDVTWithHash</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+
       <!--
         Configures `mvn package` to produce a bundled jar ("fat jar") for runners
         that require this for job submission to a cluster.
@@ -360,6 +375,12 @@
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
       <version>2.10.1</version>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.15.1</version>
     </dependency>
 
     <!-- Adds a dependency on the Python Multi-language pipelines API module. -->

@@ -194,7 +194,7 @@ public class JDBCToSpannerDVTWithHash {
 
     PCollection<HashResult> jdbcRecords;
 
-    if(!Helpers.isNullOrEmpty(shardSpecJsonFile)) {
+    if(Helpers.isNullOrEmpty(shardSpecJsonFile)) {
       jdbcRecords =
           getJDBCRecords(tableName,
               tableSpec.getSourceQuery(),
