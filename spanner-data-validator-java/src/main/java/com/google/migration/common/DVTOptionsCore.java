@@ -112,13 +112,22 @@ public interface DVTOptionsCore extends PipelineOptions {
   void setRunName(String value);
 
   /**
-   * BQ Table
+   * BQ Table holding comparison results
    */
   @Description("BQTableName")
   @Default.String("SpannerDVTResults")
   String getBQTableName();
 
   void setBQTableName(String value);
+
+  /**
+   * BQ Table holding conflicting records
+   */
+  @Description("BQConflictRecordsTable")
+  @Default.String("SpannerDVTConflictingRecords")
+  String getConflictingRecordsBQTableName();
+
+  void setConflictingRecordsBQTableName(String value);
 
   /**
    * Partition count

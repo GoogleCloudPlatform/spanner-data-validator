@@ -97,4 +97,11 @@ public class BigIntUUIDTest {
     BigInteger scale = bigMax.divide(intMax);
     System.out.println(String.format("Scale: %s", scale));
   }
+
+  @Test
+  public void uuidMaxTest() throws Exception {
+    BigInteger bigMax = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", 16);
+
+    System.out.println(String.format("UUID Max: %s", bigMax));
+  }
 } // class BigIntUUIDTest

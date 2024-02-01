@@ -1,0 +1,13 @@
+[
+  {
+    "tableName": "DataProductMetadata",
+    "sourceQuery": "select * from \"data-products\".data_product_metadata where data_product_id > uuid(?) and data_product_id <= uuid(?)",
+    "destQuery": "select key, value, data_product_id FROM data_product_metadata WHERE data_product_id > $1 AND data_product_id <= $2",
+    "rangeFieldIndex": "2",
+    "rangeFieldType": "UUID",
+    "rangeStart": "110000f9-b8a8-ebc4-5f39-16decf7248a7",
+    "rangeEnd": "19000000-9465-3f9d-2461-aa7bcfc8afc0",
+    "partitionCount": "100",
+    "rangeCoverage": "0.5"
+  }
+]

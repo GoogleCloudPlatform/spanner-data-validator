@@ -23,6 +23,14 @@ public class SharedTags {
   // unmatched source/jdbc records by range
   public static final TupleTag<KV<String, Long>> unmatchedJDBCRecordsTag =
       new TupleTag<KV<String, Long>>(){};
+
+  // unmatched spanner/target record *values* by range
+  public static final TupleTag<HashResult> unmatchedSpannerRecordValuesTag =
+      new TupleTag<>() {};
+  // unmatched source/jdbc record *values* by range
+  public static final TupleTag<HashResult> unmatchedJDBCRecordValuesTag =
+      new TupleTag<>() {};
+
   // count of matched records by range
   public static final TupleTag<Long> matchedRecordCountTag = new TupleTag<>();
   // count of unmatched spanner records by range

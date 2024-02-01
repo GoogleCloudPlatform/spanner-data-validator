@@ -116,3 +116,64 @@ java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
 --spannerDatabaseId=dvt-test1-db \
 --streaming=false \
 --runner=DataflowRunner
+
+## Running postgres locally (with java and compiled jar)
+
+NOTE: This requires a previously compiled jar file; and please adjust the path to reflect the location of the jar in your environment.
+
+java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
+--protocol=postgresql \
+--server=localhost \
+--port=5432 \
+--username=kt_user \
+--password=ktpas42* \
+--sourceDB=kt_db \
+--tableSpecJson=src/main/resources/json/postgres-uuid-tablespec.json \
+--tempLocation=gs://bigdata-stuff/df1 \
+--projectId=kt-shared-project \
+--instanceId=tempus-test1 \
+--spannerDatabaseId=tempus_db1 \
+--BQDatasetName=SpannerDVTDataset \
+--streaming=false \
+--runner=DirectRunner
+
+## Running postgres on Dataflow (with java and compiled jar)
+
+NOTE: This requires a previously compiled jar file; and please adjust the path to reflect the location of the jar in your environment.
+
+java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
+--project=kt-shared-project \
+--network=default \
+--subnetwork=https://www.googleapis.com/compute/v1/projects/kt-shared-project/regions/us-central1/subnetworks/default \
+--numWorkers=10 \
+--region=us-central1 \
+--protocol=postgresql \
+--server=10.128.0.24 \
+--port=5432 \
+--username=kt_user \
+--password=ktpas42* \
+--sourceDB=kt_db \
+--tableSpecJson=src/main/resources/json/postgres-uuid-narrow-tablespec.json \
+--tempLocation=gs://bigdata-stuff/df1 \
+--projectId=kt-shared-project \
+--instanceId=tempus-test1 \
+--spannerDatabaseId=tempus_db1 \
+--streaming=false \
+--autoscalingAlgorithm=NONE \
+--runner=DataflowRunner
+
+## Reporting query samples
+
+```sql
+SELECT * FROM `kt-shared-project.SpannerDVTDataset.SpannerDVTResults` order by run_name desc LIMIT 1000
+
+select run_name, sum(source_count), sum(target_count), sum(match_count), sum(source_conflict_count), sum(target_conflict_count)
+from `kt-shared-project.SpannerDVTDataset.SpannerDVTResults`
+group by run_name
+order by run_name desc
+
+SELECT count(1) FROM `kt-shared-project.SpannerDVTDataset.SpannerDVTResults` where run_name = 'Run-2024-01-31-09-50-15'
+SELECT count(1) FROM `kt-shared-project.SpannerDVTDataset.SpannerDVTResults` where run_name = 'Run-2024-01-31-09-39-37'
+
+SELECT distinct run_name FROM `kt-shared-project.SpannerDVTDataset.SpannerDVTResults` order by run_name desc
+```

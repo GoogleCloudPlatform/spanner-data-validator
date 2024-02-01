@@ -9,8 +9,10 @@ import static com.google.migration.SharedTags.spannerTag;
 import static com.google.migration.SharedTags.targetRecordCountTag;
 import static com.google.migration.SharedTags.targetRecordsTag;
 import static com.google.migration.SharedTags.unmatchedJDBCRecordCountTag;
+import static com.google.migration.SharedTags.unmatchedJDBCRecordValuesTag;
 import static com.google.migration.SharedTags.unmatchedJDBCRecordsTag;
 import static com.google.migration.SharedTags.unmatchedSpannerRecordCountTag;
+import static com.google.migration.SharedTags.unmatchedSpannerRecordValuesTag;
 import static com.google.migration.SharedTags.unmatchedSpannerRecordsTag;
 import static com.google.migration.TableSpecList.getTableSpecs;
 
@@ -81,7 +83,7 @@ public class JDBCToSpannerDVTWithHash {
   }
   // [END JDBCToSpannerDVTWithHash_options]
 
-  protected static List<TableFieldSchema> getBQWriteCols() {
+  protected static List<TableFieldSchema> getComparisonResultsBQWriteCols() {
     return Arrays.asList(
         new TableFieldSchema()
             .setName("run_name")
@@ -117,10 +119,30 @@ public class JDBCToSpannerDVTWithHash {
             .setMode("REQUIRED"));
   }
 
-  protected static BigQueryIO.Write<ComparerResult> getBQWrite(DVTOptionsCore options,
+  protected static List<TableFieldSchema> getConflictingRecordsBQWriteCols() {
+    return Arrays.asList(
+        new TableFieldSchema()
+            .setName("run_name")
+            .setType("STRING")
+            .setMode("REQUIRED"),
+        new TableFieldSchema()
+            .setName("range")
+            .setType("STRING")
+            .setMode("REQUIRED"),
+        new TableFieldSchema()
+            .setName("key")
+            .setType("STRING")
+            .setMode("REQUIRED"),
+        new TableFieldSchema()
+            .setName("hash")
+            .setType("STRING")
+            .setMode("REQUIRED"));
+  }
+
+  protected static BigQueryIO.Write<ComparerResult> getComparisonResultsBQWriter(DVTOptionsCore options,
       String tableName) {
 
-    TableSchema bqSchema = new TableSchema().setFields(getBQWriteCols());
+    TableSchema bqSchema = new TableSchema().setFields(getComparisonResultsBQWriteCols());
 
     BigQueryIO.Write<ComparerResult> bqWrite = BigQueryIO.<ComparerResult>write()
         .to(String.format("%s:%s.%s",
@@ -137,6 +159,32 @@ public class JDBCToSpannerDVTWithHash {
                 .set("match_count", x.matchCount)
                 .set("source_conflict_count", x.sourceConflictCount)
                 .set("target_conflict_count", x.targetConflictCount))
+        .withCreateDisposition(CreateDisposition.CREATE_IF_NEEDED)
+        .withSchema(bqSchema)
+        .withWriteDisposition(WriteDisposition.WRITE_APPEND)
+        .withMethod(Write.Method.STORAGE_WRITE_API);
+
+    return bqWrite;
+  }
+
+  protected static BigQueryIO.Write<HashResult> getConflictingRecordsBQWriter(DVTOptionsCore options,
+      String runName,
+      String tableName) {
+
+    TableSchema bqSchema = new TableSchema().setFields(getConflictingRecordsBQWriteCols());
+
+    BigQueryIO.Write<HashResult> bqWrite = BigQueryIO.<HashResult>write()
+        .to(String.format("%s:%s.%s",
+            options.getProjectId(),
+            options.getBQDatasetName(),
+            options.getBQTableName()))
+        .withFormatFunction(
+            (HashResult x) -> new TableRow()
+                .set("run_name", runName)
+                .set("table_or_query", tableName)
+                .set("range", x.range)
+                .set("key", x.key)
+                .set("hash", x.sha256))
         .withCreateDisposition(CreateDisposition.CREATE_IF_NEEDED)
         .withSchema(bqSchema)
         .withWriteDisposition(WriteDisposition.WRITE_APPEND)
@@ -234,7 +282,9 @@ public class JDBCToSpannerDVTWithHash {
             TupleTagList.of(unmatchedSpannerRecordsTag)
                 .and(unmatchedJDBCRecordsTag)
                 .and(sourceRecordsTag)
-                .and(targetRecordsTag)));
+                .and(targetRecordsTag)
+                .and(unmatchedSpannerRecordValuesTag)
+                .and(unmatchedJDBCRecordValuesTag)));
 
     // Count the tagged results by range
 
@@ -262,6 +312,12 @@ public class JDBCToSpannerDVTWithHash {
         countMatches
             .get(targetRecordsTag)
             .apply(String.format("TargetCountForTable-%s", tableName), Count.perKey());
+
+    PCollection<HashResult> unmatchedSpannerValues =
+        countMatches.get(unmatchedSpannerRecordValuesTag);
+
+    PCollection<HashResult> unmatchedJDBCValues =
+        countMatches.get(unmatchedJDBCRecordValuesTag);
 
     // group above counts by key
     PCollection<KV<String, CoGbkResult>> comparerResults =
@@ -491,6 +547,10 @@ public class JDBCToSpannerDVTWithHash {
         PartitionRangeListFetcherFactory.getFetcher(tableSpec.getRangeFieldType());
     List<PartitionRange> bRanges;
 
+    LOG.info(String.format("Partition count is %d for Table %s",
+        partitionCount,
+        tableSpec.getTableName()));
+
     if(partitionFilterRatio > 0) {
       LOG.info("Getting partition ranges w/ filtering");
       bRanges = fetcher.getPartitionRangesWithPartitionFilter(tableSpec.getRangeStart(),
@@ -527,7 +587,7 @@ public class JDBCToSpannerDVTWithHash {
     }
 
     for(TableSpec tableSpec: tableSpecs) {
-      BigQueryIO.Write<ComparerResult> bqWrite = getBQWrite(options, tableSpec.getTableName());
+      BigQueryIO.Write<ComparerResult> bqWrite = getComparisonResultsBQWriter(options, tableSpec.getTableName());
 
       configureComparisonPipeline(p, options, tableSpec, bqWrite);
     }
