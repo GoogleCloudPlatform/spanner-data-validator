@@ -41,17 +41,18 @@ public class UUIDPartitionRangeListFetcher implements PartitionRangeListFetcher 
     BigInteger uuidMin = UUIDHelpers.uuidToBigInt(start);
     BigInteger fullRange = uuidMax.subtract(uuidMin);
     BigInteger stepSize = fullRange.divide(BigInteger.valueOf(partitionCount.intValue()));
+    BigInteger constrainedStepSize = stepSize;
 
     // Simple implementation of "coverage" - just reduce the step size
     if(coveragePercent.compareTo(BigDecimal.ONE) < 0) {
-      BigDecimal stepSizeDecimal = new BigDecimal(stepSize);
-      stepSize = stepSizeDecimal.multiply(coveragePercent).toBigInteger();
+      BigDecimal constrainedStepSizeDecimal = new BigDecimal(constrainedStepSize);
+      constrainedStepSize = constrainedStepSizeDecimal.multiply(coveragePercent).toBigInteger();
 
       LOG.info(String.format("Step size: %s in "
           + "UUIDPartitionRangeListFetcher.getPartitionRangesWithCoverage", stepSize));
 
-      if(stepSize.compareTo(BigInteger.ONE) <= 0) {
-        throw new RuntimeException("UUID step size <= 0!");
+      if(constrainedStepSize.compareTo(BigInteger.ONE) <= 0) {
+        throw new RuntimeException("UUID constrainedStepSize size <= 0!");
       }
     }
 
@@ -63,16 +64,22 @@ public class UUIDPartitionRangeListFetcher implements PartitionRangeListFetcher 
     BigInteger maxRange = uuidMin.add(BigInteger.ONE);
     for(Integer i = 0; i < partitionCount - 1; i++) {
       BigInteger minRange = maxRange;
-      maxRange = minRange.add(stepSize);
+      maxRange = minRange.add(constrainedStepSize);
 
       PartitionRange range = new PartitionRange(UUIDHelpers.bigIntToUUID(minRange).toString(),
           UUIDHelpers.bigIntToUUID(maxRange).toString());
 
       bRanges.add(range);
+
+      maxRange = minRange.add(stepSize);
     }
 
+    BigInteger calculatedEndRange = maxRange.add(constrainedStepSize);
+    if(coveragePercent.compareTo(BigDecimal.ONE) == 0) {
+      calculatedEndRange = uuidMax;
+    }
     PartitionRange range = new PartitionRange(UUIDHelpers.bigIntToUUID(maxRange).toString(),
-        UUIDHelpers.bigIntToUUID(uuidMax).toString());
+        UUIDHelpers.bigIntToUUID(calculatedEndRange).toString());
     bRanges.add(range);
 
     return bRanges;

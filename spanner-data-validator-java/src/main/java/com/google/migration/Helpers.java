@@ -1,6 +1,14 @@
 package com.google.migration;
 
+import com.google.cloud.secretmanager.v1.AccessSecretVersionResponse;
+import com.google.cloud.secretmanager.v1.ProjectName;
+import com.google.cloud.secretmanager.v1.Secret;
+import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
+import com.google.cloud.secretmanager.v1.SecretName;
+import com.google.cloud.secretmanager.v1.SecretVersionName;
 import com.google.cloud.spanner.Type;
+import com.google.migration.common.DVTOptionsCore;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -17,6 +25,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.zip.CRC32C;
+import java.util.zip.Checksum;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.SchemaBuilder;
@@ -326,5 +336,43 @@ public class Helpers {
           .format("Error in Helpers.sha256: %s. Returning original string", ex));
       return originalString;
     }
+  }
+
+  public static String getSecret(String projectId, String secretId, String versionId) {
+    try (SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
+      SecretVersionName secretVersionName = SecretVersionName.of(projectId, secretId, versionId);
+      // Access the secret version.
+      AccessSecretVersionResponse response = client.accessSecretVersion(secretVersionName);
+
+      byte[] data = response.getPayload().getData().toByteArray();
+      Checksum checksum = new CRC32C();
+      checksum.update(data, 0, data.length);
+      if (response.getPayload().getDataCrc32C() != checksum.getValue()) {
+        LOG.error("Data corruption detected while fetching secret");
+        return null;
+      }
+
+      String payload = response.getPayload().getData().toStringUtf8();
+      return payload;
+    } // try
+    catch (IOException e) {
+      LOG.info("Error while attempting to get secret value");
+      LOG.error(e.toString());
+      LOG.error(e.getStackTrace().toString());
+      throw new RuntimeException(e);
+    } // try/catch
+  }
+
+  public static String getJDBCPassword(DVTOptionsCore options) {
+    String pass = options.getPassword();
+    String secretId = options.getDBPassFromSecret();
+    if(!Helpers.isNullOrEmpty(secretId)) {
+      String projectId = options.getProjectId();
+      String secretVersion = options.getDBPassVersionForSecret();
+
+      pass = getSecret(projectId, secretId, secretVersion);
+    }
+
+    return pass;
   }
 } // class Helpers

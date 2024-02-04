@@ -50,14 +50,6 @@ public class BigIntUUIDTest {
   }
 
   @Test
-  public void maxUUIDTest() throws Exception {
-    UUID uuidMax = UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff");
-    BigInteger bigMax = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", 16);
-
-    System.out.println(String.format("Big int max: %s. UUID max: %s", bigMax, Helpers.bigIntToUUID(bigMax)));
-  }
-
-  @Test
   public void uuidToBigIntTest() throws Exception {
     //UUID uuidMax = UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff");
     UUID uuid = UUID.randomUUID();

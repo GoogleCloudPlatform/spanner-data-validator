@@ -33,6 +33,7 @@ import com.google.migration.dto.ShardSpec;
 import com.google.migration.dto.TableSpec;
 import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
+import io.grpc.LoadBalancer.Helper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -390,13 +391,15 @@ public class JDBCToSpannerDVTWithHash {
         options.getPort(),
         options.getSourceDB());
 
+    String jdbcPass = Helpers.getJDBCPassword(options);
+
     PCollection<HashResult> jdbcRecords =
         pRanges.apply(String.format("ReadInParallelForTable-%s", tableName),
             JdbcIO.<PartitionRange, HashResult>readAll()
                 .withDataSourceConfiguration(DataSourceConfiguration.create(
                         driver, connString)
                     .withUsername(options.getUsername())
-                    .withPassword(options.getPassword()))
+                    .withPassword(jdbcPass))
                 .withQuery(query)
                 .withParameterSetter((input, preparedStatement) -> {
                   preparedStatement.setString(1, input.getStartRange());
@@ -428,6 +431,8 @@ public class JDBCToSpannerDVTWithHash {
     List<ShardSpec> shardSpecs = ShardSpecList.getShardSpecsFromJsonFile(shardSpecJsonFile);
     ArrayList<PCollection<HashResult>> pCollections = new ArrayList<>();
 
+    String jdbcPass = Helpers.getJDBCPassword(options);
+
     for(ShardSpec shardSpec: shardSpecs) {
 
       // JDBC conn string
@@ -442,7 +447,7 @@ public class JDBCToSpannerDVTWithHash {
                   .withDataSourceConfiguration(DataSourceConfiguration.create(
                           driver, connString)
                       .withUsername(shardSpec.getUser())
-                      .withPassword(shardSpec.getPassword()))
+                      .withPassword(jdbcPass))
                   .withQuery(query)
                   .withParameterSetter((input, preparedStatement) -> {
                     preparedStatement.setString(1, input.getStartRange());

@@ -38,7 +38,7 @@
     <joda.version>2.10.10</joda.version>
     <junit.version>4.13.1</junit.version>
     <kafka.version>2.4.1</kafka.version>
-    <libraries-bom.version>26.26.0</libraries-bom.version>
+    <libraries-bom.version>26.30.0</libraries-bom.version>
     <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
     <maven-exec-plugin.version>1.6.0</maven-exec-plugin.version>
     <maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
@@ -441,6 +441,11 @@
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-spanner</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-secretmanager</artifactId>
     </dependency>
 
     <!-- Dependencies below this line are specific dependencies needed by the examples code. -->

@@ -56,10 +56,28 @@ public interface DVTOptionsCore extends PipelineOptions {
    * Password
    */
   @Description("Password")
-  @Required
+  @Default.String("")
   String getPassword();
 
   void setPassword(String value);
+
+  /**
+   * DBPassFromSecret
+   */
+  @Description("DBPassFromSecret")
+  @Default.String("")
+  String getDBPassFromSecret();
+
+  void setDBPassFromSecret(String value);
+
+  /**
+   * DBPassVersionForSecret
+   */
+  @Description("DBPassVersionForSecret")
+  @Default.String("latest")
+  String getDBPassVersionForSecret();
+
+  void setDBPassVersionForSecret(String value);
 
   /**
    * ProjectId
