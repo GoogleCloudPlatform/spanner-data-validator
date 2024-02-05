@@ -137,6 +137,26 @@ java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
 --streaming=false \
 --runner=DirectRunner
 
+## Running postgres locally/secret manager (with java and compiled jar)
+
+NOTE: This requires a previously compiled jar file; and please adjust the path to reflect the location of the jar in your environment.
+
+java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
+--protocol=postgresql \
+--server=localhost \
+--port=5432 \
+--username=kt_user \
+--DBPassFromSecret=dbpass \
+--sourceDB=kt_db \
+--tableSpecJson=src/main/resources/json/postgres-uuid-tablespec.json \
+--tempLocation=gs://bigdata-stuff/df1 \
+--projectId=kt-shared-project \
+--instanceId=tempus-test1 \
+--spannerDatabaseId=tempus_db1 \
+--BQDatasetName=SpannerDVTDataset \
+--streaming=false \
+--runner=DirectRunner
+
 ## Running postgres on Dataflow (with java and compiled jar)
 
 NOTE: This requires a previously compiled jar file; and please adjust the path to reflect the location of the jar in your environment.

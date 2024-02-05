@@ -5,9 +5,9 @@
     "destQuery": "select key, value, data_product_id FROM data_product_metadata WHERE data_product_id > $1 AND data_product_id <= $2",
     "rangeFieldIndex": "2",
     "rangeFieldType": "UUID",
-    "rangeStart": "00000000-0000-0000-0000-000000000000",
-    "rangeEnd": "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
-    "partitionCount": "100",
-    "rangeCoverage": "0.95"
+    "rangeStart": "12c2901f-11f6-3169-d247-22dd82b87e04",
+    "rangeEnd": "12cccd8e-76e6-7ea1-f1fb-d1aeef85b969",
+    "partitionCount": "15",
+    "rangeCoverage": "1"
   }
 ]

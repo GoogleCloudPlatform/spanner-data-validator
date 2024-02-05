@@ -371,6 +371,8 @@ public class Helpers {
       String secretVersion = options.getDBPassVersionForSecret();
 
       pass = getSecret(projectId, secretId, secretVersion);
+
+      LOG.info("Using password from secret manager.");
     }
 
     return pass;

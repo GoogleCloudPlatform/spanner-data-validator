@@ -5,7 +5,9 @@ import static com.google.migration.SharedTags.matchedRecordsTag;
 import static com.google.migration.SharedTags.sourceRecordsTag;
 import static com.google.migration.SharedTags.spannerTag;
 import static com.google.migration.SharedTags.targetRecordsTag;
+import static com.google.migration.SharedTags.unmatchedJDBCRecordValuesTag;
 import static com.google.migration.SharedTags.unmatchedJDBCRecordsTag;
+import static com.google.migration.SharedTags.unmatchedSpannerRecordValuesTag;
 import static com.google.migration.SharedTags.unmatchedSpannerRecordsTag;
 
 import com.google.migration.dto.HashResult;
@@ -36,9 +38,11 @@ public class CountMatchesDoFn extends DoFn<KV<String, CoGbkResult>, KV<String, L
     } else if(spannerRecord != null) {
       out.get(unmatchedSpannerRecordsTag).output(KV.of(spannerRecord.range, 1L));
       out.get(targetRecordsTag).output(KV.of(spannerRecord.range, 1L));
+      out.get(unmatchedSpannerRecordValuesTag).output(spannerRecord);
     } else if(jdbcRecord != null) {
       out.get(unmatchedJDBCRecordsTag).output(KV.of(jdbcRecord.range, 1L));
       out.get(sourceRecordsTag).output(KV.of(jdbcRecord.range, 1L));
+      out.get(unmatchedJDBCRecordValuesTag).output(jdbcRecord);
     } // if/else
   }
 } // class CountMatchesDoFn

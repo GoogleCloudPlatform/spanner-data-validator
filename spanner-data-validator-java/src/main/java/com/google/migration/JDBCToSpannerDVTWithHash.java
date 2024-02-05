@@ -127,6 +127,14 @@ public class JDBCToSpannerDVTWithHash {
             .setType("STRING")
             .setMode("REQUIRED"),
         new TableFieldSchema()
+            .setName("table_or_query")
+            .setType("STRING")
+            .setMode("REQUIRED"),
+        new TableFieldSchema()
+            .setName("jdbc_or_spanner")
+            .setType("STRING")
+            .setMode("REQUIRED"),
+        new TableFieldSchema()
             .setName("range")
             .setType("STRING")
             .setMode("REQUIRED"),
@@ -170,7 +178,8 @@ public class JDBCToSpannerDVTWithHash {
 
   protected static BigQueryIO.Write<HashResult> getConflictingRecordsBQWriter(DVTOptionsCore options,
       String runName,
-      String tableName) {
+      String tableName,
+      String jdbcOrSpanner) {
 
     TableSchema bqSchema = new TableSchema().setFields(getConflictingRecordsBQWriteCols());
 
@@ -178,11 +187,12 @@ public class JDBCToSpannerDVTWithHash {
         .to(String.format("%s:%s.%s",
             options.getProjectId(),
             options.getBQDatasetName(),
-            options.getBQTableName()))
+            options.getConflictingRecordsBQTableName()))
         .withFormatFunction(
             (HashResult x) -> new TableRow()
                 .set("run_name", runName)
                 .set("table_or_query", tableName)
+                .set("jdbc_or_spanner", jdbcOrSpanner)
                 .set("range", x.range)
                 .set("key", x.key)
                 .set("hash", x.sha256))
@@ -197,7 +207,9 @@ public class JDBCToSpannerDVTWithHash {
   protected static void configureComparisonPipeline(Pipeline p,
       DVTOptionsCore options,
       TableSpec tableSpec,
-      BigQueryIO.Write<ComparerResult> bqWrite) {
+      BigQueryIO.Write<ComparerResult> comparerResultWrite,
+      BigQueryIO.Write<HashResult> jdbcConflictingRecordsWriter,
+      BigQueryIO.Write<HashResult> spannerConflictingRecordsWriter) {
 
     Integer partitionCount = options.getPartitionCount();
     if(tableSpec.getPartitionCount() > 0) {
@@ -314,11 +326,21 @@ public class JDBCToSpannerDVTWithHash {
             .get(targetRecordsTag)
             .apply(String.format("TargetCountForTable-%s", tableName), Count.perKey());
 
-    PCollection<HashResult> unmatchedSpannerValues =
-        countMatches.get(unmatchedSpannerRecordValuesTag);
+    if(spannerConflictingRecordsWriter != null) {
+      PCollection<HashResult> unmatchedSpannerValues =
+          countMatches.get(unmatchedSpannerRecordValuesTag);
 
-    PCollection<HashResult> unmatchedJDBCValues =
-        countMatches.get(unmatchedJDBCRecordValuesTag);
+      unmatchedSpannerValues.apply(String.format("SpannerConflictingRecordsWriter-%s", tableName),
+          spannerConflictingRecordsWriter);
+    }
+
+    if(jdbcConflictingRecordsWriter != null) {
+      PCollection<HashResult> unmatchedJDBCValues =
+          countMatches.get(unmatchedJDBCRecordValuesTag);
+
+      unmatchedJDBCValues.apply(String.format("JDBCConflictingRecordsWriter-%s", tableName),
+          jdbcConflictingRecordsWriter);
+    }
 
     // group above counts by key
     PCollection<KV<String, CoGbkResult>> comparerResults =
@@ -360,7 +382,7 @@ public class JDBCToSpannerDVTWithHash {
               }
             }));
 
-    reportOutput.apply(String.format("BQWriteForTable-%s", tableName), bqWrite);
+    reportOutput.apply(String.format("BQWriteForTable-%s", tableName), comparerResultWrite);
   }
 
   protected static Long getCountForTag(CoGbkResult result, TupleTag<Long> tag) {
@@ -592,9 +614,34 @@ public class JDBCToSpannerDVTWithHash {
     }
 
     for(TableSpec tableSpec: tableSpecs) {
-      BigQueryIO.Write<ComparerResult> bqWrite = getComparisonResultsBQWriter(options, tableSpec.getTableName());
+      BigQueryIO.Write<ComparerResult> comparerResultWrite =
+          getComparisonResultsBQWriter(options, tableSpec.getTableName());
 
-      configureComparisonPipeline(p, options, tableSpec, bqWrite);
+      BigQueryIO.Write<HashResult> jdbcConflictingRecordsWriter = null;
+      BigQueryIO.Write<HashResult> spannerConflictingRecordsWriter = null;
+
+      String conflictingRecordsBQTableName = options.getConflictingRecordsBQTableName();
+      if(!Helpers.isNullOrEmpty(conflictingRecordsBQTableName)) {
+        LOG.info(String.format("Enabling writing of conflicting records to table %s", conflictingRecordsBQTableName));
+        spannerConflictingRecordsWriter = getConflictingRecordsBQWriter(options,
+            options.getRunName(),
+            tableSpec.getTableName(),
+            "spanner");
+
+        jdbcConflictingRecordsWriter = getConflictingRecordsBQWriter(options,
+            options.getRunName(),
+            tableSpec.getTableName(),
+            "jdbc");
+      } else {
+        LOG.info(String.format("NOT enabling writing of conflicting records! %s", conflictingRecordsBQTableName));
+      }
+
+      configureComparisonPipeline(p,
+          options,
+          tableSpec,
+          comparerResultWrite,
+          jdbcConflictingRecordsWriter,
+          spannerConflictingRecordsWriter);
     }
 
     p.run().waitUntilFinish();
