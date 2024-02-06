@@ -14,7 +14,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.UUID;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class PartitionRangeTest {
