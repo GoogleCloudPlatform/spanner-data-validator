@@ -26,31 +26,29 @@ public class PartitionRangeTest {
     PartitionRangeListFetcher fetcher =
         PartitionRangeListFetcherFactory.getFetcher(fieldType);
 
+    Integer partitionCount = 100;
+
     // fetch w/ partition 50% coverage
     List<PartitionRange> pRanges50 = fetcher.getPartitionRangesWithCoverage(String.valueOf(0L),
         String.valueOf(Long.MAX_VALUE),
-        100,
+        partitionCount,
         BigDecimal.valueOf(0.5));
 
-    assertEquals(pRanges50.size(), 101);
+    assertEquals(pRanges50.size(), (long)partitionCount);
     assertEquals("0", pRanges50.get(0).getStartRange());
-    assertEquals("0", pRanges50.get(0).getEndRange());
-    assertNotEquals(String.valueOf(Long.MAX_VALUE), pRanges50.get(100).getEndRange());
+    assertNotEquals(String.valueOf(Long.MAX_VALUE), pRanges50.get(partitionCount-1).getEndRange());
 
     Helpers.printPartitionRanges(pRanges50, "TestTable50");
-
-    System.out.println("*************");
 
     // fetch w/ partition full coverage
     List<PartitionRange> pRangesFull = fetcher.getPartitionRangesWithCoverage(String.valueOf(0L),
         String.valueOf(Long.MAX_VALUE),
-        100,
+        partitionCount,
         BigDecimal.ONE);
 
-    assertEquals(pRangesFull.size(), 101);
+    assertEquals(pRangesFull.size(), (long)partitionCount);
     assertEquals("0", pRangesFull.get(0).getStartRange());
-    assertEquals("0", pRangesFull.get(0).getEndRange());
-    assertEquals(String.valueOf(Long.MAX_VALUE), pRangesFull.get(100).getEndRange());
+    assertEquals(String.valueOf(Long.MAX_VALUE), pRangesFull.get(partitionCount-1).getEndRange());
 
     String range1EndStr = pRangesFull.get(1).getEndRange();
     String range2StartStr = pRangesFull.get(2).getStartRange();
@@ -60,7 +58,8 @@ public class PartitionRangeTest {
 
     Helpers.printPartitionRanges(pRangesFull, "TestTableFull");
 
-    assertEquals(pRanges50.get(100).getStartRange(), pRangesFull.get(100).getStartRange());
+    assertEquals(pRanges50.get(partitionCount-1).getStartRange(),
+        pRangesFull.get(partitionCount-1).getStartRange());
   }
 
   @Test
@@ -70,31 +69,29 @@ public class PartitionRangeTest {
     PartitionRangeListFetcher fetcher =
         PartitionRangeListFetcherFactory.getFetcher(fieldType);
 
+    Integer partitionCount = 100;
+
     // fetch w/ partition 50% coverage
     List<PartitionRange> pRanges50 = fetcher.getPartitionRangesWithCoverage(String.valueOf(0),
         String.valueOf(Integer.MAX_VALUE),
-        100,
+        partitionCount,
         BigDecimal.valueOf(0.5));
 
-    assertEquals(pRanges50.size(), 101);
+    assertEquals(pRanges50.size(), (long)partitionCount);
     assertEquals("0", pRanges50.get(0).getStartRange());
-    assertEquals("0", pRanges50.get(0).getEndRange());
-    assertNotEquals(String.valueOf(Integer.MAX_VALUE), pRanges50.get(100).getEndRange());
+    assertNotEquals(String.valueOf(Integer.MAX_VALUE), pRanges50.get(partitionCount-1).getEndRange());
 
     Helpers.printPartitionRanges(pRanges50, "TestTable50");
-
-    System.out.println("*************");
 
     // fetch w/ partition full coverage
     List<PartitionRange> pRangesFull = fetcher.getPartitionRangesWithCoverage(String.valueOf(0),
         String.valueOf(Integer.MAX_VALUE),
-        100,
+        partitionCount,
         BigDecimal.ONE);
 
-    assertEquals(pRangesFull.size(), 101);
+    assertEquals(pRangesFull.size(), (long)partitionCount);
     assertEquals("0", pRangesFull.get(0).getStartRange());
-    assertEquals("0", pRangesFull.get(0).getEndRange());
-    assertEquals(String.valueOf(Integer.MAX_VALUE), pRangesFull.get(100).getEndRange());
+    assertEquals(String.valueOf(Integer.MAX_VALUE), pRangesFull.get(partitionCount-1).getEndRange());
 
     String range1EndStr = pRangesFull.get(1).getEndRange();
     String range2StartStr = pRangesFull.get(2).getStartRange();
@@ -104,7 +101,8 @@ public class PartitionRangeTest {
 
     Helpers.printPartitionRanges(pRangesFull, "TestTableFull");
 
-    assertEquals(pRanges50.get(100).getStartRange(), pRangesFull.get(100).getStartRange());
+    assertEquals(pRanges50.get(partitionCount-1).getStartRange(),
+        pRangesFull.get(partitionCount-1).getStartRange());
   }
 
   @Test
@@ -114,22 +112,24 @@ public class PartitionRangeTest {
     PartitionRangeListFetcher fetcher =
         PartitionRangeListFetcherFactory.getFetcher(fieldType);
 
+    Integer partitionCount = 100;
+
     // fetch w/ 50% coverage
     List<PartitionRange> pRanges50 =
         fetcher.getPartitionRangesWithCoverage("00000000-0000-0000-0000-000000000000",
         "ffffffff-ffff-ffff-ffff-ffffffffffff",
-        100,
+            partitionCount,
         BigDecimal.valueOf(0.5));
 
-    assertEquals(pRanges50.size(), 101);
+    assertEquals(pRanges50.size(), (long)partitionCount);
     assertEquals("00000000-0000-0000-0000-000000000000", pRanges50.get(0).getStartRange());
-    assertEquals("00000000-0000-0000-0000-000000000000", pRanges50.get(0).getEndRange());
-    assertNotEquals("ffffffff-ffff-ffff-ffff-ffffffffffff", pRanges50.get(100).getEndRange());
+    assertNotEquals("ffffffff-ffff-ffff-ffff-ffffffffffff",
+        pRanges50.get(partitionCount-1).getEndRange());
 
     BigInteger uuidMax =
         UUIDHelpers.uuidToBigInt(UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff"));
-    BigInteger stepSize = uuidMax.divide(BigInteger.valueOf(100));
-    String endRangeStr = pRanges50.get(100).getEndRange();
+    BigInteger stepSize = uuidMax.divide(BigInteger.valueOf(partitionCount));
+    String endRangeStr = pRanges50.get(partitionCount-1).getEndRange();
     String lastRangeStartCalc = UUIDHelpers.bigIntToUUID(uuidMax.subtract(stepSize)).toString();
     assertTrue(endRangeStr.compareTo(lastRangeStartCalc) > 0);
 
@@ -137,19 +137,17 @@ public class PartitionRangeTest {
 
     Helpers.printPartitionRanges(pRanges50, "TestTable50");
 
-    System.out.println("*************");
-
     // now fetch with full coverage
     List<PartitionRange> pRangesFull =
         fetcher.getPartitionRangesWithCoverage("00000000-0000-0000-0000-000000000000",
             "ffffffff-ffff-ffff-ffff-ffffffffffff",
-            100,
+            partitionCount,
             BigDecimal.valueOf(1));
 
-    assertEquals(pRangesFull.size(), 101);
+    assertEquals(pRangesFull.size(), (long)partitionCount);
     assertEquals("00000000-0000-0000-0000-000000000000", pRangesFull.get(0).getStartRange());
-    assertEquals("00000000-0000-0000-0000-000000000000", pRangesFull.get(0).getEndRange());
-    assertEquals("ffffffff-ffff-ffff-ffff-ffffffffffff", pRangesFull.get(100).getEndRange());
+    assertEquals("ffffffff-ffff-ffff-ffff-ffffffffffff",
+        pRangesFull.get(partitionCount-1).getEndRange());
 
     String range1EndStr = pRangesFull.get(1).getEndRange();
     String range2StartStr = pRangesFull.get(2).getStartRange();
@@ -157,7 +155,8 @@ public class PartitionRangeTest {
     BigInteger range2Start = UUIDHelpers.uuidToBigInt(UUID.fromString(range2StartStr));
     assertTrue(range1End.add(BigInteger.ONE).compareTo(range2Start) == 0);
 
-    assertEquals(pRanges50.get(100).getStartRange(), pRangesFull.get(100).getStartRange());
+    assertEquals(pRanges50.get(partitionCount-1).getStartRange(),
+        pRangesFull.get(partitionCount-1).getStartRange());
 
     Helpers.printPartitionRanges(pRangesFull, "TestTableFull");
   }

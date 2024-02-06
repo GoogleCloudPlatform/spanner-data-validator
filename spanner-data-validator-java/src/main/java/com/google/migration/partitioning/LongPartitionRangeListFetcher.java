@@ -51,10 +51,7 @@ public class LongPartitionRangeListFetcher implements PartitionRangeListFetcher 
 
     ArrayList<PartitionRange> bRanges = new ArrayList<>();
 
-    // Account for first item
-    bRanges.add(new PartitionRange(start.toString(), start.toString()));
-
-    Long maxRange = start;
+    Long maxRange = start-1;
     for(Integer i = 0; i < partitionCount - 1; i++) {
       Long minRange = maxRange + 1;
       maxRange = minRange + constrainedStepSize - 1;

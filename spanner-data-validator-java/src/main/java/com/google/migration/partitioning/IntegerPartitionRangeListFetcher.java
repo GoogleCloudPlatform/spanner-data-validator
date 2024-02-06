@@ -51,10 +51,7 @@ public class IntegerPartitionRangeListFetcher implements PartitionRangeListFetch
 
     ArrayList<PartitionRange> bRanges = new ArrayList<>();
 
-    // Account for first item
-    bRanges.add(new PartitionRange(start.toString(), start.toString()));
-
-    Integer maxRange = start;
+    Integer maxRange = start - 1;
     for(Integer i = 0; i < partitionCount - 1; i++) {
       Integer minRange = maxRange + 1;
       maxRange = minRange + constrainedStepSize - 1;

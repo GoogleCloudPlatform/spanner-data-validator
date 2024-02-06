@@ -381,5 +381,7 @@ public class Helpers {
           pRange.getStartRange(),
           pRange.getEndRange()));
     } // for
+
+    LOG.info(String.format("*******End of partition range(s) for table %s", tableName));
   }
 } // class Helpers
