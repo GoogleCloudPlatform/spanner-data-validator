@@ -1,8 +1,8 @@
 [
   {
     "tableName": "member_events_type_mapping",
-    "sourceQuery": "select id, name, durationInDays from member_events_type_mapping where id >= ? and id < ?",
-    "destQuery": "select id, name, durationInDays from member_events_type_mapping where id >= @p1 and id < @p2",
+    "sourceQuery": "select id, name, durationInDays from member_events_type_mapping where id >= ? and id <= ?",
+    "destQuery": "select id, name, durationInDays from member_events_type_mapping where id >= @p1 and id <= @p2",
     "rangeFieldIndex": "0",
     "rangeFieldType": "UUID",
     "rangeStart": "00000000-0000-0000-0000-000000000000",

@@ -61,17 +61,17 @@ public class UUIDPartitionRangeListFetcher implements PartitionRangeListFetcher 
     // Account for first UUID
     bRanges.add(new PartitionRange(start.toString(), start.toString()));
 
-    BigInteger maxRange = uuidMin.add(BigInteger.ONE);
+    BigInteger maxRange = uuidMin;
     for(Integer i = 0; i < partitionCount - 1; i++) {
-      BigInteger minRange = maxRange;
-      maxRange = minRange.add(constrainedStepSize);
+      BigInteger minRange = maxRange.add(BigInteger.ONE);
+      maxRange = minRange.add(constrainedStepSize).subtract(BigInteger.ONE);
 
       PartitionRange range = new PartitionRange(UUIDHelpers.bigIntToUUID(minRange).toString(),
           UUIDHelpers.bigIntToUUID(maxRange).toString());
 
       bRanges.add(range);
 
-      maxRange = minRange.add(stepSize);
+      maxRange = minRange.add(stepSize).subtract(BigInteger.ONE);
     }
 
     BigInteger calculatedEndRange = maxRange.add(constrainedStepSize);

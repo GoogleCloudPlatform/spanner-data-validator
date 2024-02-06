@@ -1,25 +1,19 @@
 package com.google.migration;
 
 import com.google.cloud.secretmanager.v1.AccessSecretVersionResponse;
-import com.google.cloud.secretmanager.v1.ProjectName;
-import com.google.cloud.secretmanager.v1.Secret;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
-import com.google.cloud.secretmanager.v1.SecretName;
 import com.google.cloud.secretmanager.v1.SecretVersionName;
 import com.google.cloud.spanner.Type;
 import com.google.migration.common.DVTOptionsCore;
+import com.google.migration.dto.PartitionRange;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.sql.Types;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -33,7 +27,6 @@ import org.apache.avro.SchemaBuilder;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.beam.sdk.io.jdbc.JdbcIO.PreparedStatementSetter;
 import org.apache.beam.sdk.values.KV;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
@@ -376,5 +369,17 @@ public class Helpers {
     }
 
     return pass;
+  }
+
+  public static void printPartitionRanges(List<PartitionRange> pRanges, String tableName) {
+    LOG.info(String.format("********Listing %d partition range(s) for table %s:",
+        pRanges.size(),
+        tableName));
+
+    for(PartitionRange pRange: pRanges) {
+      LOG.info(String.format("Start: %s, end: %s",
+          pRange.getStartRange(),
+          pRange.getEndRange()));
+    } // for
   }
 } // class Helpers

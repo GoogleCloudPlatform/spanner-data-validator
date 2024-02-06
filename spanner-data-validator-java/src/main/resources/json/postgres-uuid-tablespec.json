@@ -1,8 +1,8 @@
 [
   {
     "tableName": "DataProductMetadata",
-    "sourceQuery": "select * from \"data-products\".data_product_metadata where data_product_id > uuid(?) and data_product_id <= uuid(?)",
-    "destQuery": "select key, value, data_product_id FROM data_product_metadata WHERE data_product_id > $1 AND data_product_id <= $2",
+    "sourceQuery": "select * from \"data-products\".data_product_metadata where data_product_id >= uuid(?) and data_product_id <= uuid(?)",
+    "destQuery": "select key, value, data_product_id FROM data_product_metadata WHERE data_product_id >= $1 AND data_product_id <= $2",
     "rangeFieldIndex": "2",
     "rangeFieldType": "UUID",
     "rangeStart": "00000000-0000-0000-0000-000000000000",

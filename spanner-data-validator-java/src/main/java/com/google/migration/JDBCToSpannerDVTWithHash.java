@@ -33,7 +33,6 @@ import com.google.migration.dto.ShardSpec;
 import com.google.migration.dto.TableSpec;
 import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
-import io.grpc.LoadBalancer.Helper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -225,6 +224,8 @@ public class JDBCToSpannerDVTWithHash {
         partitionCount,
         partitionFilterRatio);
 
+    Helpers.printPartitionRanges(bRanges, tableSpec.getTableName());
+
     String tableName = tableSpec.getTableName();
     String shardSpecJsonFile = options.getShardSpecJson();
 
@@ -300,7 +301,6 @@ public class JDBCToSpannerDVTWithHash {
                 .and(unmatchedJDBCRecordValuesTag)));
 
     // Count the tagged results by range
-
     PCollection<KV<String, Long>> matchedRecordCount =
         countMatches
             .get(matchedRecordsTag)
@@ -353,7 +353,7 @@ public class JDBCToSpannerDVTWithHash {
 
     String runName = options.getRunName();
 
-    // assigned grouped counts to object that can then be written to BQ
+    // assign grouped counts to object that can then be written to BQ
     PCollection<ComparerResult> reportOutput =
         comparerResults.apply(String.format("ReportOutputForTable-%s", tableName),
             ParDo.of(
@@ -427,7 +427,9 @@ public class JDBCToSpannerDVTWithHash {
                   preparedStatement.setString(1, input.getStartRange());
                   preparedStatement.setString(2, input.getEndRange());
                 })
-                .withRowMapper(new JDBCRowMapper(keyIndex, rangeFieldType, adjustTimestampPrecision))
+                .withRowMapper(new JDBCRowMapper(keyIndex,
+                    rangeFieldType,
+                    adjustTimestampPrecision))
                 .withOutputParallelization(false)
         );
 
@@ -537,7 +539,8 @@ public class JDBCToSpannerDVTWithHash {
                               .build();
                       break;
                     default:
-                      throw new RuntimeException(String.format("Unexpected range field type: %s", rangeFieldType));
+                      throw new RuntimeException(String.format("Unexpected range field type: %s",
+                          rangeFieldType));
                   }
                   ReadOperation readOperation =
                       ReadOperation.create().withQuery(statement);
@@ -622,7 +625,8 @@ public class JDBCToSpannerDVTWithHash {
 
       String conflictingRecordsBQTableName = options.getConflictingRecordsBQTableName();
       if(!Helpers.isNullOrEmpty(conflictingRecordsBQTableName)) {
-        LOG.info(String.format("Enabling writing of conflicting records to table %s", conflictingRecordsBQTableName));
+        LOG.info(String.format("Enabling writing of conflicting records to table %s",
+            conflictingRecordsBQTableName));
         spannerConflictingRecordsWriter = getConflictingRecordsBQWriter(options,
             options.getRunName(),
             tableSpec.getTableName(),
@@ -633,7 +637,8 @@ public class JDBCToSpannerDVTWithHash {
             tableSpec.getTableName(),
             "jdbc");
       } else {
-        LOG.info(String.format("NOT enabling writing of conflicting records! %s", conflictingRecordsBQTableName));
+        LOG.info(String.format("NOT enabling writing of conflicting records! %s",
+            conflictingRecordsBQTableName));
       }
 
       configureComparisonPipeline(p,
@@ -649,7 +654,10 @@ public class JDBCToSpannerDVTWithHash {
 
   public static void main(String[] args) throws IOException {
     JDBCToSpannerDVTWithHashOptions options =
-        PipelineOptionsFactory.fromArgs(args).withValidation().as(JDBCToSpannerDVTWithHashOptions.class);
+        PipelineOptionsFactory
+            .fromArgs(args)
+            .withValidation()
+            .as(JDBCToSpannerDVTWithHashOptions.class);
 
     JDBCToSpannerDVTWithHash dvtApp = new JDBCToSpannerDVTWithHash();
     dvtApp.runDVT(options);

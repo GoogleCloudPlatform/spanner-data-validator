@@ -54,16 +54,16 @@ public class IntegerPartitionRangeListFetcher implements PartitionRangeListFetch
     // Account for first item
     bRanges.add(new PartitionRange(start.toString(), start.toString()));
 
-    Integer maxRange = start + 1;
+    Integer maxRange = start;
     for(Integer i = 0; i < partitionCount - 1; i++) {
-      Integer minRange = maxRange;
-      maxRange = minRange + constrainedStepSize;
+      Integer minRange = maxRange + 1;
+      maxRange = minRange + constrainedStepSize - 1;
 
       PartitionRange range = new PartitionRange(minRange.toString(), maxRange.toString());
 
       bRanges.add(range);
 
-      maxRange = minRange + stepSize;
+      maxRange = minRange + stepSize - 1;
     }
 
     Integer calculatedEndRange = maxRange + constrainedStepSize;
