@@ -37,8 +37,14 @@ public class IntegerPartitionRangeListFetcher implements PartitionRangeListFetch
     Integer stepSize = fullRange/partitionCount;
     Integer constrainedStepSize = stepSize;
 
+    if(coveragePercent.compareTo(BigDecimal.ONE) > 0) {
+      throw new IllegalArgumentException("Coverage percent must be <= 1");
+    }
+
+    Boolean partialCoverage = (coveragePercent.compareTo(BigDecimal.ONE) < 0);
+
     // Simple implementation of "coverage" - just reduce the step size
-    if(coveragePercent.compareTo(BigDecimal.ONE) < 0) {
+    if(partialCoverage) {
       constrainedStepSize = BigDecimal.valueOf(stepSize).multiply(coveragePercent).intValue();
 
       LOG.info(String.format("Constrained step size: %d in "
@@ -51,24 +57,37 @@ public class IntegerPartitionRangeListFetcher implements PartitionRangeListFetch
 
     ArrayList<PartitionRange> bRanges = new ArrayList<>();
 
-    Integer maxRange = start - 1;
-    for(Integer i = 0; i < partitionCount - 1; i++) {
-      Integer minRange = maxRange + 1;
-      maxRange = minRange + constrainedStepSize - 1;
+    if(partitionCount <= 0) {
+      throw new IllegalArgumentException("Partition count must be > 0");
+    } else if (partitionCount == 1) {
+      String calculatedEndRangeStr = endStr;
 
-      PartitionRange range = new PartitionRange(minRange.toString(), maxRange.toString());
+      if(partialCoverage) {
+        calculatedEndRangeStr = String.valueOf(start + constrainedStepSize);
+      }
 
+      PartitionRange range = new PartitionRange(startStr, calculatedEndRangeStr);
       bRanges.add(range);
+    } else {
+      Integer maxRange = start - 1;
+      for (Integer i = 0; i < partitionCount - 1; i++) {
+        Integer minRange = maxRange + 1;
+        maxRange = minRange + constrainedStepSize - 1;
 
-      maxRange = minRange + stepSize - 1;
-    }
+        PartitionRange range = new PartitionRange(minRange.toString(), maxRange.toString());
 
-    Integer calculatedEndRange = maxRange + constrainedStepSize;
-    if(coveragePercent.compareTo(BigDecimal.ONE) == 0) {
-      calculatedEndRange = end;
+        bRanges.add(range);
+
+        maxRange = minRange + stepSize - 1;
+      }
+
+      Integer calculatedEndRange = maxRange + constrainedStepSize;
+      if (!partialCoverage) {
+        calculatedEndRange = end;
+      }
+      PartitionRange range = new PartitionRange(maxRange.toString(), calculatedEndRange.toString());
+      bRanges.add(range);
     }
-    PartitionRange range = new PartitionRange(maxRange.toString(), calculatedEndRange.toString());
-    bRanges.add(range);
 
     return bRanges;
   }

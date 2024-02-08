@@ -12,6 +12,7 @@ import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
 import com.google.migration.partitioning.UUIDHelpers;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.UUID;
 import org.junit.Test;
@@ -63,6 +64,123 @@ public class PartitionRangeTest {
   }
 
   @Test
+  public void longSinglePartitionRangeTest() {
+    String fieldType = TableSpec.LONG_FIELD_TYPE;
+
+    PartitionRangeListFetcher fetcher =
+        PartitionRangeListFetcherFactory.getFetcher(fieldType);
+
+    Integer partitionCount = 1;
+
+    // fetch w/ 50% coverage
+    List<PartitionRange> pRanges50 =
+        fetcher.getPartitionRangesWithCoverage("0",
+            String.valueOf(Long.MAX_VALUE),
+            partitionCount,
+            BigDecimal.valueOf(0.5));
+
+    assertEquals(pRanges50.size(), (long)partitionCount);
+    assertEquals("0", pRanges50.get(0).getStartRange());
+    assertNotEquals(String.valueOf(Long.MAX_VALUE), pRanges50.get(0).getEndRange());
+
+    Long endRangeVal = Long.parseLong(pRanges50.get(0).getEndRange());
+
+    // validate that there's no overflow
+    assertTrue(endRangeVal > 0);
+
+    // validate that end range < Long.MAX_VALUE
+    assertTrue(endRangeVal < Long.MAX_VALUE);
+
+    Helpers.printPartitionRanges(pRanges50, "TestTable50");
+
+    // now fetch with full coverage
+    List<PartitionRange> pRangesFull =
+        fetcher.getPartitionRangesWithCoverage("0",
+            String.valueOf(Long.MAX_VALUE),
+            partitionCount,
+            BigDecimal.ONE);
+
+    assertEquals(pRangesFull.size(), (long)partitionCount);
+    assertEquals("0", pRangesFull.get(0).getStartRange());
+    assertEquals(String.valueOf(Long.MAX_VALUE), pRangesFull.get(0).getEndRange());
+
+    Helpers.printPartitionRanges(pRangesFull, "TestTableFull");
+  }
+
+  @Test
+  public void timestampPartitionRangeTest() {
+    String fieldType = TableSpec.TIMESTAMP_FIELD_TYPE;
+
+    // fetch w/ partition filter ratio
+    PartitionRangeListFetcher fetcher =
+        PartitionRangeListFetcherFactory.getFetcher(fieldType);
+
+    Integer partitionCount = 100;
+
+    // fetch w/ partition 50% coverage
+    List<PartitionRange> pRanges50 = fetcher.getPartitionRangesWithCoverage(
+        "1971-01-01 00:00:00",
+        "2025-01-01 00:00:00",
+        partitionCount,
+        BigDecimal.valueOf(0.5));
+
+    assertEquals(pRanges50.size(), (long)partitionCount);
+    assertEquals("1971-01-01 00:00:00.0", pRanges50.get(0).getStartRange());
+    assertNotEquals(String.valueOf(Long.MAX_VALUE), pRanges50.get(partitionCount-1).getEndRange());
+
+    Helpers.printPartitionRanges(pRanges50, "TestTable50");
+
+    // fetch w/ partition full coverage
+    List<PartitionRange> pRangesFull = fetcher.getPartitionRangesWithCoverage(
+        "1971-01-01",
+        "2025-01-01",
+        partitionCount,
+        BigDecimal.ONE);
+
+    assertEquals(pRangesFull.size(), (long)partitionCount);
+    assertEquals("1971-01-01 00:00:00.0", pRangesFull.get(0).getStartRange());
+
+    Helpers.printPartitionRanges(pRangesFull, "TestTableFull");
+
+    assertEquals(pRanges50.get(partitionCount-1).getStartRange(),
+        pRangesFull.get(partitionCount-1).getStartRange());
+  }
+
+  @Test
+  public void timestampSinglePartitionRangeTest() {
+    String fieldType = TableSpec.TIMESTAMP_FIELD_TYPE;
+
+    PartitionRangeListFetcher fetcher =
+        PartitionRangeListFetcherFactory.getFetcher(fieldType);
+
+    Integer partitionCount = 1;
+
+    // fetch w/ 50% coverage
+    List<PartitionRange> pRanges50 = fetcher.getPartitionRangesWithCoverage(
+        "1971-01-01 00:00:00",
+        "2025-01-01 00:00:00",
+        partitionCount,
+        BigDecimal.valueOf(0.5));
+
+    assertEquals(pRanges50.size(), (long)partitionCount);
+    assertEquals("1971-01-01 00:00:00.0", pRanges50.get(0).getStartRange());
+
+    Helpers.printPartitionRanges(pRanges50, "TestTable50");
+
+    // now fetch with full coverage
+    List<PartitionRange> pRangesFull = fetcher.getPartitionRangesWithCoverage(
+        "1971-01-01",
+        "2025-01-01",
+        partitionCount,
+        BigDecimal.ONE);
+
+    assertEquals(pRangesFull.size(), (long)partitionCount);
+    assertEquals("1971-01-01 00:00:00.0", pRanges50.get(0).getStartRange());
+
+    Helpers.printPartitionRanges(pRangesFull, "TestTableFull");
+  }
+
+  @Test
   public void int32PartitionRangeTest() {
     String fieldType = TableSpec.INT_FIELD_TYPE;
 
@@ -103,6 +221,50 @@ public class PartitionRangeTest {
 
     assertEquals(pRanges50.get(partitionCount-1).getStartRange(),
         pRangesFull.get(partitionCount-1).getStartRange());
+  }
+
+  @Test
+  public void int32SinglePartitionRangeTest() {
+    String fieldType = TableSpec.INT_FIELD_TYPE;
+
+    PartitionRangeListFetcher fetcher =
+        PartitionRangeListFetcherFactory.getFetcher(fieldType);
+
+    Integer partitionCount = 1;
+
+    // fetch w/ 50% coverage
+    List<PartitionRange> pRanges50 =
+        fetcher.getPartitionRangesWithCoverage("0",
+            String.valueOf(Integer.MAX_VALUE),
+            partitionCount,
+            BigDecimal.valueOf(0.5));
+
+    assertEquals(pRanges50.size(), (long)partitionCount);
+    assertEquals("0", pRanges50.get(0).getStartRange());
+    assertNotEquals(String.valueOf(Integer.MAX_VALUE), pRanges50.get(0).getEndRange());
+
+    Integer endRangeVal = Integer.parseInt(pRanges50.get(0).getEndRange());
+
+    // validate that there's no overflow
+    assertTrue(endRangeVal > 0);
+
+    // validate that end range < Integer.MAX_VALUE
+    assertTrue(endRangeVal < Integer.MAX_VALUE);
+
+    Helpers.printPartitionRanges(pRanges50, "TestTable50");
+
+    // now fetch with full coverage
+    List<PartitionRange> pRangesFull =
+        fetcher.getPartitionRangesWithCoverage("0",
+            String.valueOf(Integer.MAX_VALUE),
+            partitionCount,
+            BigDecimal.ONE);
+
+    assertEquals(pRangesFull.size(), (long)partitionCount);
+    assertEquals("0", pRangesFull.get(0).getStartRange());
+    assertEquals(String.valueOf(Integer.MAX_VALUE), pRangesFull.get(0).getEndRange());
+
+    Helpers.printPartitionRanges(pRangesFull, "TestTableFull");
   }
 
   @Test
@@ -157,6 +319,49 @@ public class PartitionRangeTest {
 
     assertEquals(pRanges50.get(partitionCount-1).getStartRange(),
         pRangesFull.get(partitionCount-1).getStartRange());
+
+    Helpers.printPartitionRanges(pRangesFull, "TestTableFull");
+  }
+
+  @Test
+  public void uuidSinglePartitionRangeTest() {
+    String fieldType = TableSpec.UUID_FIELD_TYPE;
+
+    PartitionRangeListFetcher fetcher =
+        PartitionRangeListFetcherFactory.getFetcher(fieldType);
+
+    Integer partitionCount = 1;
+
+    UUID uuidMax = UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff");
+
+    // fetch w/ 50% coverage
+    List<PartitionRange> pRanges50 =
+        fetcher.getPartitionRangesWithCoverage("00000000-0000-0000-0000-000000000000",
+            "ffffffff-ffff-ffff-ffff-ffffffffffff",
+            partitionCount,
+            BigDecimal.valueOf(0.5));
+
+    assertEquals(pRanges50.size(), (long)partitionCount);
+    PartitionRange range0 = pRanges50.get(0);
+    assertEquals("00000000-0000-0000-0000-000000000000", range0.getStartRange());
+    assertNotEquals("ffffffff-ffff-ffff-ffff-ffffffffffff", range0.getEndRange());
+
+    // validate that end range < uuidMax
+    assertTrue(UUIDHelpers.uuidToBigInt(UUID.fromString(range0.getEndRange()))
+        .compareTo(UUIDHelpers.uuidToBigInt(uuidMax)) < 0);
+
+    Helpers.printPartitionRanges(pRanges50, "TestTable50");
+
+    // now fetch with full coverage
+    List<PartitionRange> pRangesFull =
+        fetcher.getPartitionRangesWithCoverage("00000000-0000-0000-0000-000000000000",
+            "ffffffff-ffff-ffff-ffff-ffffffffffff",
+            partitionCount,
+            BigDecimal.valueOf(1));
+
+    assertEquals(pRangesFull.size(), (long)partitionCount);
+    assertEquals("00000000-0000-0000-0000-000000000000", pRangesFull.get(0).getStartRange());
+    assertEquals("ffffffff-ffff-ffff-ffff-ffffffffffff", pRangesFull.get(0).getEndRange());
 
     Helpers.printPartitionRanges(pRangesFull, "TestTableFull");
   }

@@ -65,6 +65,7 @@ public class HashResult {
           sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getLong(i));
           break;
         case "TIMESTAMP":
+          // TODO: This uses millisecond precision; consider using microsecond precision
           if(!spannerStruct.isNull(i)) {
             Long rawTimestamp = spannerStruct.getTimestamp(i).toSqlTimestamp().getTime();
             if (adjustTimestampPrecision)
@@ -159,6 +160,7 @@ public class HashResult {
           break;
         case Types.TIMESTAMP:
         case Types.TIME_WITH_TIMEZONE:
+          // TODO: This uses millisecond precision; consider using microsecond precision
           java.sql.Timestamp timestampVal = resultSet.getTimestamp(colOrdinal);
           if(timestampVal != null) {
             Long rawTimestamp = timestampVal.getTime();

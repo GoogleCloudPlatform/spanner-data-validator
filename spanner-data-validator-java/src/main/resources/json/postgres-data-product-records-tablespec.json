@@ -8,6 +8,6 @@
     "rangeStart": "00000000-0000-0000-0000-000000000000",
     "rangeEnd": "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
     "partitionCount": "100",
-    "rangeCoverage": "0.05"
+    "rangeCoverage": "0.1"
   }
 ]

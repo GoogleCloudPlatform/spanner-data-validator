@@ -1,6 +1,5 @@
 package com.google.migration.partitioning;
 
-import com.google.migration.Constants;
 import com.google.migration.dto.PartitionRange;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -36,6 +35,12 @@ public class UUIDPartitionRangeListFetcher implements PartitionRangeListFetcher 
     UUID start = UUID.fromString(startStr);
     UUID end = UUID.fromString(endStr);
 
+    if(coveragePercent.compareTo(BigDecimal.ONE) > 0) {
+      throw new IllegalArgumentException("Coverage percent must be <= 1");
+    }
+
+    Boolean partialCoverage = (coveragePercent.compareTo(BigDecimal.ONE) < 0);
+
     // UUID max
     BigInteger uuidMax = UUIDHelpers.uuidToBigInt(end);
     BigInteger uuidMin = UUIDHelpers.uuidToBigInt(start);
@@ -44,7 +49,7 @@ public class UUIDPartitionRangeListFetcher implements PartitionRangeListFetcher 
     BigInteger constrainedStepSize = stepSize;
 
     // Simple implementation of "coverage" - just reduce the step size
-    if(coveragePercent.compareTo(BigDecimal.ONE) < 0) {
+    if(partialCoverage) {
       BigDecimal constrainedStepSizeDecimal = new BigDecimal(constrainedStepSize);
       constrainedStepSize = constrainedStepSizeDecimal.multiply(coveragePercent).toBigInteger();
 
@@ -58,26 +63,39 @@ public class UUIDPartitionRangeListFetcher implements PartitionRangeListFetcher 
 
     ArrayList<PartitionRange> bRanges = new ArrayList<>();
 
-    BigInteger maxRange = uuidMin.subtract(BigInteger.ONE);
-    for(Integer i = 0; i < partitionCount - 1; i++) {
-      BigInteger minRange = maxRange.add(BigInteger.ONE);
-      maxRange = minRange.add(constrainedStepSize).subtract(BigInteger.ONE);
+    if(partitionCount <= 0) {
+      throw new IllegalArgumentException("Partition count must be > 0");
+    } else if(partitionCount == 1) {
+      String calculatedEndRangeStr = endStr;
+      if (partialCoverage) {
+        BigInteger calculatedEndRange = UUIDHelpers.uuidToBigInt(start).add(constrainedStepSize);
+        calculatedEndRangeStr = UUIDHelpers.bigIntToUUID(calculatedEndRange).toString();
+      }
 
-      PartitionRange range = new PartitionRange(UUIDHelpers.bigIntToUUID(minRange).toString(),
-          UUIDHelpers.bigIntToUUID(maxRange).toString());
-
+      PartitionRange range = new PartitionRange(startStr, calculatedEndRangeStr);
       bRanges.add(range);
+    } else {
+      BigInteger maxRange = uuidMin.subtract(BigInteger.ONE);
+      for (Integer i = 0; i < partitionCount - 1; i++) {
+        BigInteger minRange = maxRange.add(BigInteger.ONE);
+        maxRange = minRange.add(constrainedStepSize).subtract(BigInteger.ONE);
 
-      maxRange = minRange.add(stepSize).subtract(BigInteger.ONE);
-    }
+        PartitionRange range = new PartitionRange(UUIDHelpers.bigIntToUUID(minRange).toString(),
+            UUIDHelpers.bigIntToUUID(maxRange).toString());
 
-    BigInteger calculatedEndRange = maxRange.add(constrainedStepSize);
-    if(coveragePercent.compareTo(BigDecimal.ONE) == 0) {
-      calculatedEndRange = uuidMax;
+        bRanges.add(range);
+
+        maxRange = minRange.add(stepSize).subtract(BigInteger.ONE);
+      }
+
+      BigInteger calculatedEndRange = maxRange.add(constrainedStepSize);
+      if (!partialCoverage) {
+        calculatedEndRange = uuidMax;
+      }
+      PartitionRange range = new PartitionRange(UUIDHelpers.bigIntToUUID(maxRange).toString(),
+          UUIDHelpers.bigIntToUUID(calculatedEndRange).toString());
+      bRanges.add(range);
     }
-    PartitionRange range = new PartitionRange(UUIDHelpers.bigIntToUUID(maxRange).toString(),
-        UUIDHelpers.bigIntToUUID(calculatedEndRange).toString());
-    bRanges.add(range);
 
     return bRanges;
   }
