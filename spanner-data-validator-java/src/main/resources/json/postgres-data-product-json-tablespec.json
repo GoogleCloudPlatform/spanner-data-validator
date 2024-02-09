@@ -1,6 +1,6 @@
 [
   {
-    "tableName": "DataProductRecords",
+    "tableName": "DataProductJson",
     "sourceQuery": "select * from \"data-products\".data_product_json where id >= uuid(?) and id <= uuid(?)",
     "destQuery": "select * FROM data_product_json WHERE id >= $1 AND id <= $2",
     "rangeFieldIndex": "0",

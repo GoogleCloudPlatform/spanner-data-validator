@@ -1,21 +1,17 @@
 package com.google.migration.dto;
 
 import com.google.cloud.spanner.Struct;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.spanner.Type;
 import com.google.migration.Helpers;
+import com.google.migration.common.JSONNormalizer;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Map;
-import java.util.TreeMap;
 import org.apache.beam.sdk.coders.DefaultCoder;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
 import org.apache.commons.codec.binary.Base64;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -217,15 +213,6 @@ public class HashResult {
   }
 
   private static String getNormalizedJsonString(String rawJsonInput) {
-    ObjectMapper om = new ObjectMapper();
-    try {
-      // https://stackoverflow.com/questions/30325042/how-to-compare-two-json-strings-when-the-order-of-entries-keep-changing
-      TreeMap<String, Object> m1 = (TreeMap<String, Object>) (om.readValue(rawJsonInput, TreeMap.class));
-
-      return om.writeValueAsString(m1);
-    }catch (Exception ex) {
-    }
-
-    return rawJsonInput;
+    return JSONNormalizer.getNormalizedString(rawJsonInput);
   }
 } // HashResult
