@@ -120,7 +120,7 @@ public class PartitionRangeTest {
     // fetch w/ partition 50% coverage
     List<PartitionRange> pRanges50 = fetcher.getPartitionRangesWithCoverage(
         "1971-01-01 00:00:00",
-        "2025-01-01 00:00:00",
+        "2023-10-04T19:29:43.067Z",
         partitionCount,
         BigDecimal.valueOf(0.5));
 
@@ -133,7 +133,7 @@ public class PartitionRangeTest {
     // fetch w/ partition full coverage
     List<PartitionRange> pRangesFull = fetcher.getPartitionRangesWithCoverage(
         "1971-01-01",
-        "2025-01-01",
+        "2023-10-04T19:29:43.067Z",
         partitionCount,
         BigDecimal.ONE);
 

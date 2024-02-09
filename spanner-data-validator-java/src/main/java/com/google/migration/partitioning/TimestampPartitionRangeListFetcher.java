@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -87,9 +89,18 @@ public class TimestampPartitionRangeListFetcher extends LongPartitionRangeListFe
   }
 
   private Timestamp getTimestampFromString(String valueIn) {
-    DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     try {
+      ZonedDateTime dateTime =
+          ZonedDateTime.parse(valueIn, DateTimeFormatter.ISO_DATE_TIME)
+              .withZoneSameInstant(ZoneId.systemDefault());
+
+      return Timestamp.from(dateTime.toInstant());
+    } catch(Exception ex) {
+    }
+
+    try {
+      DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
       LocalDateTime dateTime = LocalDateTime.parse(valueIn, dateTimeFormatter);
       return Timestamp.valueOf(dateTime);
     } catch(DateTimeParseException parseException) {

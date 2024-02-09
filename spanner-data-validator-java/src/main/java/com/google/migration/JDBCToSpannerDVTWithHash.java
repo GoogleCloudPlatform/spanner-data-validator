@@ -512,6 +512,7 @@ public class JDBCToSpannerDVTWithHash {
                   Statement statement;
                   switch(rangeFieldType) {
                     case TableSpec.UUID_FIELD_TYPE:
+                    case TableSpec.TIMESTAMP_FIELD_TYPE:
                       statement =
                           Statement.newBuilder(query)
                               .bind("p1")

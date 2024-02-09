@@ -1,0 +1,13 @@
+[
+  {
+    "tableName": "DataProductRecords",
+    "sourceQuery": "select * from \"data-products\".data_product_json where id >= uuid(?) and id <= uuid(?)",
+    "destQuery": "select * FROM data_product_json WHERE id >= $1 AND id <= $2",
+    "rangeFieldIndex": "0",
+    "rangeFieldType": "UUID",
+    "rangeStart": "00000000-0000-0000-0000-000000000000",
+    "rangeEnd": "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
+    "partitionCount": "1",
+    "rangeCoverage": "1"
+  }
+]

@@ -1,0 +1,13 @@
+[
+  {
+    "tableName": "DataProductRecordsWithTimestamp",
+    "sourceQuery": "select * from \"data-products\".data_product_records where created_at >= TO_TIMESTAMP(?, 'YYYY-MM-DD HH24:MI:SS') and created_at <= TO_TIMESTAMP(?, 'YYYY-MM-DD HH24:MI:SS')",
+    "destQuery": "select * FROM data_product_records WHERE created_at >= TO_TIMESTAMP($1, 'YYYY-MM-DD HH24:MI:SS') AND created_at <= TO_TIMESTAMP($2, 'YYYY-MM-DD HH24:MI:SS')",
+    "rangeFieldIndex": "13",
+    "rangeFieldType": "TIMESTAMP",
+    "rangeStart": "2023-10-04T19:29:43.067Z",
+    "rangeEnd": "2023-12-07T10:25:10.908Z",
+    "partitionCount": "100",
+    "rangeCoverage": "0.9"
+  }
+]

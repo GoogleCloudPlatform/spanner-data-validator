@@ -34,6 +34,12 @@ public class MapWithRangeFn extends DoFn<HashResult, KV<String, HashResult>> {
     return lhs.compareTo(rhs);
   };
 
+  static Comparator<PartitionRange> timestampPartitionRangeComparator = (o1, o2) -> {
+    String lhs = o1.getStartRange();
+    String rhs = o2.getStartRange();
+    return lhs.compareTo(rhs);
+  };
+
   private PCollectionView<List<PartitionRange>> uuidRangesView;
   private MapWithRangeType mappingType;
   private String rangeFieldType = TableSpec.UUID_FIELD_TYPE;
@@ -112,6 +118,10 @@ public class MapWithRangeFn extends DoFn<HashResult, KV<String, HashResult>> {
         return getRangeFromList(result.key,
             siBRanges,
             longPartitionRangeComparator);
+      case TableSpec.TIMESTAMP_FIELD_TYPE:
+        return getRangeFromList(result.key,
+            siBRanges,
+            timestampPartitionRangeComparator);
       default:
         break;
     }

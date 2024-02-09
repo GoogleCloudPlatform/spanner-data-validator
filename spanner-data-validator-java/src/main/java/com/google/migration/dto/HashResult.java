@@ -1,6 +1,7 @@
 package com.google.migration.dto;
 
 import com.google.cloud.spanner.Struct;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.spanner.Type;
 import com.google.migration.Helpers;
 import java.math.BigDecimal;
@@ -8,9 +9,13 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Map;
+import java.util.TreeMap;
 import org.apache.beam.sdk.coders.DefaultCoder;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
 import org.apache.commons.codec.binary.Base64;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +61,9 @@ public class HashResult {
           sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getJson(i));
           break;
         case "JSON<PG_JSONB>":
-          sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getPgJsonb(i));
+          if(!spannerStruct.isNull(i)) {
+            sbConcatCols.append(getNormalizedJsonString(spannerStruct.getPgJsonb(i)));
+          }
           break;
         case "BYTES":
           sbConcatCols.append(spannerStruct.isNull(i) ? "" : Base64.encodeBase64String(spannerStruct.getBytes(i).toByteArray()));
@@ -85,6 +92,9 @@ public class HashResult {
     switch(rangeFieldType) {
       case TableSpec.UUID_FIELD_TYPE:
         retVal.key = spannerStruct.getString(keyIndex);
+        break;
+      case TableSpec.TIMESTAMP_FIELD_TYPE:
+        retVal.key = spannerStruct.getTimestamp(keyIndex).toSqlTimestamp().toString();
         break;
       case TableSpec.INT_FIELD_TYPE:
       case TableSpec.LONG_FIELD_TYPE:
@@ -121,10 +131,16 @@ public class HashResult {
       switch (type) {
         case Types.CHAR:
         case Types.VARCHAR:
-        case Types.OTHER:
           String val = resultSet.getString(colOrdinal);
           if(val != null) {
             sbConcatCols.append(val);
+          }
+          break;
+          // TODO: we're assuming OTHER is jsonb (FIX)
+        case Types.OTHER:
+          String otherVal = resultSet.getString(colOrdinal);
+          if(otherVal != null) {
+            sbConcatCols.append(getNormalizedJsonString(otherVal));
           }
           break;
         case Types.LONGVARBINARY:
@@ -179,6 +195,9 @@ public class HashResult {
       case TableSpec.UUID_FIELD_TYPE:
         retVal.key = resultSet.getString(keyIndex+1);
         break;
+      case TableSpec.TIMESTAMP_FIELD_TYPE:
+        retVal.key = resultSet.getTimestamp(keyIndex+1).toString();
+        break;
       case TableSpec.INT_FIELD_TYPE:
         retVal.key = String.valueOf(resultSet.getInt(keyIndex+1));
         break;
@@ -195,5 +214,18 @@ public class HashResult {
     retVal.isSource = true;
 
     return retVal;
+  }
+
+  private static String getNormalizedJsonString(String rawJsonInput) {
+    ObjectMapper om = new ObjectMapper();
+    try {
+      // https://stackoverflow.com/questions/30325042/how-to-compare-two-json-strings-when-the-order-of-entries-keep-changing
+      TreeMap<String, Object> m1 = (TreeMap<String, Object>) (om.readValue(rawJsonInput, TreeMap.class));
+
+      return om.writeValueAsString(m1);
+    }catch (Exception ex) {
+    }
+
+    return rawJsonInput;
   }
 } // HashResult

@@ -8,10 +8,10 @@ import org.joda.time.DateTime;
 @DefaultCoder(AvroCoder.class)
 public class TableSpec {
 
-  public static final String INT_FIELD_TYPE = "Integer";
-  public static final String LONG_FIELD_TYPE = "Long";
+  public static final String INT_FIELD_TYPE = "INTEGER";
+  public static final String LONG_FIELD_TYPE = "LONG";
   public static final String UUID_FIELD_TYPE = "UUID";
-  public static final String TIMESTAMP_FIELD_TYPE = "Timestamp";
+  public static final String TIMESTAMP_FIELD_TYPE = "TIMESTAMP";
   private String tableName;
   private String sourceQuery;
   private Integer rangeFieldIndex;
