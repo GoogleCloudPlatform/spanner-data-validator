@@ -51,14 +51,17 @@ public class JSONNormalizer {
 
   private static void traverseJSONArray(JSONArray jsonArray, SortedSet<String> sortedStrings) {
     for(int i = 0; i < jsonArray.length(); i++) {
-      Object obj = jsonArray.get(i);
-      if(obj instanceof JSONObject) {
-        traverseJSONObject(jsonArray.getJSONObject(i), sortedStrings);
-      } else if(obj instanceof JSONArray) {
-        traverseJSONArray(jsonArray.getJSONArray(i), sortedStrings);
-      } else {
-        throw new RuntimeException("Unrecognized type");
-      } // if/else
+      if(!jsonArray.isNull(i)) {
+        Object obj = jsonArray.get(i);
+        if (obj instanceof JSONObject) {
+          traverseJSONObject(jsonArray.getJSONObject(i), sortedStrings);
+        } else if (obj instanceof JSONArray) {
+          traverseJSONArray(jsonArray.getJSONArray(i), sortedStrings);
+        } else {
+          LOG.debug(String.format("Not an object or array: %s", obj.toString()));
+          sortedStrings.add(obj.toString());
+        } // if/else
+      } // if
     } // for
   }
 

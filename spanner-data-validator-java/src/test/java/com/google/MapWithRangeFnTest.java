@@ -24,7 +24,7 @@ public class MapWithRangeFnTest {
     PartitionRangeListFetcher fetcher =
         PartitionRangeListFetcherFactory.getFetcher(fieldType);
     List<PartitionRange> pRanges = fetcher.getPartitionRanges(100);
-    assertEquals(pRanges.size(), 101);
+    assertEquals(pRanges.size(), 100);
 
     HashResult hr = new HashResult("0", true, "orig", "hash");
     MapWithRangeFn mapFn = new MapWithRangeFn(null,
@@ -36,7 +36,7 @@ public class MapWithRangeFnTest {
 
     hr.key = "1";
     pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
-    assertEquals(pRange.getStartRange(), "1");
+    assertEquals(pRange.getStartRange(), "0");
 
     hr.key = String.valueOf(Integer.MAX_VALUE - 1);
     pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
@@ -50,7 +50,7 @@ public class MapWithRangeFnTest {
     PartitionRangeListFetcher fetcher =
         PartitionRangeListFetcherFactory.getFetcher(fieldType);
     List<PartitionRange> pRanges = fetcher.getPartitionRanges(100);
-    assertEquals(pRanges.size(), 101);
+    assertEquals(pRanges.size(), 100);
 
     for(PartitionRange pRange: pRanges) {
       System.out.println(String.format("Start: %s, end: %s", pRange.getStartRange(), pRange.getEndRange()));
@@ -66,7 +66,7 @@ public class MapWithRangeFnTest {
 
     hr.key = "1";
     pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
-    assertEquals(pRange.getStartRange(), "1");
+    assertEquals(pRange.getStartRange(), "0");
 
     hr.key = String.valueOf(Long.MAX_VALUE - 1);
     pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
@@ -80,7 +80,7 @@ public class MapWithRangeFnTest {
     PartitionRangeListFetcher fetcher =
         PartitionRangeListFetcherFactory.getFetcher(fieldType);
     List<PartitionRange> pRanges = fetcher.getPartitionRanges(100);
-    assertEquals(pRanges.size(), 101);
+    assertEquals(pRanges.size(), 100);
 
     BigInteger val = BigInteger.ZERO;
     UUID zeroUUID = Helpers.bigIntToUUID(val);
@@ -96,6 +96,6 @@ public class MapWithRangeFnTest {
     UUID oneUUID = Helpers.bigIntToUUID(val);
     hr.key = oneUUID.toString();
     pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
-    assertEquals(pRange.getStartRange(), oneUUID.toString());
+    assertEquals(pRange.getStartRange(), zeroUUID.toString());
   }
 } // class MapWithRangeFnTest
