@@ -452,7 +452,8 @@ public class JDBCToSpannerDVTWithHash {
 
     String shardSpecJsonFile = options.getShardSpecJson();
 
-    List<ShardSpec> shardSpecs = ShardSpecList.getShardSpecsFromJsonFile(shardSpecJsonFile);
+    List<ShardSpec> shardSpecs =
+        ShardSpecList.getShardSpecsFromJsonFile(shardSpecJsonFile, options.getVerboseLogging());
     ArrayList<PCollection<HashResult>> pCollections = new ArrayList<>();
 
     String jdbcPass = Helpers.getJDBCPassword(options);

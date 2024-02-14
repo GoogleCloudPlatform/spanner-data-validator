@@ -11,22 +11,26 @@ public class ShardSpecTest {
   @Test
   public void shardSpecReadFromJsonTest() throws Exception {
     List<ShardSpec> sList =
-        ShardSpecList.getShardSpecsFromJsonResource("json/shard-spec-sample-v1.json");
+        ShardSpecList
+            .getShardSpecsFromJsonResource("json/shard-spec-sample-v1.json",
+                true);
 
     assertEquals(16, sList.size());
-    assertEquals("testhost-001", sList.get(0).getHost());
+    assertEquals("testhost-001.local.com", sList.get(0).getHost());
     assertEquals("test-0000", sList.get(0).getDb());
     assertEquals("test-0007", sList.get(7).getDb());
 
-    assertEquals("testhost-002", sList.get(15).getHost());
-    assertEquals("test-0000", sList.get(8).getDb());
-    assertEquals("test-0007", sList.get(7).getDb());
+    assertEquals("testhost-002.local.com", sList.get(15).getHost());
+    assertEquals("test-0008", sList.get(8).getDb());
+    assertEquals("test-0015", sList.get(15).getDb());
   }
 
   @Test
   public void singleShardSpecTest() throws Exception {
     List<ShardSpec> sList =
-        ShardSpecList.getShardSpecsFromJsonResource("json/shard-spec-single-shard-sample.json");
+        ShardSpecList
+            .getShardSpecsFromJsonResource("json/shard-spec-single-shard-sample.json",
+                true);
 
     assertEquals(1, sList.size());
     assertEquals("testhost-001", sList.get(0).getHost());

@@ -7,6 +7,7 @@
   "shard-count": "16",
   "shard-suffix-start": "0",
   "shard-suffix-digits": "4",
+  "shard-static-suffix": ".local.com",
   "username": "user",
   "password": "pass"
 }

@@ -103,7 +103,7 @@ public class HashResult {
     retVal.rangeFieldType = rangeFieldType;
     retVal.origValue = sbConcatCols.toString();
     retVal.sha256 = Helpers.sha256(retVal.origValue);
-    retVal.isSource = true;
+    retVal.isSource = false;
 
     return retVal;
   }
@@ -128,45 +128,52 @@ public class HashResult {
         case Types.CHAR:
         case Types.VARCHAR:
           String val = resultSet.getString(colOrdinal);
-          if(val != null) {
+          if(val != null && !resultSet.wasNull()) {
             sbConcatCols.append(val);
           }
           break;
           // TODO: we're assuming OTHER is jsonb (FIX)
         case Types.OTHER:
           String otherVal = resultSet.getString(colOrdinal);
-          if(otherVal != null) {
+          if(otherVal != null && !resultSet.wasNull()) {
             sbConcatCols.append(getNormalizedJsonString(otherVal));
           }
           break;
         case Types.LONGVARBINARY:
           byte[] bytes = resultSet.getBytes(colOrdinal);
-          if(bytes != null) {
+          if(bytes != null && !resultSet.wasNull()) {
             sbConcatCols.append(Base64.encodeBase64String(bytes));
           }
           break;
         case Types.BIT:
         case Types.BOOLEAN:
           Boolean boolVal = resultSet.getBoolean(colOrdinal);
-          if(boolVal != null) {
+          if(boolVal != null && !resultSet.wasNull()) {
+            // https://stackoverflow.com/questions/39561112/getting-boolean-from-resultset
             sbConcatCols.append(boolVal);
           }
           break;
         case Types.INTEGER:
           Integer intVal = resultSet.getInt(colOrdinal);
-          if(intVal != null) {
+          if(intVal != null && !resultSet.wasNull()) {
             sbConcatCols.append(intVal);
+          }
+          break;
+        case Types.TINYINT:
+          Short shortVal = resultSet.getShort(colOrdinal);
+          if(shortVal != null && !resultSet.wasNull()) {
+            sbConcatCols.append(shortVal);
           }
           break;
         case Types.BIGINT:
           Long longVal = resultSet.getLong(colOrdinal);
-          if(longVal != null) {
+          if(longVal != null && !resultSet.wasNull()) {
             sbConcatCols.append(longVal);
           }
           break;
         case Types.DECIMAL:
           BigDecimal decimalVal = resultSet.getBigDecimal(colOrdinal);
-          if(decimalVal != null) {
+          if(decimalVal != null && !resultSet.wasNull()) {
             sbConcatCols.append(decimalVal);
           }
           break;
@@ -174,7 +181,7 @@ public class HashResult {
         case Types.TIME_WITH_TIMEZONE:
           // TODO: This uses millisecond precision; consider using microsecond precision
           java.sql.Timestamp timestampVal = resultSet.getTimestamp(colOrdinal);
-          if(timestampVal != null) {
+          if(timestampVal != null && !resultSet.wasNull()) {
             Long rawTimestamp = timestampVal.getTime();
             if (adjustTimestampPrecision)
               rawTimestamp = rawTimestamp / 1000;

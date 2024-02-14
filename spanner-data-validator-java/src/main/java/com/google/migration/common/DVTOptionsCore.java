@@ -183,6 +183,15 @@ public interface DVTOptionsCore extends PipelineOptions {
 
   void setAdjustTimestampPrecision(Boolean value);
 
+  /**
+   * Verbose logging
+   */
+  @Description("Verbose logging")
+  @Default.Boolean(false)
+  Boolean getVerboseLogging();
+
+  void setVerboseLogging(Boolean value);
+
   @Description("Shard spec json file")
   @Default.String("")
   String getShardSpecJson();

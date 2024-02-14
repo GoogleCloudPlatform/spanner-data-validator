@@ -5,8 +5,12 @@ import com.google.migration.dto.ShardSpec;
 import com.google.migration.dto.ShardSpecJsonDef;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShardSpecList {
+  private static final Logger LOG = LoggerFactory.getLogger(ShardSpecList.class);
+
   public static List<ShardSpec> getShardSpecs(DVTOptionsCore options) {
     ArrayList<ShardSpec> shardSpecs = new ArrayList<>();
 
@@ -34,19 +38,21 @@ public class ShardSpecList {
     return shardSpecs;
   }
 
-  public static List<ShardSpec> getShardSpecsFromJsonResource(String resourceFilename) {
+  public static List<ShardSpec> getShardSpecsFromJsonResource(String resourceFilename,
+      Boolean verboseLogging) {
     ShardSpecJsonDef ssDef = ShardSpecJsonDef.fromJsonResourceFile(resourceFilename);
 
-    return getShardSpecsFromShardSpecJsonDef(ssDef);
+    return getShardSpecsFromShardSpecJsonDef(ssDef, verboseLogging);
   }
 
-  public static List<ShardSpec> getShardSpecsFromJsonFile(String jsonFile) {
+  public static List<ShardSpec> getShardSpecsFromJsonFile(String jsonFile, Boolean verboseLogging) {
     ShardSpecJsonDef ssDef = ShardSpecJsonDef.fromJsonFile(jsonFile);
 
-    return getShardSpecsFromShardSpecJsonDef(ssDef);
+    return getShardSpecsFromShardSpecJsonDef(ssDef, verboseLogging);
   }
 
-  private static List<ShardSpec> getShardSpecsFromShardSpecJsonDef(ShardSpecJsonDef ssDef) {
+  private static List<ShardSpec> getShardSpecsFromShardSpecJsonDef(ShardSpecJsonDef ssDef,
+      Boolean verboseLogging) {
     ArrayList<ShardSpec> shardSpecs = new ArrayList<>();
 
     Integer hostCount = ssDef.getHostCount();
@@ -61,17 +67,27 @@ public class ShardSpecList {
           ssDef.getHostnamePrefix(),
           ssDef.getHostnameSuffixStart() + i);
 
+      String shardStaticSuffix = ssDef.getShardStaticSuffix();
+      if(!Helpers.isNullOrEmpty(shardStaticSuffix)) {
+        hostname = String.format("%s%s", hostname, shardStaticSuffix);
+      }
+
       for(int j = 0; j < shardsPerHost; j++) {
 
         String db = String.format(shardDigitFormat,
             ssDef.getDbNamePrefix(),
-            ssDef.getShardSuffixStart() + j);
+            ssDef.getShardSuffixStart() + j + (i * shardsPerHost));
         ShardSpec spec = new ShardSpec(hostname,
             ssDef.getUsername(),
             ssDef.getPassword(),
             db,
             String.valueOf((i * shardsPerHost) + j),
             (i * shardsPerHost) + j);
+
+        if(verboseLogging) {
+          LOG.info(String.format("Hostname: %s, shard (db): %s", spec.getHost(), spec.getDb()));
+        }
+
         shardSpecs.add(spec);
       } // for
     }

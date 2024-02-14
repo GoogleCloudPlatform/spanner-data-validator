@@ -24,6 +24,7 @@ public class ShardSpecJsonDef {
   private Integer shardCount;
   private Integer shardSuffixStart;
   private Integer shardSuffixDigits;
+  private String shardStaticSuffix;
   private String username;
   private String password;
 
@@ -75,6 +76,10 @@ public class ShardSpecJsonDef {
       ssJsonDef.setShardSuffixDigits(jsonObject.getInt("shard-suffix-digits"));
       ssJsonDef.setUsername(jsonObject.getString("username"));
       ssJsonDef.setPassword(jsonObject.getString("password"));
+
+      if(!jsonObject.isNull("shard-static-suffix")) {
+        ssJsonDef.setShardStaticSuffix(jsonObject.getString("shard-static-suffix"));
+      }
 
       return ssJsonDef;
     } catch (Exception ex) {
@@ -164,5 +169,13 @@ public class ShardSpecJsonDef {
 
   public void setPassword(String password) {
     this.password = password;
+  }
+
+  public String getShardStaticSuffix() {
+    return shardStaticSuffix;
+  }
+
+  public void setShardStaticSuffix(String shardStaticSuffix) {
+    this.shardStaticSuffix = shardStaticSuffix;
   }
 } // class ShardSpecJsonDef

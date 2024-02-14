@@ -4,7 +4,7 @@
     "sourceQuery": "select id, memberEventId, numericId, eventTypeId, eventCode, detail from member_events where id >= ? and id <= ?",
     "destQuery": "select id, memberEventId, numericId, eventTypeId, eventCode, detail from member_events where id >= @p1 and id <= @p2",
     "rangeFieldIndex": "0",
-    "rangeFieldType": "Long",
+    "rangeFieldType": "LONG",
     "rangeStart": "0",
     "rangeEnd": "9223372036854775807",
     "partitionCount": "1000000000",
