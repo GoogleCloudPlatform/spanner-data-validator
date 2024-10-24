@@ -28,6 +28,7 @@ public class TableSpec {
   public static final String LONG_FIELD_TYPE = "LONG";
   public static final String UUID_FIELD_TYPE = "UUID";
   public static final String TIMESTAMP_FIELD_TYPE = "TIMESTAMP";
+  public static final String STRING_FIELD_TYPE = "STRING";
   private String tableName;
   private String sourceQuery;
   private Integer rangeFieldIndex;
@@ -40,6 +41,10 @@ public class TableSpec {
   private Integer lastUpdatedTimeFieldIndex;
   private Integer partitionCount = -1;
   private Integer partitionFilterRatio = -1;
+  private Integer timestampThresholdColIndex = -1;
+  private long timestampThresholdValue = 0L;
+  private Integer timestampThresholdDeltaInMins = 0;
+  private Integer timestampThresholdZoneOffset = -5;
 
   public TableSpec() {
   }
@@ -220,5 +225,37 @@ public class TableSpec {
 
   public void setPartitionFilterRatio(Integer partitionFilterRatio) {
     this.partitionFilterRatio = partitionFilterRatio;
+  }
+
+  public Integer getTimestampThresholdColIndex() {
+    return timestampThresholdColIndex;
+  }
+
+  public void setTimestampThresholdColIndex(Integer timestampThresholdColIndex) {
+    this.timestampThresholdColIndex = timestampThresholdColIndex;
+  }
+
+  public long getTimestampThresholdValue() {
+    return timestampThresholdValue;
+  }
+
+  public void setTimestampThresholdValue(long timestampThresholdValue) {
+    this.timestampThresholdValue = timestampThresholdValue;
+  }
+
+  public Integer getTimestampThresholdDeltaInMins() {
+    return timestampThresholdDeltaInMins;
+  }
+
+  public void setTimestampThresholdDeltaInMins(Integer timestampThresholdDeltaInMins) {
+    this.timestampThresholdDeltaInMins = timestampThresholdDeltaInMins;
+  }
+
+  public Integer getTimestampThresholdZoneOffset() {
+    return timestampThresholdZoneOffset;
+  }
+
+  public void setTimestampThresholdZoneOffset(Integer timestampThresholdZoneOffset) {
+    this.timestampThresholdZoneOffset = timestampThresholdZoneOffset;
   }
 } // class TableSpec

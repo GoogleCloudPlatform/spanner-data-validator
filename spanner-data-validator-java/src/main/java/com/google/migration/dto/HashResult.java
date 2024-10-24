@@ -21,10 +21,13 @@ import com.google.cloud.spanner.Type;
 import com.google.migration.Helpers;
 import com.google.migration.common.JSONNormalizer;
 import java.math.BigDecimal;
+import java.sql.Array;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.LocalDate;
 import org.apache.beam.sdk.coders.DefaultCoder;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
 import org.apache.commons.codec.binary.Base64;
@@ -40,6 +43,7 @@ public class HashResult {
   public String key;
   public String range = "";
   public String rangeFieldType = TableSpec.UUID_FIELD_TYPE;
+  public Long timestampThresholdValue = 0L;
 
   public HashResult() {
   }
@@ -47,17 +51,20 @@ public class HashResult {
   public HashResult(String keyIn,
       Boolean isSourceIn,
       String origValueIn,
-      String sha256In) {
+      String sha256In,
+      Long timestampThresholdValueIn) {
     key = keyIn;
     isSource = isSourceIn;
     origValue = origValueIn;
     sha256 = sha256In;
+    timestampThresholdValue = timestampThresholdValueIn;
   }
 
   public static HashResult fromSpannerStruct(Struct spannerStruct,
       Integer keyIndex,
       String rangeFieldType,
-      Boolean adjustTimestampPrecision) {
+      Boolean adjustTimestampPrecision,
+      Integer timestampThresholdIndex) {
     HashResult retVal = new HashResult();
 
     int nCols = spannerStruct.getColumnCount();
@@ -70,7 +77,9 @@ public class HashResult {
           sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getString(i));
           break;
         case "JSON":
-          sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getJson(i));
+          if(!spannerStruct.isNull(i)) {
+            sbConcatCols.append(getNormalizedJsonString(spannerStruct.getJson(i)));
+          }
           break;
         case "JSON<PG_JSONB>":
           if(!spannerStruct.isNull(i)) {
@@ -83,6 +92,9 @@ public class HashResult {
         case "INT64":
           sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getLong(i));
           break;
+        case "FLOAT64":
+          sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getDouble(i));
+          break;
         case "TIMESTAMP":
           // TODO: This uses millisecond precision; consider using microsecond precision
           if(!spannerStruct.isNull(i)) {
@@ -90,6 +102,22 @@ public class HashResult {
             if (adjustTimestampPrecision)
               rawTimestamp = rawTimestamp / 1000;
             sbConcatCols.append(rawTimestamp);
+            if(timestampThresholdIndex >= 0) {
+              if(i == timestampThresholdIndex) {
+                retVal.timestampThresholdValue = rawTimestamp;
+                if(adjustTimestampPrecision)
+                  retVal.timestampThresholdValue = retVal.timestampThresholdValue * 1000;
+              }
+            }
+          }
+          break;
+        case "DATE":
+          if(!spannerStruct.isNull(i)) {
+            com.google.cloud.Date date = spannerStruct.getDate(i);
+            sbConcatCols.append(String.format("%d%d%d",
+                date.getYear(),
+                date.getMonth(),
+                date.getDayOfMonth()));
           }
           break;
         case "BOOL":
@@ -103,6 +131,7 @@ public class HashResult {
 
     switch(rangeFieldType) {
       case TableSpec.UUID_FIELD_TYPE:
+      case TableSpec.STRING_FIELD_TYPE:
         retVal.key = spannerStruct.getString(keyIndex);
         break;
       case TableSpec.TIMESTAMP_FIELD_TYPE:
@@ -127,7 +156,8 @@ public class HashResult {
   public static HashResult fromJDBCResultSet(ResultSet resultSet,
       Integer keyIndex,
       String rangeFieldType,
-      Boolean adjustTimestampPrecision)
+      Boolean adjustTimestampPrecision,
+      Integer timestampThresholdIndex)
       throws SQLException {
     HashResult retVal = new HashResult();
 
@@ -148,7 +178,16 @@ public class HashResult {
             sbConcatCols.append(val);
           }
           break;
-          // TODO: we're assuming OTHER is jsonb (FIX)
+        case Types.ARRAY:
+          Array arrayVal = resultSet.getArray(colOrdinal);
+          if(arrayVal != null && !resultSet.wasNull()) {
+            String[] vals = (String[])arrayVal.getArray();
+            for(int j = 0; j < vals.length; j++) {
+              sbConcatCols.append(vals[j]);
+            }
+          }
+          break;
+        // TODO: we're assuming OTHER is jsonb (FIX)
         case Types.OTHER:
           String otherVal = resultSet.getString(colOrdinal);
           if(otherVal != null && !resultSet.wasNull()) {
@@ -175,6 +214,18 @@ public class HashResult {
             sbConcatCols.append(intVal);
           }
           break;
+        case Types.DOUBLE:
+          Double doubleVal = resultSet.getDouble(colOrdinal);
+          if(doubleVal != null && !resultSet.wasNull()) {
+            sbConcatCols.append(doubleVal);
+          }
+          break;
+        case Types.REAL:
+          Float floatVal = resultSet.getFloat(colOrdinal);
+          if(floatVal != null && !resultSet.wasNull()) {
+            sbConcatCols.append(floatVal);
+          }
+          break;
         case Types.TINYINT:
           Short shortVal = resultSet.getShort(colOrdinal);
           if(shortVal != null && !resultSet.wasNull()) {
@@ -193,6 +244,16 @@ public class HashResult {
             sbConcatCols.append(decimalVal);
           }
           break;
+        case Types.DATE:
+          Date dateVal = resultSet.getDate(colOrdinal);
+          if(dateVal != null && !resultSet.wasNull()) {
+            LocalDate localDate = dateVal.toLocalDate();
+            sbConcatCols.append(String.format("%d%d%d",
+                localDate.getYear(),
+                localDate.getMonth().getValue(),
+                localDate.getDayOfMonth()));
+          }
+          break;
         case Types.TIMESTAMP:
         case Types.TIME_WITH_TIMEZONE:
           // TODO: This uses millisecond precision; consider using microsecond precision
@@ -202,6 +263,13 @@ public class HashResult {
             if (adjustTimestampPrecision)
               rawTimestamp = rawTimestamp / 1000;
             sbConcatCols.append(rawTimestamp);
+            if(timestampThresholdIndex >= 0) {
+              if(i == timestampThresholdIndex) {
+                retVal.timestampThresholdValue = rawTimestamp;
+                if(adjustTimestampPrecision)
+                  retVal.timestampThresholdValue = retVal.timestampThresholdValue * 1000;
+              }
+            }
           }
           break;
         default:
@@ -212,6 +280,7 @@ public class HashResult {
 
     switch(rangeFieldType) {
       case TableSpec.UUID_FIELD_TYPE:
+      case TableSpec.STRING_FIELD_TYPE:
         retVal.key = resultSet.getString(keyIndex+1);
         break;
       case TableSpec.TIMESTAMP_FIELD_TYPE:

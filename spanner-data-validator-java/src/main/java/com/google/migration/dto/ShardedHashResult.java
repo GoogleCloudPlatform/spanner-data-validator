@@ -38,13 +38,14 @@ public class ShardedHashResult extends HashResult {
       Boolean isSourceIn,
       String origValueIn,
       String sha256In,
-      Integer shardIdIn) {
-    super(keyIn, isSourceIn, origValueIn, sha256In);
+      Integer shardIdIn,
+      Long timestampThresholdValueIn) {
+    super(keyIn, isSourceIn, origValueIn, sha256In, timestampThresholdValueIn);
     shardId = shardIdIn;
   }
 
-  public ShardedHashResult(HashResult hashResult, Integer shardIdIn) {
-    super(hashResult.key, hashResult.isSource, hashResult.origValue, hashResult.sha256);
+  public ShardedHashResult(HashResult hashResult, Integer shardIdIn, Long timestampThresholdValueIn) {
+    super(hashResult.key, hashResult.isSource, hashResult.origValue, hashResult.sha256, timestampThresholdValueIn);
     shardId = shardIdIn;
   }
 
@@ -53,25 +54,29 @@ public class ShardedHashResult extends HashResult {
       String rangeFieldType,
       Boolean adjustTimestampPrecision,
       int numShards,
-      ShardIdCalculator shardIdCalculator) {
+      ShardIdCalculator shardIdCalculator,
+      Long timestampThresholdValueIn) {
     HashResult hashResult = HashResult.fromSpannerStruct(spannerStruct,
         keyIndex,
         rangeFieldType,
-        adjustTimestampPrecision);
+        adjustTimestampPrecision,
+        -1);
     Integer shardId = shardIdCalculator.getShardIndexForShardKey(hashResult.key, numShards);
-    return new ShardedHashResult(hashResult, shardId);
+    return new ShardedHashResult(hashResult, shardId, timestampThresholdValueIn);
   }
 
   public static ShardedHashResult fromJDBCResultSet(ResultSet resultSet,
       Integer keyIndex,
       String rangeFieldType,
       Boolean adjustTimestampPrecision,
-      Integer shardId)
+      Integer shardId,
+      Long timestampThresholdValueIn)
       throws SQLException {
     HashResult hashResult = HashResult.fromJDBCResultSet(resultSet,
         keyIndex,
         rangeFieldType,
-        adjustTimestampPrecision);
-    return new ShardedHashResult(hashResult, shardId);
+        adjustTimestampPrecision,
+        -1);
+    return new ShardedHashResult(hashResult, shardId, timestampThresholdValueIn);
   }
 } // class ShardedHashResult

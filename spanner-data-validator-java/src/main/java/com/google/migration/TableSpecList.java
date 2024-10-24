@@ -16,11 +16,17 @@ limitations under the License.
 
 package com.google.migration;
 
+import com.google.migration.dto.GCSObject;
 import com.google.migration.dto.TableSpec;
 import java.io.File;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.io.FileUtils;
@@ -175,6 +181,30 @@ public class TableSpecList {
                 -1 :
                 jsonObject.getInt("partitionFilterRatio"));
 
+        tableSpec.setTimestampThresholdColIndex(
+            jsonObject.isNull("timestampThresholdColIndex") ?
+                -1 :
+                jsonObject.getInt("timestampThresholdColIndex"));
+
+        tableSpec.setTimestampThresholdDeltaInMins(
+            jsonObject.isNull("timestampThresholdDeltaInMins") ?
+                0 :
+                jsonObject.getInt("timestampThresholdDeltaInMins"));
+
+        tableSpec.setTimestampThresholdZoneOffset(
+            jsonObject.isNull("timestampThresholdZoneOffset") ?
+                0 :
+                jsonObject.getInt("timestampThresholdZoneOffset"));
+
+        if(!jsonObject.isNull("timestampThresholdValue")) {
+          String rawVal = jsonObject.getString("timestampThresholdValue");
+          LocalDateTime dateTime = LocalDateTime.parse(rawVal);
+          Instant instant = dateTime.toInstant(ZoneOffset.ofHours(tableSpec.getTimestampThresholdZoneOffset()));
+          tableSpec.setTimestampThresholdValue(instant.toEpochMilli());
+        } else {
+          tableSpec.setTimestampThresholdValue(0L);
+        }
+
         tableSpecs.add(tableSpec);
       } // for
 
@@ -204,7 +234,30 @@ public class TableSpecList {
     return null;
   }
 
-  public static List<TableSpec> getFromJsonFile(String jsonFile) {
+  public static List<TableSpec> getFromJsonFile(String projectId, String jsonFile) {
+    String jsonStr = null;
+
+    GCSObject gcsObject = Helpers.getGCSObjectFromFullPath(jsonFile);
+    if(gcsObject != null) {
+      jsonStr = Helpers.getFileFromGCS(projectId, gcsObject.getBucket(), gcsObject.getObjectName());
+    }
+
+    try {
+      if(Helpers.isNullOrEmpty(jsonStr)) {
+        jsonStr = FileUtils.readFileToString(new File(jsonFile), StandardCharsets.UTF_8);
+      }
+
+      return getFromJsonString(jsonStr);
+    } catch (Exception ex) {
+      LOG.error("Exception while loading table specs from json file");
+      LOG.error(ex.getMessage());
+      LOG.error(ex.getStackTrace().toString());
+    }
+
+    return null;
+  }
+
+  private static List<TableSpec> getFromJsonFileInGCS(String jsonFile) {
     try {
       String jsonStr = FileUtils.readFileToString(new File(jsonFile), StandardCharsets.UTF_8);
       return getFromJsonString(jsonStr);

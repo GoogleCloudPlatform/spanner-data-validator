@@ -50,7 +50,7 @@ public class MapWithRangeFn extends DoFn<HashResult, KV<String, HashResult>> {
     return lhs.compareTo(rhs);
   };
 
-  static Comparator<PartitionRange> timestampPartitionRangeComparator = (o1, o2) -> {
+  static Comparator<PartitionRange> stringPartitionRangeComparator = (o1, o2) -> {
     String lhs = o1.getStartRange();
     String rhs = o2.getStartRange();
     return lhs.compareTo(rhs);
@@ -92,7 +92,8 @@ public class MapWithRangeFn extends DoFn<HashResult, KV<String, HashResult>> {
     HashResult resultOut = new HashResult(result.key,
         result.isSource,
         result.origValue,
-        result.sha256);
+        result.sha256,
+        result.timestampThresholdValue);
     resultOut.range = key;
 
     switch(mappingType) {
@@ -135,9 +136,10 @@ public class MapWithRangeFn extends DoFn<HashResult, KV<String, HashResult>> {
             siBRanges,
             longPartitionRangeComparator);
       case TableSpec.TIMESTAMP_FIELD_TYPE:
+      case TableSpec.STRING_FIELD_TYPE:
         return getRangeFromList(result.key,
             siBRanges,
-            timestampPartitionRangeComparator);
+            stringPartitionRangeComparator);
       default:
         break;
     }

@@ -61,8 +61,8 @@ public class ShardSpecList {
     return getShardSpecsFromShardSpecJsonDef(ssDef, verboseLogging);
   }
 
-  public static List<ShardSpec> getShardSpecsFromJsonFile(String jsonFile, Boolean verboseLogging) {
-    ShardSpecJsonDef ssDef = ShardSpecJsonDef.fromJsonFile(jsonFile);
+  public static List<ShardSpec> getShardSpecsFromJsonFile(String projectId, String jsonFile, Boolean verboseLogging) {
+    ShardSpecJsonDef ssDef = ShardSpecJsonDef.fromJsonFile(projectId, jsonFile);
 
     return getShardSpecsFromShardSpecJsonDef(ssDef, verboseLogging);
   }

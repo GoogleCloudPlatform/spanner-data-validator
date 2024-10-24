@@ -1,0 +1,16 @@
+[
+  {
+    "tableName": "member_events",
+    "sourceQuery": "select * from member_events where id >= ? and id <= ?",
+    "destQuery": "select * from member_events where id >= @p1 and id <= @p2",
+    "rangeFieldIndex": "0",
+    "rangeFieldType": "LONG",
+    "rangeStart": "0",
+    "rangeEnd": "1000000",
+    "rangeCoverage": "0.1",
+    "partitionCount": "100",
+    "timestampThresholdColIndex": "5",
+    "timestampThresholdValue": "2024-01-21T11:11:17",
+    "deltaInMins": "-150"
+  }
+]

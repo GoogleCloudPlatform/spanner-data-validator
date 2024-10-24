@@ -32,6 +32,8 @@ public class PartitionRangeListFetcherFactory {
         return new LongPartitionRangeListFetcher();
       case TableSpec.TIMESTAMP_FIELD_TYPE:
         return new TimestampPartitionRangeListFetcher();
+      case TableSpec.STRING_FIELD_TYPE:
+        return new StringPartitionListFetcher();
       default:
         throw new RuntimeException(String.format("Unrecognized partition type: %s", partitionType));
     } // switch

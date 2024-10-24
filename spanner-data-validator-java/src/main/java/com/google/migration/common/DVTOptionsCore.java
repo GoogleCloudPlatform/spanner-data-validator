@@ -78,6 +78,15 @@ public interface DVTOptionsCore extends PipelineOptions {
   void setPassword(String value);
 
   /**
+   * ProjectIdForSecret
+   */
+  @Description("ProjectIdForSecret")
+  @Default.String("")
+  String getProjectIdForSecret();
+
+  void setProjectIdForSecret(String value);
+
+  /**
    * DBPassFromSecret
    */
   @Description("DBPassFromSecret")
@@ -158,7 +167,7 @@ public interface DVTOptionsCore extends PipelineOptions {
    * BQ Table holding conflicting records
    */
   @Description("BQConflictRecordsTable")
-  @Default.String("SpannerDVTConflictingRecords")
+  @Default.String("")
   String getConflictingRecordsBQTableName();
 
   void setConflictingRecordsBQTableName(String value);
@@ -200,6 +209,15 @@ public interface DVTOptionsCore extends PipelineOptions {
   void setAdjustTimestampPrecision(Boolean value);
 
   /**
+   * Zero date time
+   */
+  @Description("ZeroDateTimeBehavior")
+  @Default.Boolean(true)
+  Boolean getZeroDateTimeBehavior();
+
+  void setZeroDateTimeBehavior(Boolean value);
+
+  /**
    * Verbose logging
    */
   @Description("Verbose logging")
@@ -213,4 +231,10 @@ public interface DVTOptionsCore extends PipelineOptions {
   String getShardSpecJson();
 
   void setShardSpecJson(String value);
+
+  @Description("Spanner database project Id")
+  @Default.String("")
+  String getSpannerProjectId();
+
+  void setSpannerProjectId(String value);
 } // class

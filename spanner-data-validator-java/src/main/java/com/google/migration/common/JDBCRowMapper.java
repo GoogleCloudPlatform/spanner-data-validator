@@ -28,13 +28,16 @@ public class JDBCRowMapper implements RowMapper<HashResult> {
   private Integer keyIndex;
   private String rangeFieldType;
   private Boolean adjustTimestampPrecision;
+  private Integer timestampThresholdIndex;
 
   public JDBCRowMapper(Integer keyIndexIn,
       String rangeFieldTypeIn,
-      Boolean adjustTimestampPrecisionIn) {
+      Boolean adjustTimestampPrecisionIn,
+      Integer timestampThresholdIndexIn) {
     keyIndex = keyIndexIn;
     rangeFieldType = rangeFieldTypeIn;
     adjustTimestampPrecision = adjustTimestampPrecisionIn;
+    timestampThresholdIndex = timestampThresholdIndexIn;
   }
 
   @Override
@@ -43,6 +46,7 @@ public class JDBCRowMapper implements RowMapper<HashResult> {
     return HashResult.fromJDBCResultSet(resultSet,
         keyIndex,
         rangeFieldType,
-        adjustTimestampPrecision);
+        adjustTimestampPrecision,
+        timestampThresholdIndex);
   }
 } // class JDBCRowMapper

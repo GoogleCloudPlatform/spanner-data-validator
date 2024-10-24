@@ -1,0 +1,13 @@
+[
+  {
+    "tableName": "customers",
+    "sourceQuery": "select customerNumber, convert_tz(autoTs, '-07:00', '+03:00') from customers where customerNumber >= ? and customerNumber <= ?",
+    "destQuery": "select customerNumber, autoTs from customers where customerNumber >= @p1 and customerNumber <= @p2",
+    "rangeFieldIndex": "0",
+    "rangeFieldType": "LONG",
+    "rangeStart": "0",
+    "rangeEnd": "1000000",
+    "rangeCoverage": "1",
+    "partitionCount": "100"
+  }
+]

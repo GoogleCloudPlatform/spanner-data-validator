@@ -20,16 +20,24 @@ import com.google.cloud.secretmanager.v1.AccessSecretVersionResponse;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
 import com.google.cloud.secretmanager.v1.SecretVersionName;
 import com.google.cloud.spanner.Type;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import com.google.migration.common.DVTOptionsCore;
+import com.google.migration.dto.GCSObject;
 import com.google.migration.dto.PartitionRange;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -372,11 +380,42 @@ public class Helpers {
     } // try/catch
   }
 
+  public static GCSObject getGCSObjectFromFullPath(String fullPath) {
+    try {
+      URI uri = new URI(fullPath);
+      if(uri.getScheme().equals("gs")) {
+        String objectName = uri.getPath();
+        if(objectName.startsWith("/")) {
+          objectName = objectName.substring(1);
+        }
+        return new GCSObject(uri.getHost(), objectName);
+      }
+
+      return null;
+    } catch (URISyntaxException ex) {
+      return null;
+    } catch(Exception e) {
+      return null;
+    }
+  }
+
+  public static String getFileFromGCS(String projectId, String bucketName, String objectName) {
+
+    Storage storage = StorageOptions.newBuilder().setProjectId(projectId).build().getService();
+    Blob blob = storage.get(BlobId.of(bucketName, objectName));
+    byte[] fileByteContent = blob.getContent();
+    String blobContent = new String(fileByteContent, StandardCharsets.UTF_8);
+    return blobContent;
+  }
+
   public static String getJDBCPassword(DVTOptionsCore options) {
     String pass = options.getPassword();
     String secretId = options.getDBPassFromSecret();
     if(!Helpers.isNullOrEmpty(secretId)) {
       String projectId = options.getProjectId();
+      if(!isNullOrEmpty(options.getProjectIdForSecret())) {
+        projectId = options.getProjectIdForSecret();
+      }
       String secretVersion = options.getDBPassVersionForSecret();
 
       pass = getSecret(projectId, secretId, secretVersion);
@@ -399,5 +438,19 @@ public class Helpers {
     } // for
 
     LOG.info(String.format("*******End of partition range(s) for table %s", tableName));
+  }
+
+  public static void printTimestampThresholdInfo(long baseValue,
+      long startFilter,
+      long endFilter) {
+    LOG.info(String.format("~~~~~~~~~~~~Base value: %d, start filter: %d, end filter: %d",
+        baseValue,
+        startFilter,
+        endFilter));
+
+    LOG.info(String.format("^^^^^^^^^^^^Base value dt: %s, start filter dt: %s, end filter dt: %s",
+        Instant.ofEpochMilli(baseValue),
+        Instant.ofEpochMilli(startFilter),
+        Instant.ofEpochMilli(endFilter)));
   }
 } // class Helpers

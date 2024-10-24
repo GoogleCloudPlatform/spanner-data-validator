@@ -1,0 +1,13 @@
+[
+  {
+    "tableName": "member_events_threshold_test",
+    "sourceQuery": "select id, autoTs from member_events_test where id >= ? and id <= ?",
+    "destQuery": "select * from member_events_test where id >= @p1 and id <= @p2",
+    "rangeFieldIndex": "0",
+    "rangeFieldType": "LONG",
+    "rangeStart": "0",
+    "rangeEnd": "1000",
+    "partitionCount": "10",
+    "rangeCoverage": "1",
+  }
+]

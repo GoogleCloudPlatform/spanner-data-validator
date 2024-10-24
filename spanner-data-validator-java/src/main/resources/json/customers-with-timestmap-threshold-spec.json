@@ -1,0 +1,17 @@
+[
+  {
+    "tableName": "customers",
+    "sourceQuery": "select * from customers where customerNumber >= ? and customerNumber <= ?",
+    "destQuery": "select * from customers where customerNumber >= @p1 and customerNumber <= @p2",
+    "rangeFieldIndex": "0",
+    "rangeFieldType": "LONG",
+    "rangeStart": "0",
+    "rangeEnd": "1000000",
+    "rangeCoverage": "1",
+    "partitionCount": "100",
+    "timestampThresholdColIndex": "2",
+    "timestampThresholdValue": "2024-04-01T01:01:02",
+    "timestampThresholdDeltaInMins": "-150",
+    "timestampThresholdZoneOffset": "-5"
+  }
+]

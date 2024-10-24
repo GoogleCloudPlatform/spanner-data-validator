@@ -1,0 +1,13 @@
+[
+  {
+    "tableName": "DataProductRecordsString",
+    "sourceQuery": "select * from \"data-products\".data_product_records where key >= ? and key <= ?",
+    "destQuery": "select * FROM data_product_records WHERE key >= $1 AND key <= $2",
+    "rangeFieldIndex": "3",
+    "rangeFieldType": "STRING",
+    "rangeStart": "wooden_driver.dotx",
+    "rangeEnd": "wooden_driver.dotx1",
+    "partitionCount": "1",
+    "rangeCoverage": "1"
+  }
+]

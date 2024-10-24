@@ -112,4 +112,11 @@ public class BigIntUUIDTest {
 
     System.out.println(String.format("UUID Max: %s", bigMax));
   }
+
+  @Test
+  public void LongTest() {
+    long val = 3123556554908346918L;
+    System.out.println(val*2);
+    System.out.println(Long.MAX_VALUE);
+  }
 } // class BigIntUUIDTest

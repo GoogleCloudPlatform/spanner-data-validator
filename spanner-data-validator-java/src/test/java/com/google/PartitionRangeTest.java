@@ -196,6 +196,26 @@ public class PartitionRangeTest {
   }
 
   @Test
+  public void stringPartitionRangeTest() {
+    String fieldType = TableSpec.STRING_FIELD_TYPE;
+
+    PartitionRangeListFetcher fetcher =
+        PartitionRangeListFetcherFactory.getFetcher(fieldType);
+
+    Integer partitionCount = 1;
+
+    List<PartitionRange> pRanges = fetcher.getPartitionRangesWithCoverage(
+        "a",
+        "b",
+        partitionCount,
+        BigDecimal.ONE);
+
+    assertEquals(pRanges.size(), (long)partitionCount);
+
+    Helpers.printPartitionRanges(pRanges, "TestStringTable");
+  }
+
+  @Test
   public void int32PartitionRangeTest() {
     String fieldType = TableSpec.INT_FIELD_TYPE;
 

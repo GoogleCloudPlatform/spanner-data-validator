@@ -160,7 +160,11 @@ public class JDBCToSpannerDVTWithHash {
         new TableFieldSchema()
             .setName("hash")
             .setType("STRING")
-            .setMode("REQUIRED"));
+            .setMode("REQUIRED"),
+        new TableFieldSchema()
+            .setName("orig_value")
+            .setType("STRING")
+            .setMode("NULLABLE"));
   }
 
   protected static BigQueryIO.Write<ComparerResult> getComparisonResultsBQWriter(DVTOptionsCore options,
@@ -210,7 +214,8 @@ public class JDBCToSpannerDVTWithHash {
                 .set("jdbc_or_spanner", jdbcOrSpanner)
                 .set("range", x.range)
                 .set("key", x.key)
-                .set("hash", x.sha256))
+                .set("hash", x.sha256)
+                .set("orig_value", x.origValue))
         .withCreateDisposition(CreateDisposition.CREATE_IF_NEEDED)
         .withSchema(bqSchema)
         .withWriteDisposition(WriteDisposition.WRITE_APPEND)
@@ -259,7 +264,8 @@ public class JDBCToSpannerDVTWithHash {
             tableSpec.getRangeFieldIndex(),
             tableSpec.getRangeFieldType(),
             options,
-            pRanges);
+            pRanges,
+            tableSpec.getTimestampThresholdColIndex());
 
     // Map Range [start, end) + hash => HashResult (spanner)
     String mapWithRangesForSpannerStep =
@@ -279,7 +285,8 @@ public class JDBCToSpannerDVTWithHash {
               tableSpec.getRangeFieldIndex(),
               tableSpec.getRangeFieldType(),
               options,
-              pRanges);
+              pRanges,
+              tableSpec.getTimestampThresholdColIndex());
     } else {
       jdbcRecords =
           getJDBCRecordsWithSharding(tableName,
@@ -287,7 +294,8 @@ public class JDBCToSpannerDVTWithHash {
               tableSpec.getRangeFieldIndex(),
               tableSpec.getRangeFieldType(),
               options,
-              pRanges);
+              pRanges,
+              tableSpec.getTimestampThresholdColIndex());
     }
 
     // Map Range [start, end) + hash => HashResult (JDBC)
@@ -307,14 +315,16 @@ public class JDBCToSpannerDVTWithHash {
             .apply(groupByKeyStep, CoGroupByKey.create());
 
     // Now tag the results by range
-    PCollectionTuple countMatches = results.apply(String.format("CountMatchesForTable-%s", tableName),
-        ParDo.of(new CountMatchesDoFn()).withOutputTags(matchedRecordsTag,
-            TupleTagList.of(unmatchedSpannerRecordsTag)
-                .and(unmatchedJDBCRecordsTag)
-                .and(sourceRecordsTag)
-                .and(targetRecordsTag)
-                .and(unmatchedSpannerRecordValuesTag)
-                .and(unmatchedJDBCRecordValuesTag)));
+    PCollectionTuple countMatches = results.apply(
+        String.format("CountMatchesForTable-%s", tableName),
+        ParDo.of(new CountMatchesDoFn(tableSpec.getTimestampThresholdValue(), tableSpec.getTimestampThresholdDeltaInMins()))
+            .withOutputTags(matchedRecordsTag,
+                TupleTagList.of(unmatchedSpannerRecordsTag)
+                    .and(unmatchedJDBCRecordsTag)
+                    .and(sourceRecordsTag)
+                    .and(targetRecordsTag)
+                    .and(unmatchedSpannerRecordValuesTag)
+                    .and(unmatchedJDBCRecordValuesTag)));
 
     // Count the tagged results by range
     PCollection<KV<String, Long>> matchedRecordCount =
@@ -348,6 +358,10 @@ public class JDBCToSpannerDVTWithHash {
 
       unmatchedSpannerValues.apply(String.format("SpannerConflictingRecordsWriter-%s", tableName),
           spannerConflictingRecordsWriter);
+
+      LOG.info("****** Writing spanner conflicting records");
+    } else {
+      LOG.info("****** Not writing spanner conflicting records");
     }
 
     if(jdbcConflictingRecordsWriter != null) {
@@ -356,6 +370,10 @@ public class JDBCToSpannerDVTWithHash {
 
       unmatchedJDBCValues.apply(String.format("JDBCConflictingRecordsWriter-%s", tableName),
           jdbcConflictingRecordsWriter);
+
+      LOG.info("****** Writing JDBC conflicting records");
+    } else {
+      LOG.info("****** Not writing JDBC conflicting records");
     }
 
     // group above counts by key
@@ -414,7 +432,8 @@ public class JDBCToSpannerDVTWithHash {
       Integer keyIndex,
       String rangeFieldType,
       DVTOptionsCore options,
-      PCollection<PartitionRange> pRanges) {
+      PCollection<PartitionRange> pRanges,
+      Integer timestampThresholdKeyIndex) {
 
     Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
 
@@ -423,11 +442,17 @@ public class JDBCToSpannerDVTWithHash {
       driver = MYSQL_JDBC_DRIVER;
     }
 
+    // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
+    String zeroDateTimeNullBehaviorStr = options.getZeroDateTimeBehavior() ? "?zeroDateTimeBehavior=CONVERT_TO_NULL" : "";
+
     // JDBC conn string
-    String connString = String.format("jdbc:%s://%s:%d/%s", options.getProtocol(),
+    String connString = String.format("jdbc:%s://%s:%d/%s%s", options.getProtocol(),
         options.getServer(),
         options.getPort(),
-        options.getSourceDB());
+        options.getSourceDB(),
+        zeroDateTimeNullBehaviorStr);
+
+    LOG.info(String.format("++++++++++++++++++++++++++++++++JDBC conn string: %s", connString));
 
     String jdbcPass = Helpers.getJDBCPassword(options);
 
@@ -445,7 +470,8 @@ public class JDBCToSpannerDVTWithHash {
                 })
                 .withRowMapper(new JDBCRowMapper(keyIndex,
                     rangeFieldType,
-                    adjustTimestampPrecision))
+                    adjustTimestampPrecision,
+                    timestampThresholdKeyIndex))
                 .withOutputParallelization(false)
         );
 
@@ -457,7 +483,8 @@ public class JDBCToSpannerDVTWithHash {
       Integer keyIndex,
       String rangeFieldType,
       DVTOptionsCore options,
-      PCollection<PartitionRange> pRanges) {
+      PCollection<PartitionRange> pRanges,
+      Integer timestampThresholdIndex) {
 
     Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
 
@@ -469,18 +496,24 @@ public class JDBCToSpannerDVTWithHash {
     String shardSpecJsonFile = options.getShardSpecJson();
 
     List<ShardSpec> shardSpecs =
-        ShardSpecList.getShardSpecsFromJsonFile(shardSpecJsonFile, options.getVerboseLogging());
+        ShardSpecList.getShardSpecsFromJsonFile(options.getProjectId(), shardSpecJsonFile, options.getVerboseLogging());
     ArrayList<PCollection<HashResult>> pCollections = new ArrayList<>();
 
     String jdbcPass = Helpers.getJDBCPassword(options);
 
     for(ShardSpec shardSpec: shardSpecs) {
 
+      // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
+      String zeroDateTimeNullBehaviorStr = options.getZeroDateTimeBehavior() ? "?zeroDateTimeBehavior=CONVERT_TO_NULL" : "";
+
       // JDBC conn string
-      String connString = String.format("jdbc:%s://%s:%d/%s", options.getProtocol(),
+      String connString = String.format("jdbc:%s://%s:%d/%s%s", options.getProtocol(),
           shardSpec.getHost(),
           options.getPort(),
-          shardSpec.getDb());
+          shardSpec.getDb(),
+          zeroDateTimeNullBehaviorStr);
+
+      LOG.info(String.format("++++++++++++++++++++++++++++++++JDBC conn string: %s", connString));
 
       PCollection<HashResult> jdbcRecords =
           pRanges.apply(String.format("ReadInParallelWithShardsForTable-%s", tableName),
@@ -495,7 +528,7 @@ public class JDBCToSpannerDVTWithHash {
                     preparedStatement.setString(2, input.getEndRange());
                   })
                   .withRowMapper(
-                      new JDBCRowMapper(keyIndex, rangeFieldType, adjustTimestampPrecision))
+                      new JDBCRowMapper(keyIndex, rangeFieldType, adjustTimestampPrecision, timestampThresholdIndex))
                   .withOutputParallelization(false)
           );
 
@@ -514,7 +547,8 @@ public class JDBCToSpannerDVTWithHash {
       Integer keyIndex,
       String rangeFieldType,
       DVTOptionsCore options,
-      PCollection<PartitionRange> pRanges) {
+      PCollection<PartitionRange> pRanges,
+      Integer timestampThresholdIndex) {
 
     Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
 
@@ -530,6 +564,7 @@ public class JDBCToSpannerDVTWithHash {
                   switch(rangeFieldType) {
                     case TableSpec.UUID_FIELD_TYPE:
                     case TableSpec.TIMESTAMP_FIELD_TYPE:
+                    case TableSpec.STRING_FIELD_TYPE:
                       statement =
                           Statement.newBuilder(query)
                               .bind("p1")
@@ -566,10 +601,13 @@ public class JDBCToSpannerDVTWithHash {
                   return readOperation;
                 }));
 
+    String spannerProjectId = options.getSpannerProjectId().isEmpty() ?
+        options.getProjectId() : options.getSpannerProjectId();
+
     String spannerReadStepName = String.format("SpannerReadAllForTable-%s", tableName);
     PCollection<Struct> spannerRecords =
         readOps.apply(spannerReadStepName, SpannerIO.readAll()
-        .withProjectId(options.getProjectId())
+        .withProjectId(spannerProjectId)
         .withInstanceId(options.getInstanceId())
         .withDatabaseId(options.getSpannerDatabaseId()));
 
@@ -582,7 +620,8 @@ public class JDBCToSpannerDVTWithHash {
                     input -> HashResult.fromSpannerStruct(input,
                         keyIndex,
                         rangeFieldType,
-                        adjustTimestampPrecision)
+                        adjustTimestampPrecision,
+                        timestampThresholdIndex)
             ));
 
     return spannerHashes;
@@ -631,7 +670,7 @@ public class JDBCToSpannerDVTWithHash {
     List<TableSpec> tableSpecs = getTableSpecs();
     String tableSpecJson = options.getTableSpecJson();
     if(!Helpers.isNullOrEmpty(tableSpecJson)) {
-      tableSpecs = TableSpecList.getFromJsonFile(tableSpecJson);
+      tableSpecs = TableSpecList.getFromJsonFile(options.getProjectId(), tableSpecJson);
     }
 
     for(TableSpec tableSpec: tableSpecs) {
@@ -643,7 +682,7 @@ public class JDBCToSpannerDVTWithHash {
 
       String conflictingRecordsBQTableName = options.getConflictingRecordsBQTableName();
       if(!Helpers.isNullOrEmpty(conflictingRecordsBQTableName)) {
-        LOG.info(String.format("Enabling writing of conflicting records to table %s",
+        LOG.info(String.format("*******Enabling writing of conflicting records to table %s",
             conflictingRecordsBQTableName));
         spannerConflictingRecordsWriter = getConflictingRecordsBQWriter(options,
             options.getRunName(),
@@ -655,7 +694,7 @@ public class JDBCToSpannerDVTWithHash {
             tableSpec.getTableName(),
             "jdbc");
       } else {
-        LOG.info(String.format("NOT enabling writing of conflicting records! %s",
+        LOG.info(String.format("*******NOT enabling writing of conflicting records! %s",
             conflictingRecordsBQTableName));
       }
 
@@ -667,7 +706,7 @@ public class JDBCToSpannerDVTWithHash {
           spannerConflictingRecordsWriter);
     }
 
-    p.run().waitUntilFinish();
+    p.run();
   }
 
   public static void main(String[] args) throws IOException {

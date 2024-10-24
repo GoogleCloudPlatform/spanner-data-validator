@@ -7,7 +7,7 @@
     "rangeFieldType": "LONG",
     "rangeStart": "0",
     "rangeEnd": "9223372036854775807",
-    "partitionCount": "1000000000",
+    "partitionCount": "100",
     "partitionFilterRatio": "10000000"
   }
 ]

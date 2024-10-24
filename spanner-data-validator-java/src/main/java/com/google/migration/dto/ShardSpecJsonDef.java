@@ -16,8 +16,11 @@ limitations under the License.
 
 package com.google.migration.dto;
 
+import com.google.migration.Helpers;
 import java.io.File;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONObject;
@@ -58,9 +61,18 @@ public class ShardSpecJsonDef {
     return null;
   }
 
-  public static ShardSpecJsonDef fromJsonFile(String jsonFile) {
+  public static ShardSpecJsonDef fromJsonFile(String projectId, String jsonFile) {
+    String jsonStr = null;
+
+    GCSObject gcsObject = Helpers.getGCSObjectFromFullPath(jsonFile);
+    if(gcsObject != null) {
+      jsonStr = Helpers.getFileFromGCS(projectId, gcsObject.getBucket(), gcsObject.getObjectName());
+    }
+
     try {
-      String jsonStr = FileUtils.readFileToString(new File(jsonFile), StandardCharsets.UTF_8);
+      if(Helpers.isNullOrEmpty(jsonStr)) {
+        jsonStr = FileUtils.readFileToString(new File(jsonFile), StandardCharsets.UTF_8);
+      }
       return fromJsonString(jsonStr);
     } catch (Exception ex) {
       LOG.error("Exception while loading shard spec from json file");
