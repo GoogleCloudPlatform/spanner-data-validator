@@ -49,7 +49,7 @@ And thanks to partitioning, this query will be run in parallel across Dataflow w
    - Ability to create tables in specified dataset: `roles/bigquery.dataEditor`
    - Ability to write to the specified dataset: ` roles/bigquery.dataEditor`
    - Read from Spanner: `roles/spanner.databaseReader`
-   - Read from JDBC (MySQL or Postgres)
+   - Read from JDBC (MySQL or Postgresql)
    - If using Secret Manager to supply password, the dataflow worker service account should have `roles/secretManager.secretAccessor` and `roles/secretManager.secretViewer`
 
 ## Building the tool
@@ -68,7 +68,7 @@ NOTE: In the examples below, we’re using a pre-built jar so you don’t have t
 
 ```
 java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
---protocol=postgres \
+--protocol=postgresql \
 --server=localhost \
 --port=3306 \
 --username=<your db username> \
@@ -87,7 +87,7 @@ java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
 
 Parameters
 
-- `protocol`: `postgres` or `mysql`
+- `protocol`: `postgresql` or `mysql`
 - `server`: DB host
 - `port`: DB port
 - `username`: DB username
@@ -111,7 +111,7 @@ java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
 --subnetwork=https://www.googleapis.com/compute/v1/projects/kt-shared-project/regions/us-central1/subnetworks/default \
 --numWorkers=10 \
 --region=us-central1 \
---protocol=postgres \
+--protocol=postgresql \
 --server=10.128.15.212 \
 --port=3306 \
 --username=<your mysql db user> \
@@ -131,7 +131,7 @@ java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
 
 Parameters
 
-- `protocol`: `postgres` or `mysql`
+- `protocol`: `postgresql` or `mysql`
 - `server`: DB host
 - `port`: DB port
 - `username`: DB username
