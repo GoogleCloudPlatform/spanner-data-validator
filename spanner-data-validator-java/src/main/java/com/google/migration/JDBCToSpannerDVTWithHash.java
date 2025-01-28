@@ -49,6 +49,7 @@ import com.google.migration.dto.ShardSpec;
 import com.google.migration.dto.TableSpec;
 import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
+import com.google.rpc.Help;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -656,7 +657,26 @@ public class JDBCToSpannerDVTWithHash {
     return bRanges;
   }
 
+  private static void generateTableSpecFromSessionFile(DVTOptionsCore options) {
+    String sessionFileJson = options.getSessionFileJson();
+    List<TableSpec> tableSpecList = TableSpecList.getFromSessionFile(sessionFileJson);
+    LOG.info("tableSpecList - {}", tableSpecList.toString());
+    String jsonFileName = String.format("tableSpec-%s.json", System.currentTimeMillis());
+    TableSpecList.toJsonFile(tableSpecList, jsonFileName);
+    LOG.info("TableSpec has been written to {} file)", jsonFileName);
+  }
+
   public static void runDVT(DVTOptionsCore options) throws IOException {
+    if (options.getGenerateTableSpec()) {
+      String sessionFileJson = options.getSessionFileJson();
+      if (Helpers.isNullOrEmpty(sessionFileJson)) {
+        throw new RuntimeException("Session file needs to be provided to generate the tableSpec from it!");
+      }
+      generateTableSpecFromSessionFile(options);
+      LOG.info("tableSpec has been written to tableSpec.json file in the current working directory. Please use this file to configure the validation job");
+      return;
+    }
+
     Pipeline p = Pipeline.create(options);
 
     p.getCoderRegistry().registerCoderForClass(HashResult.class, AvroCoder.of(HashResult.class));

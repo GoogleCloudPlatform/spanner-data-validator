@@ -259,9 +259,46 @@ public class TableSpecList {
     return null;
   }
 
+  public static void toJsonFile(List<TableSpec> tableSpecs, String jsonFile) {
+    try {
+      JSONArray jsonarray = new JSONArray();
+
+      for (TableSpec tableSpec : tableSpecs) {
+        JSONObject jsonObject = new JSONObject();
+
+        jsonObject.put("tableName", tableSpec.getTableName());
+        jsonObject.put("sourceQuery", tableSpec.getSourceQuery());
+        jsonObject.put("destQuery", tableSpec.getDestQuery());
+        jsonObject.put("rangeFieldIndex", tableSpec.getRangeFieldIndex());
+        jsonObject.put("rangeFieldType", tableSpec.getRangeFieldType());
+        jsonObject.put("rangeStart", tableSpec.getRangeStart());
+        jsonObject.put("rangeEnd", tableSpec.getRangeEnd());
+        jsonObject.put("rangeCoverage", tableSpec.getRangeCoverage());
+        jsonObject.put("partitionCount", tableSpec.getPartitionCount());
+        jsonObject.put("partitionFilterRatio", tableSpec.getPartitionFilterRatio());
+        jsonObject.put("timestampThresholdColIndex", tableSpec.getTimestampThresholdColIndex());
+        jsonObject.put("timestampThresholdDeltaInMins", tableSpec.getTimestampThresholdDeltaInMins());
+        jsonObject.put("timestampThresholdZoneOffset", tableSpec.getTimestampThresholdZoneOffset());
+
+        if(tableSpec.getTimestampThresholdValue() != 0) {
+          LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(tableSpec.getTimestampThresholdValue()), ZoneOffset.UTC);
+          jsonObject.put("timestampThresholdValue", dateTime.toString());
+        }
+
+        jsonarray.put(jsonObject);
+      } // for
+
+      FileUtils.writeStringToFile(new File(jsonFile), jsonarray.toString(2), StandardCharsets.UTF_8);
+    } catch (Exception ex) {
+      LOG.error("Exception while writing table specs to json file");
+      LOG.error(ex.getMessage());
+      LOG.error(ex.getStackTrace().toString());
+    }
+  }
+
   public static List<TableSpec> getFromSessionFile(String jsonFile) {
     Schema schema = SessionFileReader.read(jsonFile);
-    throw new RuntimeException("Not implemented!");
+    return getTableSpecs();
   }
 
   private static List<TableSpec> getFromJsonFileInGCS(String jsonFile) {

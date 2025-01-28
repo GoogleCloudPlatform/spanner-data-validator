@@ -51,7 +51,7 @@ public class SessionFileReader {
               .fromJson(result, Schema.class);
       schema.setEmpty(false);
       schema.generateMappings();
-      LOG.info("Read session file: " + schema.toString());
+      LOG.debug("Read session file: " + schema.toString());
       return schema;
     } catch (IOException e) {
       LOG.error(
