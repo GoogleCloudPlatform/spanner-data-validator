@@ -16,10 +16,13 @@ limitations under the License.
 
 package com.google.migration;
 
+import com.google.migration.common.DVTOptionsCore;
 import com.google.migration.dto.GCSObject;
 import com.google.migration.dto.TableSpec;
 import com.google.migration.session.Schema;
 import com.google.migration.session.SessionFileReader;
+import com.google.migration.session.SourceTable;
+import com.google.migration.session.SpannerTable;
 import java.io.File;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -32,6 +35,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.io.FileUtils;
+import org.apache.kafka.common.protocol.types.Field.Str;
 import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -296,9 +300,27 @@ public class TableSpecList {
     }
   }
 
-  public static List<TableSpec> getFromSessionFile(String jsonFile) {
-    Schema schema = SessionFileReader.read(jsonFile);
-    return getTableSpecs();
+  public static List<TableSpec> getFromSessionFile(DVTOptionsCore options) {
+    Schema schema = SessionFileReader.read(options.getSessionFileJson());
+    List<TableSpec> tableSpecList = new ArrayList<>();
+    for (String tableId : schema.getSpSchema().keySet()) {
+      TableSpec tableSpec = new TableSpec();
+      //Fetch the source and spanner tables from session object
+      SpannerTable spannerTable = schema.getSpSchema().get(tableId);
+      SourceTable sourceTable = schema.getSrcSchema().get(tableId);
+      tableSpec.setTableName(spannerTable.getName());
+      tableSpec.setPartitionCount(options.getPartitionCount());
+      tableSpec.setPartitionFilterRatio(options.getPartitionFilterRatio());
+      tableSpec.setDestQuery(spannerTable.getSpannerQuery());
+      tableSpec.setRangeFieldType("LONG");
+      tableSpec.setRangeFieldIndex(sourceTable.getPrimaryKeyPositionInQuery());
+      tableSpec.setSourceQuery(sourceTable.getSourceQuery());
+      tableSpec.setRangeStart("0");
+      tableSpec.setRangeEnd(String.valueOf(Long.MAX_VALUE));
+      tableSpec.setRangeCoverage(BigDecimal.valueOf(100));
+      tableSpecList.add(tableSpec);
+    }
+    return tableSpecList;
   }
 
   private static List<TableSpec> getFromJsonFileInGCS(String jsonFile) {

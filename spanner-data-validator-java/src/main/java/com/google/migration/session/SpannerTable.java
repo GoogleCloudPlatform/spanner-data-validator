@@ -72,6 +72,21 @@ public class SpannerTable implements Serializable {
     return shardIdColumn;
   }
 
+  public String getSpannerQuery() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("SELECT ");
+    Arrays.sort(colIds);
+    for (String colId : colIds) {
+      sb.append(colDefs.get(colId).getName()).append(",");
+    }
+    sb.deleteCharAt(sb.length() - 1);
+    sb.append(" FROM ").append(name);
+    if (primaryKeys != null && primaryKeys.length > 0) {
+      sb.append(" WHERE ").append(colDefs.get(primaryKeys[0].getColId()).getName()).append(" >= @p1 AND ").append(colDefs.get(primaryKeys[0].getColId()).getName()).append(" <= @p2");
+    }
+    return sb.toString();
+  }
+
   public String toString() {
     String pvalues = "";
     if (primaryKeys != null) {

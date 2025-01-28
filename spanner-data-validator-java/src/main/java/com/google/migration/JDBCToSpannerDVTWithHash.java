@@ -658,9 +658,7 @@ public class JDBCToSpannerDVTWithHash {
   }
 
   private static void generateTableSpecFromSessionFile(DVTOptionsCore options) {
-    String sessionFileJson = options.getSessionFileJson();
-    List<TableSpec> tableSpecList = TableSpecList.getFromSessionFile(sessionFileJson);
-    LOG.info("tableSpecList - {}", tableSpecList.toString());
+    List<TableSpec> tableSpecList = TableSpecList.getFromSessionFile(options);
     String jsonFileName = String.format("tableSpec-%s.json", System.currentTimeMillis());
     TableSpecList.toJsonFile(tableSpecList, jsonFileName);
     LOG.info("TableSpec has been written to {} file)", jsonFileName);
@@ -697,7 +695,7 @@ public class JDBCToSpannerDVTWithHash {
       tableSpecs = TableSpecList.getFromJsonFile(options.getProjectId(), tableSpecJson);
     }
     if (!Helpers.isNullOrEmpty(sessionFileJson)) {
-      tableSpecs = TableSpecList.getFromSessionFile(sessionFileJson);
+      tableSpecs = TableSpecList.getFromSessionFile(options);
     }
 
     for(TableSpec tableSpec: tableSpecs) {
