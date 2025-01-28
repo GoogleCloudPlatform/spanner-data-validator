@@ -18,6 +18,8 @@ package com.google.migration;
 
 import com.google.migration.dto.GCSObject;
 import com.google.migration.dto.TableSpec;
+import com.google.migration.session.Schema;
+import com.google.migration.session.SessionFileReader;
 import java.io.File;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -255,6 +257,11 @@ public class TableSpecList {
     }
 
     return null;
+  }
+
+  public static List<TableSpec> getFromSessionFile(String jsonFile) {
+    Schema schema = SessionFileReader.read(jsonFile);
+    throw new RuntimeException("Not implemented!");
   }
 
   private static List<TableSpec> getFromJsonFileInGCS(String jsonFile) {

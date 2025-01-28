@@ -669,8 +669,15 @@ public class JDBCToSpannerDVTWithHash {
 
     List<TableSpec> tableSpecs = getTableSpecs();
     String tableSpecJson = options.getTableSpecJson();
+    String sessionFileJson = options.getSessionFileJson();
+    if (!Helpers.isNullOrEmpty(tableSpecJson) && !Helpers.isNullOrEmpty(sessionFileJson)) {
+      throw new RuntimeException("Both session file and tableSpec cannot be specified together! Please specify either one!!");
+    }
     if(!Helpers.isNullOrEmpty(tableSpecJson)) {
       tableSpecs = TableSpecList.getFromJsonFile(options.getProjectId(), tableSpecJson);
+    }
+    if (!Helpers.isNullOrEmpty(sessionFileJson)) {
+      tableSpecs = TableSpecList.getFromSessionFile(sessionFileJson);
     }
 
     for(TableSpec tableSpec: tableSpecs) {
