@@ -1,4 +1,4 @@
-package com.google.migration.session;
+package com.google.migration.dto.session;
 
 import com.google.migration.exceptions.DroppedTableException;
 import java.io.Serializable;

@@ -1,4 +1,4 @@
-package com.google.migration.session;
+package com.google.migration.dto.session;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -7,7 +7,7 @@ import java.util.Objects;
 /** SourceColumnType object to store Source column type. */
 public class SourceColumnType implements Serializable {
 
-  /** Represents the name of the Source column. */
+  /** Represents the type of the Source column. */
   private final String name;
 
   /** Represents mods of the Source Column (ex: varchar(30) will have mods as [30]). */

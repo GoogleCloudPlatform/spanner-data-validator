@@ -1,4 +1,4 @@
-package com.google.migration.session;
+package com.google.migration.dto.session;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -25,12 +25,14 @@ public class SourceTable implements Serializable {
 
   private final ColumnPK[] primaryKeys;
 
+  private final Index[] indexes;
+
   public SourceTable(
       String name,
       String schema,
       String[] colIds,
       Map<String, SourceColumnDefinition> colDefs,
-      ColumnPK[] primaryKeys) {
+      ColumnPK[] primaryKeys, Index[] indexes) {
     this.name = name;
     this.schema = schema;
     this.colIds = (colIds == null) ? (new String[] {}) : colIds;
@@ -38,6 +40,7 @@ public class SourceTable implements Serializable {
     // We don't replace nulls with empty arrays as the session file for this field can contain null
     // values.
     this.primaryKeys = primaryKeys;
+    this.indexes = indexes;
   }
 
   public String getName() {
@@ -74,24 +77,24 @@ public class SourceTable implements Serializable {
     return response;
   }
 
-  public String getSourceQuery() {
+  public String getSourceQuery(String partitionKeyColId) {
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
     Arrays.sort(colIds);
+    //add the PK first
+    sb.append(colDefs.get(partitionKeyColId).getName()).append(",");
     for (String colId : colIds) {
-      sb.append(colDefs.get(colId).getName()).append(",");
+      if (!colId.equals(partitionKeyColId)) {
+        sb.append(colDefs.get(colId).getName()).append(",");
+      }
     }
     sb.deleteCharAt(sb.length() - 1);
     sb.append(" FROM ").append(name);
-    if (primaryKeys != null && primaryKeys.length > 0) {
-      sb.append(" WHERE ").append(colDefs.get(primaryKeys[0].getColId()).getName()).append(" >= ? AND ").append(colDefs.get(primaryKeys[0].getColId()).getName()).append(" <= ?");
-    }
-    return sb.toString();
-  }
+    sb.append(" WHERE ").append(colDefs.get(partitionKeyColId).getName())
+        .append(" >= ? AND ").append(colDefs.get(partitionKeyColId).getName())
+        .append(" <= ?");
 
-  public Integer getPrimaryKeyPositionInQuery() {
-    Arrays.sort(colIds);
-    return Arrays.asList(colIds).indexOf(primaryKeys[0].getColId());
+    return sb.toString();
   }
 
   public String toString() {
@@ -127,5 +130,9 @@ public class SourceTable implements Serializable {
   public int hashCode() {
     return Objects.hash(
         name, schema, Arrays.hashCode(colIds), colDefs, Arrays.hashCode(primaryKeys));
+  }
+
+  public Index[] getIndexes() {
+    return indexes;
   }
 }

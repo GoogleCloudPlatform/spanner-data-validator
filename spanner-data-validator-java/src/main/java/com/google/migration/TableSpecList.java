@@ -18,16 +18,18 @@ package com.google.migration;
 
 import com.google.migration.common.DVTOptionsCore;
 import com.google.migration.dto.GCSObject;
+import com.google.migration.dto.PartitionKey;
 import com.google.migration.dto.TableSpec;
-import com.google.migration.session.Schema;
-import com.google.migration.session.SessionFileReader;
-import com.google.migration.session.SourceTable;
-import com.google.migration.session.SpannerTable;
+import com.google.migration.dto.session.ColumnPK;
+import com.google.migration.dto.session.Index;
+import com.google.migration.dto.session.IndexKey;
+import com.google.migration.dto.session.Schema;
+import com.google.migration.dto.session.SessionFileReader;
+import com.google.migration.dto.session.SourceTable;
+import com.google.migration.dto.session.SpannerTable;
 import java.io.File;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -35,7 +37,6 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.io.FileUtils;
-import org.apache.kafka.common.protocol.types.Field.Str;
 import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -44,7 +45,6 @@ import org.slf4j.LoggerFactory;
 
 public class TableSpecList {
   private static final Logger LOG = LoggerFactory.getLogger(TableSpecList.class);
-
   public static List<TableSpec> getTableSpecs() {
     ArrayList<TableSpec> tableSpecs = new ArrayList<>();
 
@@ -311,16 +311,65 @@ public class TableSpecList {
       tableSpec.setTableName(spannerTable.getName());
       tableSpec.setPartitionCount(options.getPartitionCount());
       tableSpec.setPartitionFilterRatio(options.getPartitionFilterRatio());
-      tableSpec.setDestQuery(spannerTable.getSpannerQuery());
-      tableSpec.setRangeFieldType("LONG");
-      tableSpec.setRangeFieldIndex(sourceTable.getPrimaryKeyPositionInQuery());
-      tableSpec.setSourceQuery(sourceTable.getSourceQuery());
+      tableSpec.setRangeFieldIndex(0);
       tableSpec.setRangeStart("0");
       tableSpec.setRangeEnd(String.valueOf(Long.MAX_VALUE));
       tableSpec.setRangeCoverage(BigDecimal.valueOf(100));
+      PartitionKey partitionKey = determinePartitionKey(sourceTable, spannerTable);
+      if (partitionKey == null) {
+        LOG.info(
+            "Cannot generate table spec for table: {}. No suitable partition key column was found. Only (int, bigint) are supported for automated tableSpec generation",
+            sourceTable.getName());
+        continue;
+      }
+      tableSpec.setDestQuery(spannerTable.getSpannerQuery(partitionKey.getPartitionKeyColId()));
+      tableSpec.setSourceQuery(sourceTable.getSourceQuery(partitionKey.getPartitionKeyColId()));
+      tableSpec.setRangeFieldType(partitionKey.getPartitionKeyColDataType());
       tableSpecList.add(tableSpec);
     }
     return tableSpecList;
+  }
+
+  //Uses the PK as the partitionKey if it matches the criteria, otherwise looks for an
+  //index on the same column.
+  private static PartitionKey determinePartitionKey(SourceTable sourceTable, SpannerTable spannerTable) {
+    //Check for PK match first
+    ColumnPK sourcePKAtFirstPosition = sourceTable.getPrimaryKeys()[0];
+    ColumnPK spannerPKAtFirstPosition = spannerTable.getPrimaryKeys()[0];
+    //column names match for the position in the PK
+    if (sourcePKAtFirstPosition.getColId().equals(spannerPKAtFirstPosition.getColId())) {
+      String sourcePKAtFirstPositionDataType = sourceTable.getColDefs().get(sourcePKAtFirstPosition.getColId()).getType().getName();
+      switch (sourcePKAtFirstPositionDataType.toUpperCase()) {
+        case "INT":
+          return new PartitionKey(sourcePKAtFirstPosition.getColId(), "INTEGER");
+        case "BIGINT":
+          return new PartitionKey(sourcePKAtFirstPosition.getColId(), "LONG");
+      }
+    }
+    //Otherwise check for Index match
+    Index[] sourceIndexes = sourceTable.getIndexes();
+    Index[] spannerIndexes = spannerTable.getIndexes();
+    if (sourceIndexes == null || spannerIndexes == null) {
+      return null;
+    }
+    for (Index sourceIndex : sourceIndexes) {
+      for (Index spannerIndex : spannerIndexes) {
+        if (sourceIndex.getId().equals(spannerIndex.getId())) {
+          IndexKey sourceIndexAtFirstPosition = sourceIndex.getKeys()[0];
+          IndexKey spannerIndexAtFirstPosition = spannerIndex.getKeys()[0];
+          if (sourceIndexAtFirstPosition.getColId().equals(spannerIndexAtFirstPosition.getColId())) {
+            String sourceIndexAtFirstPositionDataType = sourceTable.getColDefs().get(sourceIndexAtFirstPosition.getColId()).getType().getName();
+            switch (sourceIndexAtFirstPositionDataType.toUpperCase()) {
+              case "INT":
+                return new PartitionKey(sourceIndexAtFirstPosition.getColId(), "INTEGER");
+              case "BIGINT":
+                return new PartitionKey(sourceIndexAtFirstPosition.getColId(), "LONG");
+            }
+          }
+        }
+      }
+    }
+    return null;
   }
 
   private static List<TableSpec> getFromJsonFileInGCS(String jsonFile) {

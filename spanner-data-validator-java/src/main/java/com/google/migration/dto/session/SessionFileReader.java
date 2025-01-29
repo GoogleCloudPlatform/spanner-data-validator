@@ -1,4 +1,4 @@
-package com.google.migration.session;
+package com.google.migration.dto.session;
 
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.GsonBuilder;

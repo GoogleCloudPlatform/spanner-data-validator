@@ -661,7 +661,7 @@ public class JDBCToSpannerDVTWithHash {
     List<TableSpec> tableSpecList = TableSpecList.getFromSessionFile(options);
     String jsonFileName = String.format("tableSpec-%s.json", System.currentTimeMillis());
     TableSpecList.toJsonFile(tableSpecList, jsonFileName);
-    LOG.info("TableSpec has been written to {} file)", jsonFileName);
+    LOG.info("TableSpec has been written to {} file", jsonFileName);
   }
 
   public static void runDVT(DVTOptionsCore options) throws IOException {
@@ -671,7 +671,6 @@ public class JDBCToSpannerDVTWithHash {
         throw new RuntimeException("Session file needs to be provided to generate the tableSpec from it!");
       }
       generateTableSpecFromSessionFile(options);
-      LOG.info("tableSpec has been written to tableSpec.json file in the current working directory. Please use this file to configure the validation job");
       return;
     }
 

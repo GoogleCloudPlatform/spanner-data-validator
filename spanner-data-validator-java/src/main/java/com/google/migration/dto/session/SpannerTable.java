@@ -1,4 +1,4 @@
-package com.google.migration.session;
+package com.google.migration.dto.session;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -22,6 +22,8 @@ public class SpannerTable implements Serializable {
 
   private final ColumnPK[] primaryKeys;
 
+  private final Index[] indexes;
+
   /** Points to the id of the sharded column. Will be null for non-sharded migrations */
   private final String shardIdColumn;
 
@@ -29,12 +31,13 @@ public class SpannerTable implements Serializable {
       String name,
       String[] colIds,
       Map<String, SpannerColumnDefinition> colDefs,
-      ColumnPK[] primaryKeys,
+      ColumnPK[] primaryKeys, Index[] indexes,
       String shardIdColumn) {
     this.name = name;
     this.colIds = (colIds == null) ? (new String[] {}) : colIds;
     this.colDefs = (colDefs == null) ? (new HashMap<String, SpannerColumnDefinition>()) : colDefs;
     this.primaryKeys = (primaryKeys == null) ? (new ColumnPK[] {}) : primaryKeys;
+    this.indexes = indexes;
     this.shardIdColumn = shardIdColumn;
   }
 
@@ -72,18 +75,22 @@ public class SpannerTable implements Serializable {
     return shardIdColumn;
   }
 
-  public String getSpannerQuery() {
+  public String getSpannerQuery(String partitionKeyColId) {
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
     Arrays.sort(colIds);
+    //add the PK first
+    sb.append(colDefs.get(partitionKeyColId).getName()).append(",");
     for (String colId : colIds) {
-      sb.append(colDefs.get(colId).getName()).append(",");
+      if (!colId.equals(partitionKeyColId)) {
+        sb.append(colDefs.get(colId).getName()).append(",");
+      }
     }
     sb.deleteCharAt(sb.length() - 1);
     sb.append(" FROM ").append(name);
-    if (primaryKeys != null && primaryKeys.length > 0) {
-      sb.append(" WHERE ").append(colDefs.get(primaryKeys[0].getColId()).getName()).append(" >= @p1 AND ").append(colDefs.get(primaryKeys[0].getColId()).getName()).append(" <= @p2");
-    }
+    sb.append(" WHERE ").append(colDefs.get(partitionKeyColId).getName())
+        .append(" >= @p1 AND ").append(colDefs.get(partitionKeyColId).getName())
+        .append(" <= @p2");
     return sb.toString();
   }
 
@@ -120,6 +127,10 @@ public class SpannerTable implements Serializable {
   public int hashCode() {
     return Objects.hash(
         name, Arrays.hashCode(colIds), colDefs, Arrays.hashCode(primaryKeys), shardIdColumn);
+  }
+
+  public Index[] getIndexes() {
+    return indexes;
   }
 }
 
