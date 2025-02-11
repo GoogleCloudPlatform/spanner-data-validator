@@ -49,7 +49,6 @@ import com.google.migration.dto.ShardSpec;
 import com.google.migration.dto.TableSpec;
 import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
-import com.google.rpc.Help;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
