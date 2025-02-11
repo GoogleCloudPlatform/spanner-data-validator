@@ -6,9 +6,13 @@ public class PartitionKey {
 
   private final String partitionKeyColDataType;
 
-  public PartitionKey(String partitionKeyColId, String partitionKeyColDataType) {
+  private final String partitionKeyMaxValue;
+
+  public PartitionKey(String partitionKeyColId, String partitionKeyColDataType,
+      String partitionKeyMaxValue) {
     this.partitionKeyColId = partitionKeyColId;
     this.partitionKeyColDataType = partitionKeyColDataType;
+    this.partitionKeyMaxValue = partitionKeyMaxValue;
   }
 
   public String getPartitionKeyColId() {
@@ -17,5 +21,9 @@ public class PartitionKey {
 
   public String getPartitionKeyColDataType() {
     return partitionKeyColDataType;
+  }
+
+  public String getPartitionKeyMaxValue() {
+    return partitionKeyMaxValue;
   }
 }

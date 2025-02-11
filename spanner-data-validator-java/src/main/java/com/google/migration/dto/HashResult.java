@@ -95,6 +95,9 @@ public class HashResult {
         case "FLOAT64":
           sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getDouble(i));
           break;
+        case "NUMERIC":
+          sbConcatCols.append(spannerStruct.isNull(i) ? "" : spannerStruct.getBigDecimal(i));
+          break;
         case "TIMESTAMP":
           // TODO: This uses millisecond precision; consider using microsecond precision
           if(!spannerStruct.isNull(i)) {
@@ -173,6 +176,7 @@ public class HashResult {
       switch (type) {
         case Types.CHAR:
         case Types.VARCHAR:
+        case Types.LONGVARCHAR:
           String val = resultSet.getString(colOrdinal);
           if(val != null && !resultSet.wasNull()) {
             sbConcatCols.append(val);
@@ -194,7 +198,8 @@ public class HashResult {
             sbConcatCols.append(getNormalizedJsonString(otherVal));
           }
           break;
-        case Types.LONGVARBINARY:
+          case Types.LONGVARBINARY:
+        case Types.VARBINARY:
           byte[] bytes = resultSet.getBytes(colOrdinal);
           if(bytes != null && !resultSet.wasNull()) {
             sbConcatCols.append(Base64.encodeBase64String(bytes));
@@ -239,7 +244,9 @@ public class HashResult {
           }
           break;
         case Types.DECIMAL:
-          BigDecimal decimalVal = resultSet.getBigDecimal(colOrdinal);
+          //DECIMAL is mapped to Spanner NUMERIC which does not store trailing zeros
+          //Strip the trailing zeros from the source result before comparing
+          BigDecimal decimalVal = new BigDecimal(resultSet.getBigDecimal(colOrdinal).stripTrailingZeros().toPlainString());
           if(decimalVal != null && !resultSet.wasNull()) {
             sbConcatCols.append(decimalVal);
           }

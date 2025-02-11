@@ -313,15 +313,15 @@ public class TableSpecList {
       tableSpec.setPartitionFilterRatio(options.getPartitionFilterRatio());
       tableSpec.setRangeFieldIndex(0);
       tableSpec.setRangeStart("0");
-      tableSpec.setRangeEnd(String.valueOf(Long.MAX_VALUE));
-      tableSpec.setRangeCoverage(BigDecimal.valueOf(100));
+      tableSpec.setRangeCoverage(BigDecimal.valueOf(1));
       PartitionKey partitionKey = determinePartitionKey(sourceTable, spannerTable);
       if (partitionKey == null) {
         LOG.info(
-            "Cannot generate table spec for table: {}. No suitable partition key column was found. Only (int, bigint) are supported for automated tableSpec generation",
+            "Cannot generate table spec for table: {}. No suitable partition key column was found. Only (int, bigint) are supported for automated tableSpec generation. This table will be skipped from validation",
             sourceTable.getName());
         continue;
       }
+      tableSpec.setRangeEnd(partitionKey.getPartitionKeyMaxValue());
       tableSpec.setDestQuery(spannerTable.getSpannerQuery(partitionKey.getPartitionKeyColId()));
       tableSpec.setSourceQuery(sourceTable.getSourceQuery(partitionKey.getPartitionKeyColId()));
       tableSpec.setRangeFieldType(partitionKey.getPartitionKeyColDataType());
@@ -341,9 +341,9 @@ public class TableSpecList {
       String sourcePKAtFirstPositionDataType = sourceTable.getColDefs().get(sourcePKAtFirstPosition.getColId()).getType().getName();
       switch (sourcePKAtFirstPositionDataType.toUpperCase()) {
         case "INT":
-          return new PartitionKey(sourcePKAtFirstPosition.getColId(), "INTEGER");
+          return new PartitionKey(sourcePKAtFirstPosition.getColId(), "INTEGER", String.valueOf(Integer.MAX_VALUE));
         case "BIGINT":
-          return new PartitionKey(sourcePKAtFirstPosition.getColId(), "LONG");
+          return new PartitionKey(sourcePKAtFirstPosition.getColId(), "LONG", String.valueOf(Long.MAX_VALUE));
       }
     }
     //Otherwise check for Index match
@@ -361,9 +361,9 @@ public class TableSpecList {
             String sourceIndexAtFirstPositionDataType = sourceTable.getColDefs().get(sourceIndexAtFirstPosition.getColId()).getType().getName();
             switch (sourceIndexAtFirstPositionDataType.toUpperCase()) {
               case "INT":
-                return new PartitionKey(sourceIndexAtFirstPosition.getColId(), "INTEGER");
+                return new PartitionKey(sourceIndexAtFirstPosition.getColId(), "INTEGER", String.valueOf(Integer.MAX_VALUE));
               case "BIGINT":
-                return new PartitionKey(sourceIndexAtFirstPosition.getColId(), "LONG");
+                return new PartitionKey(sourceIndexAtFirstPosition.getColId(), "LONG", String.valueOf(Long.MAX_VALUE));
             }
           }
         }
