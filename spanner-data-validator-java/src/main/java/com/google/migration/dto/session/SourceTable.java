@@ -77,13 +77,15 @@ public class SourceTable implements Serializable {
     return response;
   }
 
-  public String getSourceQuery(String partitionKeyColId) {
+  public String getSourceQuery(String partitionKeyColId, String[] spannerColIds) {
+    //find the common colIds between colIds field and the param spannerColIds and sort that to use in rest of the code
+    String[] commonColIds = Arrays.stream(colIds).filter(x -> Arrays.asList(spannerColIds).contains(x)).toArray(String[]::new);
+    Arrays.sort(commonColIds);
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
-    Arrays.sort(colIds);
     //add the PK first
     sb.append(colDefs.get(partitionKeyColId).getName()).append(",");
-    for (String colId : colIds) {
+    for (String colId : commonColIds) {
       if (!colId.equals(partitionKeyColId)) {
         sb.append(colDefs.get(colId).getName()).append(",");
       }
