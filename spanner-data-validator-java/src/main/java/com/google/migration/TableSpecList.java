@@ -35,7 +35,10 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Arrays;
+import java.util.Optional;
 import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
 import org.json.JSONArray;
@@ -316,9 +319,6 @@ public class TableSpecList {
       tableSpec.setRangeCoverage(BigDecimal.valueOf(1));
       PartitionKey partitionKey = determinePartitionKey(sourceTable, spannerTable);
       if (partitionKey == null) {
-        LOG.info(
-            "Cannot generate table spec for table: {}. No suitable partition key column was found. Only (int, bigint) are supported for automated tableSpec generation. This table will be skipped from validation",
-            sourceTable.getName());
         continue;
       }
       tableSpec.setRangeEnd(partitionKey.getPartitionKeyMaxValue());
@@ -333,41 +333,88 @@ public class TableSpecList {
   //Uses the PK as the partitionKey if it matches the criteria, otherwise looks for an
   //index on the same column.
   private static PartitionKey determinePartitionKey(SourceTable sourceTable, SpannerTable spannerTable) {
-    //Check for PK match first
-    ColumnPK sourcePKAtFirstPosition = sourceTable.getPrimaryKeys()[0];
-    ColumnPK spannerPKAtFirstPosition = spannerTable.getPrimaryKeys()[0];
-    //column names match for the position in the PK
+    PartitionKey partitionKey = null;
+
+    //Store the column at the first ordinal position of the PK at Spanner
+    ColumnPK[] spannerPKs = spannerTable.getPrimaryKeys();
+    Arrays.sort(spannerPKs, Comparator.comparingInt(ColumnPK::getOrder));
+    ColumnPK spannerPKAtFirstPosition = spannerPKs[0];
+
+
+    //Get the ID and data type of the column in the first ordinal position of the source PK
+    ColumnPK[] sourcePKs = sourceTable.getPrimaryKeys();
+    if (sourcePKs.length == 0) {
+      LOG.info("Source table does not have a PK, skipping validation");
+      return  null;
+    }
+    Arrays.sort(sourcePKs, Comparator.comparingInt(ColumnPK::getOrder));
+    ColumnPK sourcePKAtFirstPosition = sourcePKs[0];
+    String sourcePKAtFirstPositionDataType = sourceTable.getColDefs().get(sourcePKAtFirstPosition.getColId()).getType().getName();
+
+    //Check if source and spanner PK can be used to find PK.
     if (sourcePKAtFirstPosition.getColId().equals(spannerPKAtFirstPosition.getColId())) {
-      String sourcePKAtFirstPositionDataType = sourceTable.getColDefs().get(sourcePKAtFirstPosition.getColId()).getType().getName();
-      switch (sourcePKAtFirstPositionDataType.toUpperCase()) {
-        case "INT":
-          return new PartitionKey(sourcePKAtFirstPosition.getColId(), "INTEGER", String.valueOf(Integer.MAX_VALUE));
-        case "BIGINT":
-          return new PartitionKey(sourcePKAtFirstPosition.getColId(), "LONG", String.valueOf(Long.MAX_VALUE));
+      partitionKey = createPartitionKey(sourcePKAtFirstPosition.getColId(), sourcePKAtFirstPositionDataType);
+    }
+    //No match with Spanner PK, check against indexes on spanner table
+    if (partitionKey == null) {
+      LOG.info("###########(Source PK, Spanner PK) -> No partition key found###########");
+      partitionKey = searchSpannerIndexesForPartitionKey(sourcePKAtFirstPosition.getColId(), sourcePKAtFirstPositionDataType,
+          spannerTable.getIndexes());
       }
-    }
-    //Otherwise check for Index match
-    Index[] sourceIndexes = sourceTable.getIndexes();
-    Index[] spannerIndexes = spannerTable.getIndexes();
-    if (sourceIndexes == null || spannerIndexes == null) {
-      return null;
-    }
-    for (Index sourceIndex : sourceIndexes) {
-      for (Index spannerIndex : spannerIndexes) {
-        if (sourceIndex.getId().equals(spannerIndex.getId())) {
+
+    //source PK did not match with any PK or index at Spanner, check if any source indexes
+    //can be used as a partitioning key
+    if (partitionKey == null) {
+      LOG.info("###########(Source PK, Spanner Indexes) -> No partition key found###########");
+      Index[] sourceIndexes = sourceTable.getIndexes();
+      if (sourceIndexes != null) {
+        for (Index sourceIndex: sourceIndexes) {
+          Arrays.sort(sourceIndex.getKeys(), Comparator.comparingInt(IndexKey::getOrder));
           IndexKey sourceIndexAtFirstPosition = sourceIndex.getKeys()[0];
-          IndexKey spannerIndexAtFirstPosition = spannerIndex.getKeys()[0];
-          if (sourceIndexAtFirstPosition.getColId().equals(spannerIndexAtFirstPosition.getColId())) {
-            String sourceIndexAtFirstPositionDataType = sourceTable.getColDefs().get(sourceIndexAtFirstPosition.getColId()).getType().getName();
-            switch (sourceIndexAtFirstPositionDataType.toUpperCase()) {
-              case "INT":
-                return new PartitionKey(sourceIndexAtFirstPosition.getColId(), "INTEGER", String.valueOf(Integer.MAX_VALUE));
-              case "BIGINT":
-                return new PartitionKey(sourceIndexAtFirstPosition.getColId(), "LONG", String.valueOf(Long.MAX_VALUE));
-            }
+          String sourceIndexAtFirstPositionDataType = sourceTable.getColDefs()
+              .get(sourceIndexAtFirstPosition.getColId()).getType().getName();
+          //first check with spanner PK
+          if (sourceIndexAtFirstPosition.getColId().equals(spannerPKAtFirstPosition.getColId())) {
+            partitionKey = createPartitionKey(sourceIndexAtFirstPosition.getColId(),
+                sourceIndexAtFirstPositionDataType);
+          }
+          //if not found, check spanner indexes
+          if (partitionKey == null) {
+            LOG.info("###########(Source Indexes, Spanner PK) -> No partition key found###########");
+            partitionKey = searchSpannerIndexesForPartitionKey(sourceIndexAtFirstPosition.getColId(),
+                sourceIndexAtFirstPositionDataType, spannerTable.getIndexes());
           }
         }
       }
+
+    }
+    if (partitionKey == null) {
+      LOG.info("###########(Source Indexes, Spanner Indexes) -> No partition key found###########");
+      LOG.info("No suitable partitioning key was found for Source table: {}, Spanner table: {}", sourceTable.getName(), spannerTable.getName());
+      LOG.info("Only (int, bigint) partition keys are supported, with a the following condition: There should exist an index (PK or secondary index) whose first ordinal position is a supported partitioning data type and is identical between source and spanner");
+    }
+    return partitionKey;
+  }
+
+  private static PartitionKey searchSpannerIndexesForPartitionKey(String sourceColId, String sourceColDataType, Index[] spannerIndexes) {
+    if (spannerIndexes != null) {
+      for (Index spannerIndex : spannerIndexes) {
+        Arrays.sort(spannerIndex.getKeys(), Comparator.comparingInt(IndexKey::getOrder));
+        IndexKey spannerIndexAtFirstPosition = spannerIndex.getKeys()[0];
+        if (sourceColId.equals(spannerIndexAtFirstPosition.getColId())) {
+          return createPartitionKey(sourceColId, sourceColDataType);
+        }
+      }
+    }
+    return null;
+  }
+
+  private static PartitionKey createPartitionKey(String colId, String colDataType) {
+    switch (colDataType.toUpperCase()) {
+      case "INT":
+        return new PartitionKey(colId, "INTEGER", String.valueOf(Integer.MAX_VALUE));
+      case "BIGINT":
+        return new PartitionKey(colId, "LONG", String.valueOf(Long.MAX_VALUE));
     }
     return null;
   }
