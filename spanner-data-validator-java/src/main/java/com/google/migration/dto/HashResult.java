@@ -198,7 +198,7 @@ public class HashResult {
             sbConcatCols.append(getNormalizedJsonString(otherVal));
           }
           break;
-          case Types.LONGVARBINARY:
+        case Types.LONGVARBINARY:
         case Types.VARBINARY:
           byte[] bytes = resultSet.getBytes(colOrdinal);
           if(bytes != null && !resultSet.wasNull()) {
