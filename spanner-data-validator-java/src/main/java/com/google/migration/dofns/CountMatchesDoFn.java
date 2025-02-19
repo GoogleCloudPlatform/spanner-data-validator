@@ -52,10 +52,9 @@ public class CountMatchesDoFn extends DoFn<KV<String, CoGbkResult>, KV<String, L
     LOG.info(String.format("***Timestamp threshold delta in mins: %d", timestampThresholdDeltaInMins));
 
     if(timestampThresholdInEffect) {
-      timestampFilterStart = timestampThreshold + (timestampThresholdDeltaInMinsIn * 60 * 1000);
-      timestampFilterStart = Math.min(timestampFilterStart, timestampThreshold);
+      timestampFilterStart = Math.min(timestampThreshold + ((long)timestampThresholdDeltaInMinsIn * 60 * 1000), timestampThreshold);
       if(timestampThresholdDeltaInMins != 0) {
-        timestampFilterEnd = Math.max(timestampFilterStart, timestampThreshold);
+        timestampFilterEnd = Math.max(timestampThreshold + ((long)timestampThresholdDeltaInMinsIn * 60 * 1000), timestampThreshold);
       } else {
         timestampFilterEnd = Instant
             .ofEpochMilli(timestampFilterStart)
