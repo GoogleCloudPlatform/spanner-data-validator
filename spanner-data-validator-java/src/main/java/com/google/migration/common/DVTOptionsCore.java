@@ -237,4 +237,16 @@ public interface DVTOptionsCore extends PipelineOptions {
   String getSpannerProjectId();
 
   void setSpannerProjectId(String value);
+
+  @Description("Spanner migration tool's session file")
+  @Default.String("")
+  String getSessionFileJson();
+
+  void setSessionFileJson(String value);
+
+  @Description("Only generate the tableSpec from the session file and not run the pipeline")
+  @Default.Boolean(false)
+  Boolean getGenerateTableSpec();
+
+  void setGenerateTableSpec(Boolean value);
 } // class

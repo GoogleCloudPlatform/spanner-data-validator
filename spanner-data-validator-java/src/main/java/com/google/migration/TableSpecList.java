@@ -16,19 +16,29 @@ limitations under the License.
 
 package com.google.migration;
 
+import com.google.migration.common.DVTOptionsCore;
 import com.google.migration.dto.GCSObject;
+import com.google.migration.dto.PartitionKey;
 import com.google.migration.dto.TableSpec;
+import com.google.migration.dto.session.ColumnPK;
+import com.google.migration.dto.session.Index;
+import com.google.migration.dto.session.IndexKey;
+import com.google.migration.dto.session.Schema;
+import com.google.migration.dto.session.SessionFileReader;
+import com.google.migration.dto.session.SourceTable;
+import com.google.migration.dto.session.SpannerTable;
 import java.io.File;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Arrays;
+import java.util.Optional;
 import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
 import org.json.JSONArray;
@@ -38,7 +48,6 @@ import org.slf4j.LoggerFactory;
 
 public class TableSpecList {
   private static final Logger LOG = LoggerFactory.getLogger(TableSpecList.class);
-
   public static List<TableSpec> getTableSpecs() {
     ArrayList<TableSpec> tableSpecs = new ArrayList<>();
 
@@ -254,6 +263,159 @@ public class TableSpecList {
       LOG.error(ex.getStackTrace().toString());
     }
 
+    return null;
+  }
+
+  public static void toJsonFile(List<TableSpec> tableSpecs, String jsonFile) {
+    try {
+      JSONArray jsonarray = new JSONArray();
+
+      for (TableSpec tableSpec : tableSpecs) {
+        JSONObject jsonObject = new JSONObject();
+
+        jsonObject.put("tableName", tableSpec.getTableName());
+        jsonObject.put("sourceQuery", tableSpec.getSourceQuery());
+        jsonObject.put("destQuery", tableSpec.getDestQuery());
+        jsonObject.put("rangeFieldIndex", tableSpec.getRangeFieldIndex());
+        jsonObject.put("rangeFieldType", tableSpec.getRangeFieldType());
+        jsonObject.put("rangeStart", tableSpec.getRangeStart());
+        jsonObject.put("rangeEnd", tableSpec.getRangeEnd());
+        jsonObject.put("rangeCoverage", tableSpec.getRangeCoverage());
+        jsonObject.put("partitionCount", tableSpec.getPartitionCount());
+        jsonObject.put("partitionFilterRatio", tableSpec.getPartitionFilterRatio());
+        jsonObject.put("timestampThresholdColIndex", tableSpec.getTimestampThresholdColIndex());
+        jsonObject.put("timestampThresholdDeltaInMins", tableSpec.getTimestampThresholdDeltaInMins());
+        jsonObject.put("timestampThresholdZoneOffset", tableSpec.getTimestampThresholdZoneOffset());
+
+        if(tableSpec.getTimestampThresholdValue() != 0) {
+          LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(tableSpec.getTimestampThresholdValue()), ZoneOffset.UTC);
+          jsonObject.put("timestampThresholdValue", dateTime.toString());
+        }
+
+        jsonarray.put(jsonObject);
+      } // for
+
+      FileUtils.writeStringToFile(new File(jsonFile), jsonarray.toString(2), StandardCharsets.UTF_8);
+    } catch (Exception ex) {
+      LOG.error("Exception while writing table specs to json file");
+      LOG.error(ex.getMessage());
+      LOG.error(ex.getStackTrace().toString());
+    }
+  }
+
+  public static List<TableSpec> getFromSessionFile(DVTOptionsCore options) {
+    Schema schema = SessionFileReader.read(options.getSessionFileJson());
+    List<TableSpec> tableSpecList = new ArrayList<>();
+    for (String tableId : schema.getSpSchema().keySet()) {
+      TableSpec tableSpec = new TableSpec();
+      //Fetch the source and spanner tables from session object
+      SpannerTable spannerTable = schema.getSpSchema().get(tableId);
+      SourceTable sourceTable = schema.getSrcSchema().get(tableId);
+      tableSpec.setTableName(spannerTable.getName());
+      tableSpec.setPartitionCount(options.getPartitionCount());
+      tableSpec.setPartitionFilterRatio(options.getPartitionFilterRatio());
+      tableSpec.setRangeFieldIndex(0);
+      tableSpec.setRangeStart("0");
+      tableSpec.setRangeCoverage(BigDecimal.valueOf(1));
+      PartitionKey partitionKey = determinePartitionKey(sourceTable, spannerTable);
+      if (partitionKey == null) {
+        continue;
+      }
+      tableSpec.setRangeEnd(partitionKey.getPartitionKeyMaxValue());
+      tableSpec.setDestQuery(spannerTable.getSpannerQuery(partitionKey.getPartitionKeyColId(), sourceTable.getColIds()));
+      tableSpec.setSourceQuery(sourceTable.getSourceQuery(partitionKey.getPartitionKeyColId(), spannerTable.getColIds()));
+      tableSpec.setRangeFieldType(partitionKey.getPartitionKeyColDataType());
+      tableSpecList.add(tableSpec);
+    }
+    return tableSpecList;
+  }
+
+  //Uses the PK as the partitionKey if it matches the criteria, otherwise looks for an
+  //index on the same column.
+  private static PartitionKey determinePartitionKey(SourceTable sourceTable, SpannerTable spannerTable) {
+    PartitionKey partitionKey = null;
+
+    //Store the column at the first ordinal position of the PK at Spanner
+    ColumnPK[] spannerPKs = spannerTable.getPrimaryKeys();
+    Arrays.sort(spannerPKs, Comparator.comparingInt(ColumnPK::getOrder));
+    ColumnPK spannerPKAtFirstPosition = spannerPKs[0];
+
+
+    //Get the ID and data type of the column in the first ordinal position of the source PK
+    ColumnPK[] sourcePKs = sourceTable.getPrimaryKeys();
+    if (sourcePKs.length == 0) {
+      LOG.info("Source table does not have a PK, skipping validation");
+      return  null;
+    }
+    Arrays.sort(sourcePKs, Comparator.comparingInt(ColumnPK::getOrder));
+    ColumnPK sourcePKAtFirstPosition = sourcePKs[0];
+    String sourcePKAtFirstPositionDataType = sourceTable.getColDefs().get(sourcePKAtFirstPosition.getColId()).getType().getName();
+
+    //Check if source and spanner PK can be used to find PK.
+    if (sourcePKAtFirstPosition.getColId().equals(spannerPKAtFirstPosition.getColId())) {
+      partitionKey = createPartitionKey(sourcePKAtFirstPosition.getColId(), sourcePKAtFirstPositionDataType);
+    }
+    //No match with Spanner PK, check against indexes on spanner table
+    if (partitionKey == null) {
+      LOG.info("###########(Source PK, Spanner PK) -> No partition key found###########");
+      partitionKey = searchSpannerIndexesForPartitionKey(sourcePKAtFirstPosition.getColId(), sourcePKAtFirstPositionDataType,
+          spannerTable.getIndexes());
+      }
+
+    //source PK did not match with any PK or index at Spanner, check if any source indexes
+    //can be used as a partitioning key
+    if (partitionKey == null) {
+      LOG.info("###########(Source PK, Spanner Indexes) -> No partition key found###########");
+      Index[] sourceIndexes = sourceTable.getIndexes();
+      if (sourceIndexes != null) {
+        for (Index sourceIndex: sourceIndexes) {
+          Arrays.sort(sourceIndex.getKeys(), Comparator.comparingInt(IndexKey::getOrder));
+          IndexKey sourceIndexAtFirstPosition = sourceIndex.getKeys()[0];
+          String sourceIndexAtFirstPositionDataType = sourceTable.getColDefs()
+              .get(sourceIndexAtFirstPosition.getColId()).getType().getName();
+          //first check with spanner PK
+          if (sourceIndexAtFirstPosition.getColId().equals(spannerPKAtFirstPosition.getColId())) {
+            partitionKey = createPartitionKey(sourceIndexAtFirstPosition.getColId(),
+                sourceIndexAtFirstPositionDataType);
+          }
+          //if not found, check spanner indexes
+          if (partitionKey == null) {
+            LOG.info("###########(Source Indexes, Spanner PK) -> No partition key found###########");
+            partitionKey = searchSpannerIndexesForPartitionKey(sourceIndexAtFirstPosition.getColId(),
+                sourceIndexAtFirstPositionDataType, spannerTable.getIndexes());
+          }
+        }
+      }
+
+    }
+    if (partitionKey == null) {
+      LOG.info("###########(Source Indexes, Spanner Indexes) -> No partition key found###########");
+      LOG.info("No suitable partitioning key was found for Source table: {}, Spanner table: {}", sourceTable.getName(), spannerTable.getName());
+      LOG.info("Only (int, bigint) partition keys are supported, with a the following condition: There should exist an index (PK or secondary index) whose first ordinal position is a supported partitioning data type and is identical between source and spanner");
+    }
+    return partitionKey;
+  }
+
+  private static PartitionKey searchSpannerIndexesForPartitionKey(String sourceColId, String sourceColDataType, Index[] spannerIndexes) {
+    if (spannerIndexes != null) {
+      for (Index spannerIndex : spannerIndexes) {
+        Arrays.sort(spannerIndex.getKeys(), Comparator.comparingInt(IndexKey::getOrder));
+        IndexKey spannerIndexAtFirstPosition = spannerIndex.getKeys()[0];
+        if (sourceColId.equals(spannerIndexAtFirstPosition.getColId())) {
+          return createPartitionKey(sourceColId, sourceColDataType);
+        }
+      }
+    }
+    return null;
+  }
+
+  private static PartitionKey createPartitionKey(String colId, String colDataType) {
+    switch (colDataType.toUpperCase()) {
+      case "INT":
+        return new PartitionKey(colId, "INTEGER", String.valueOf(Integer.MAX_VALUE));
+      case "BIGINT":
+        return new PartitionKey(colId, "LONG", String.valueOf(Long.MAX_VALUE));
+    }
     return null;
   }
 

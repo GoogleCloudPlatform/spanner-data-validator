@@ -656,7 +656,23 @@ public class JDBCToSpannerDVTWithHash {
     return bRanges;
   }
 
+  private static void generateTableSpecFromSessionFile(DVTOptionsCore options) {
+    List<TableSpec> tableSpecList = TableSpecList.getFromSessionFile(options);
+    String jsonFileName = String.format("tableSpec-%s.json", System.currentTimeMillis());
+    TableSpecList.toJsonFile(tableSpecList, jsonFileName);
+    LOG.info("TableSpec has been written to {} file", jsonFileName);
+  }
+
   public static void runDVT(DVTOptionsCore options) throws IOException {
+    if (options.getGenerateTableSpec()) {
+      String sessionFileJson = options.getSessionFileJson();
+      if (Helpers.isNullOrEmpty(sessionFileJson)) {
+        throw new RuntimeException("Session file needs to be provided to generate the tableSpec from it!");
+      }
+      generateTableSpecFromSessionFile(options);
+      return;
+    }
+
     Pipeline p = Pipeline.create(options);
 
     p.getCoderRegistry().registerCoderForClass(HashResult.class, AvroCoder.of(HashResult.class));
@@ -669,8 +685,15 @@ public class JDBCToSpannerDVTWithHash {
 
     List<TableSpec> tableSpecs = getTableSpecs();
     String tableSpecJson = options.getTableSpecJson();
+    String sessionFileJson = options.getSessionFileJson();
+    if (!Helpers.isNullOrEmpty(tableSpecJson) && !Helpers.isNullOrEmpty(sessionFileJson)) {
+      throw new RuntimeException("Both session file and tableSpec cannot be specified together! Please specify either one!!");
+    }
     if(!Helpers.isNullOrEmpty(tableSpecJson)) {
       tableSpecs = TableSpecList.getFromJsonFile(options.getProjectId(), tableSpecJson);
+    }
+    if (!Helpers.isNullOrEmpty(sessionFileJson)) {
+      tableSpecs = TableSpecList.getFromSessionFile(options);
     }
 
     for(TableSpec tableSpec: tableSpecs) {
