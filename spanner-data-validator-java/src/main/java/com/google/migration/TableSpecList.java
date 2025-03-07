@@ -325,6 +325,7 @@ public class TableSpecList {
       tableSpec.setDestQuery(spannerTable.getSpannerQuery(partitionKey.getPartitionKeyColId(), sourceTable.getColIds()));
       tableSpec.setSourceQuery(sourceTable.getSourceQuery(partitionKey.getPartitionKeyColId(), spannerTable.getColIds()));
       tableSpec.setRangeFieldType(partitionKey.getPartitionKeyColDataType());
+      tableSpec.setRangeFieldName(sourceTable.getColDefs().get(partitionKey.getPartitionKeyColId()).getName());
       tableSpecList.add(tableSpec);
     }
     return tableSpecList;

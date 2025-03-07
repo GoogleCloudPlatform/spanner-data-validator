@@ -40,6 +40,7 @@ import com.google.cloud.spanner.Struct;
 import com.google.migration.common.DVTOptionsCore;
 import com.google.migration.common.JDBCRowMapper;
 import com.google.migration.dofns.CountMatchesDoFn;
+import com.google.migration.dofns.CustomTransformationDoFn;
 import com.google.migration.dofns.MapWithRangeFn;
 import com.google.migration.dofns.MapWithRangeFn.MapWithRangeType;
 import com.google.migration.dto.ComparerResult;
@@ -47,8 +48,11 @@ import com.google.migration.dto.HashResult;
 import com.google.migration.dto.PartitionRange;
 import com.google.migration.dto.ShardSpec;
 import com.google.migration.dto.TableSpec;
+import com.google.migration.dto.session.Schema;
+import com.google.migration.dto.session.SessionFileReader;
 import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
+import com.google.migration.transform.CustomTransformation;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -229,7 +233,9 @@ public class JDBCToSpannerDVTWithHash {
       TableSpec tableSpec,
       BigQueryIO.Write<ComparerResult> comparerResultWrite,
       BigQueryIO.Write<HashResult> jdbcConflictingRecordsWriter,
-      BigQueryIO.Write<HashResult> spannerConflictingRecordsWriter) {
+      BigQueryIO.Write<HashResult> spannerConflictingRecordsWriter,
+      CustomTransformation customTransformation,
+      Schema schema) {
 
     Integer partitionCount = options.getPartitionCount();
     if(tableSpec.getPartitionCount() > 0) {
@@ -286,7 +292,10 @@ public class JDBCToSpannerDVTWithHash {
               tableSpec.getRangeFieldType(),
               options,
               pRanges,
-              tableSpec.getTimestampThresholdColIndex());
+              tableSpec.getTimestampThresholdColIndex(),
+              customTransformation,
+              schema,
+              tableSpec.getRangeFieldName());
     } else {
       jdbcRecords =
           getJDBCRecordsWithSharding(tableName,
@@ -295,7 +304,8 @@ public class JDBCToSpannerDVTWithHash {
               tableSpec.getRangeFieldType(),
               options,
               pRanges,
-              tableSpec.getTimestampThresholdColIndex());
+              tableSpec.getTimestampThresholdColIndex(),
+              customTransformation);
     }
 
     // Map Range [start, end) + hash => HashResult (JDBC)
@@ -433,7 +443,10 @@ public class JDBCToSpannerDVTWithHash {
       String rangeFieldType,
       DVTOptionsCore options,
       PCollection<PartitionRange> pRanges,
-      Integer timestampThresholdKeyIndex) {
+      Integer timestampThresholdKeyIndex,
+      CustomTransformation customTransformation,
+      Schema schema,
+      String rangeFieldName) {
 
     Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
 
@@ -456,9 +469,10 @@ public class JDBCToSpannerDVTWithHash {
 
     String jdbcPass = Helpers.getJDBCPassword(options);
 
-    PCollection<HashResult> jdbcRecords =
+    //Return the ResultSet back for custom transformations instead of computing HashResult here.
+    PCollection<TableRow> jdbcRecords =
         pRanges.apply(String.format("ReadInParallelForTable-%s", tableName),
-            JdbcIO.<PartitionRange, HashResult>readAll()
+            JdbcIO.<PartitionRange, TableRow>readAll()
                 .withDataSourceConfiguration(DataSourceConfiguration.create(
                         driver, connString)
                     .withUsername(options.getUsername())
@@ -468,14 +482,13 @@ public class JDBCToSpannerDVTWithHash {
                   preparedStatement.setString(1, input.getStartRange());
                   preparedStatement.setString(2, input.getEndRange());
                 })
-                .withRowMapper(new JDBCRowMapper(keyIndex,
-                    rangeFieldType,
-                    adjustTimestampPrecision,
-                    timestampThresholdKeyIndex))
+                .withRowMapper(new TableRowMapper())
                 .withOutputParallelization(false)
         );
 
-    return  jdbcRecords;
+    CustomTransformationDoFn customTransformationDoFn = CustomTransformationDoFn.create(customTransformation, tableName, "0", schema, keyIndex, rangeFieldType, options.getAdjustTimestampPrecision(), timestampThresholdKeyIndex, rangeFieldName);
+
+    return  jdbcRecords.apply(String.format("CustomTransformation-%s", tableName), ParDo.of(customTransformationDoFn));
   }
 
   protected static PCollection<HashResult> getJDBCRecordsWithSharding(String tableName,
@@ -484,7 +497,8 @@ public class JDBCToSpannerDVTWithHash {
       String rangeFieldType,
       DVTOptionsCore options,
       PCollection<PartitionRange> pRanges,
-      Integer timestampThresholdIndex) {
+      Integer timestampThresholdIndex,
+      CustomTransformation customTransformation) {
 
     Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
 
@@ -683,6 +697,10 @@ public class JDBCToSpannerDVTWithHash {
       options.setRunName(String.format("Run-%s", timestampStr));
     }
 
+    CustomTransformation customTransformation = CustomTransformation.builder(options.getTransformationJarPath(), options.getTransformationClassName())
+        .setCustomParameters(options.getTransformationCustomParameters())
+        .build();
+
     List<TableSpec> tableSpecs = getTableSpecs();
     String tableSpecJson = options.getTableSpecJson();
     String sessionFileJson = options.getSessionFileJson();
@@ -721,12 +739,16 @@ public class JDBCToSpannerDVTWithHash {
             conflictingRecordsBQTableName));
       }
 
+      Schema schema = SessionFileReader.read(options.getSessionFileJson());
+
       configureComparisonPipeline(p,
           options,
           tableSpec,
           comparerResultWrite,
           jdbcConflictingRecordsWriter,
-          spannerConflictingRecordsWriter);
+          spannerConflictingRecordsWriter,
+          customTransformation,
+          schema);
     }
 
     p.run();

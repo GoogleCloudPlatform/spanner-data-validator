@@ -20,6 +20,10 @@ import com.google.cloud.spanner.Struct;
 import com.google.cloud.spanner.Type;
 import com.google.migration.Helpers;
 import com.google.migration.common.JSONNormalizer;
+import com.google.migration.dto.session.Schema;
+import com.google.migration.dto.session.SourceColumnDefinition;
+import com.google.migration.dto.session.SourceColumnType;
+import com.google.migration.dto.session.SourceTable;
 import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.Date;
@@ -28,6 +32,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.LocalDate;
+import java.util.Map;
 import org.apache.beam.sdk.coders.DefaultCoder;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
 import org.apache.commons.codec.binary.Base64;
@@ -309,6 +314,89 @@ public class HashResult {
     retVal.isSource = true;
 
     return retVal;
+  }
+
+  public static HashResult fromTableRowMapAndSchema(Map<String, Object> tableRowMap,
+      Schema schema,
+      Integer keyIndex,
+      String rangeFieldType,
+      Boolean adjustTimestampPrecision,
+      Integer timestampThresholdIndex,
+      String rangeFieldName,
+      String tableName) throws RuntimeException {
+
+    HashResult retVal = new HashResult();
+    StringBuilder sbConcatCols = new StringBuilder();
+    SourceTable sourceTable = schema.getSrcSchema().get(tableName);
+    if (sourceTable == null) {
+      throw new RuntimeException("SourceTable not found for tableName: " + tableName);
+    }
+    for (Map.Entry<String, SourceColumnDefinition> entry : sourceTable.getColDefs().entrySet()) {
+      SourceColumnDefinition colDef = entry.getValue();
+      String colName = colDef.getName();
+      Object colValue = tableRowMap.get(colName);
+      sbConcatCols.append(stringifyValue(colValue, colDef.getType()));
+    }
+
+    switch(rangeFieldType) {
+      case TableSpec.UUID_FIELD_TYPE:
+      case TableSpec.STRING_FIELD_TYPE:
+      case TableSpec.TIMESTAMP_FIELD_TYPE:
+      case TableSpec.INT_FIELD_TYPE:
+      case TableSpec.LONG_FIELD_TYPE:
+        retVal.key = tableRowMap.get(rangeFieldName).toString();
+        break;
+      default:
+        throw new RuntimeException(String.format("Unexpected range field type %s", rangeFieldType));
+    }
+
+    retVal.rangeFieldType = rangeFieldType;
+    retVal.origValue = sbConcatCols.toString();
+    retVal.sha256 = Helpers.sha256(retVal.origValue);
+    retVal.isSource = true;
+    return retVal;
+  }
+
+  private static String stringifyValue(Object value, SourceColumnType type) {
+    if (value == null) {
+      return "";
+    }
+
+    switch (type.getName().toUpperCase()) {
+      case "VARCHAR":
+      case "CHAR":
+      case "TEXT":
+      case "UUID":
+      case "BIT":
+      case "BOOLEAN":
+      case "INT":
+      case "INTEGER":
+      case "FLOAT":
+      case "DOUBLE":
+      case "BIGINT":
+        return value.toString();
+
+      case "JSONB":
+        return getNormalizedJsonString(value.toString());
+
+      case "LONGVARBINARY":
+      case "VARBINARY":
+        return Base64.encodeBase64String((byte[]) value);
+      case "NUMERIC":
+      case "DECIMAL":
+        return new BigDecimal(value.toString()).stripTrailingZeros().toPlainString();
+      case "DATE":
+        LocalDate localDate = ((java.sql.Date) value).toLocalDate();
+        return String.format("%d%d%d", localDate.getYear(),localDate.getMonth().getValue(),localDate.getDayOfMonth());
+
+      case "TIMESTAMP":
+      case "TIMESTAMPTZ":
+        return String.valueOf(((java.sql.Timestamp) value).getTime());
+
+      default:
+        LOG.error(String.format("Unsupported type: %s", type.getName()));
+        throw new RuntimeException(String.format("Unsupported type: %s", type.getName()));
+    }
   }
 
   private static String getNormalizedJsonString(String rawJsonInput) {
