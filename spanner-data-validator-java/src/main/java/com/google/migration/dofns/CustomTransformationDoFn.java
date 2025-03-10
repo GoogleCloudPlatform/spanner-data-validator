@@ -2,14 +2,14 @@ package com.google.migration.dofns;
 
 import com.google.api.services.bigquery.model.TableRow;
 import com.google.auto.value.AutoValue;
+import com.google.cloud.teleport.v2.spanner.exceptions.InvalidTransformationException;
+import com.google.cloud.teleport.v2.spanner.utils.ISpannerMigrationTransformer;
+import com.google.cloud.teleport.v2.spanner.utils.MigrationTransformationRequest;
+import com.google.cloud.teleport.v2.spanner.utils.MigrationTransformationResponse;
 import com.google.migration.dto.HashResult;
 import com.google.migration.dto.session.Schema;
-import com.google.migration.exceptions.InvalidTransformationException;
 import com.google.migration.transform.CustomTransformation;
 import com.google.migration.transform.CustomTransformationImplFetcher;
-import com.google.migration.transform.ISpannerMigrationTransformer;
-import com.google.migration.transform.MigrationTransformationRequest;
-import com.google.migration.transform.MigrationTransformationResponse;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -91,28 +91,33 @@ public abstract class CustomTransformationDoFn extends DoFn<TableRow, HashResult
 
   @ProcessElement
   public void processElement(ProcessContext c) {
-    TableRow tableRow =  c.element();
+    TableRow tableRow = c.element();
+    LOG.info("Data read from JDBC: {}", tableRow.toString());
     Map<String, Object> tableRowMap = new HashMap<>(tableRow);
     try {
-      MigrationTransformationResponse migrationTransformationResponse = getCustomTransformationResponse(tableRowMap, tableName(), shardId());
+      MigrationTransformationResponse migrationTransformationResponse = getCustomTransformationResponse(
+          tableRowMap, tableName(), shardId());
       if (migrationTransformationResponse.isEventFiltered()) {
         LOG.info("Row was filtered by custom transformer");
-        c.output(null);
+        c.output(new HashResult());
       }
       Map<String, Object> transformedCols = migrationTransformationResponse.getResponseRow();
-      LOG.info("Returned response from the JAR: ", transformedCols.toString());
-      c.output(HashResult.fromTableRowMapAndSchema(transformedCols,
+      LOG.info("Returned response from the JAR: {}", transformedCols.toString());
+      tableRowMap.putAll(transformedCols);
+      LOG.info("Response sent for hashing: {}", tableRowMap.toString());
+      HashResult hashResult = HashResult.fromTableRowMapAndSchema(tableRowMap,
           schema(),
           keyIndex(),
           rangeFieldType(),
           adjustTimestampPrecision(),
           timestampThresholdKeyIndex(),
           rangeFieldName(),
-           tableName()));
+          tableName());
+      c.output(hashResult);
     } catch (Exception e) {
       LOG.error("Error while processing element: ", e);
       transformerErrors.inc();
-      c.output(null);
+      c.output(new HashResult());
     }
   }
 

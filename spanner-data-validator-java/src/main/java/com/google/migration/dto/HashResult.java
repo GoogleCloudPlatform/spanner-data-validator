@@ -53,6 +53,19 @@ public class HashResult {
   public HashResult() {
   }
 
+  @Override
+  public String toString() {
+    return "HashResult{" +
+        "isSource=" + isSource +
+        ", origValue='" + origValue + '\'' +
+        ", sha256='" + sha256 + '\'' +
+        ", key='" + key + '\'' +
+        ", range='" + range + '\'' +
+        ", rangeFieldType='" + rangeFieldType + '\'' +
+        ", timestampThresholdValue=" + timestampThresholdValue +
+        '}';
+  }
+
   public HashResult(String keyIn,
       Boolean isSourceIn,
       String origValueIn,
@@ -327,7 +340,10 @@ public class HashResult {
 
     HashResult retVal = new HashResult();
     StringBuilder sbConcatCols = new StringBuilder();
-    SourceTable sourceTable = schema.getSrcSchema().get(tableName);
+    LOG.info("Schema={}", schema.toString());
+    //SrcSchema is keyed by the internal ID, need to find the SourceTable object for using the
+    //tableName to look up.
+    SourceTable sourceTable = schema.getSrcSchema().entrySet().stream().filter((e) -> e.getValue().getName().equals(tableName)).findFirst().get().getValue();
     if (sourceTable == null) {
       throw new RuntimeException("SourceTable not found for tableName: " + tableName);
     }
@@ -354,6 +370,7 @@ public class HashResult {
     retVal.origValue = sbConcatCols.toString();
     retVal.sha256 = Helpers.sha256(retVal.origValue);
     retVal.isSource = true;
+    LOG.info("HashResult={}", retVal.toString());
     return retVal;
   }
 

@@ -8,6 +8,8 @@ import org.joda.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.cloud.teleport.v2.spanner.utils.ISpannerMigrationTransformer;
+
 public class CustomTransformationImplFetcher {
   private static final Logger LOG = LoggerFactory.getLogger(CustomTransformationImplFetcher.class);
   private static ISpannerMigrationTransformer spannerMigrationTransformer = null;

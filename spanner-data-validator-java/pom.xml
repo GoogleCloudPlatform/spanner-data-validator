@@ -26,7 +26,7 @@
   <packaging>jar</packaging>
 
   <properties>
-    <beam.version>2.51.0</beam.version>
+    <beam.version>2.62.0</beam.version>
 
     <maven.compiler.target>1.11</maven.compiler.target>
     <maven.compiler.source>1.11</maven.compiler.source>
@@ -590,6 +590,13 @@
       <version>${mockito.version}</version>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+        <groupId>com.google.cloud.teleport.v2</groupId>
+        <artifactId>spanner-migrations-sdk</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </dependency>
+  
   </dependencies>
 
   <dependencyManagement>
