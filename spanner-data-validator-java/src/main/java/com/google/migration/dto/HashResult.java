@@ -32,6 +32,9 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import org.apache.beam.sdk.coders.DefaultCoder;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
@@ -347,11 +350,15 @@ public class HashResult {
     if (sourceTable == null) {
       throw new RuntimeException("SourceTable not found for tableName: " + tableName);
     }
-    for (Map.Entry<String, SourceColumnDefinition> entry : sourceTable.getColDefs().entrySet()) {
-      SourceColumnDefinition colDef = entry.getValue();
-      String colName = colDef.getName();
+    //Sort by the column name before computing the hash. Do the same in Spanner to ensure
+    //that the hash calculation is consistent.
+    List<SourceColumnDefinition> colfDefList = new ArrayList<>(sourceTable.getColDefs().values());
+    colfDefList.sort(Comparator.comparing(SourceColumnDefinition::getName));
+
+    for (SourceColumnDefinition sourceColumnDefinition: colfDefList) {
+      String colName = sourceColumnDefinition.getName();
       Object colValue = tableRowMap.get(colName);
-      sbConcatCols.append(stringifyValue(colValue, colDef.getType()));
+      sbConcatCols.append(stringifyValue(colValue, sourceColumnDefinition.getType()));
     }
 
     switch(rangeFieldType) {
