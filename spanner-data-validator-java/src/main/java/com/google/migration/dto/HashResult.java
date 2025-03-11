@@ -20,9 +20,6 @@ import com.google.cloud.spanner.Struct;
 import com.google.cloud.spanner.Type;
 import com.google.migration.Helpers;
 import com.google.migration.common.JSONNormalizer;
-import com.google.migration.dto.session.Schema;
-import com.google.migration.dto.session.SourceColumnDefinition;
-import com.google.migration.dto.session.SourceTable;
 import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.Date;
@@ -32,10 +29,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
 import org.apache.beam.sdk.coders.DefaultCoder;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
 import org.apache.commons.codec.binary.Base64;
@@ -361,6 +354,7 @@ public class HashResult {
           sbConcatCols.append(colValue);
           break;
         case "JSONB":
+        case "OTHER":
           sbConcatCols.append(getNormalizedJsonString(colValue.toString()));
           break;
         case "LONGVARBINARY":
@@ -393,6 +387,12 @@ public class HashResult {
             if (adjustTimestampPrecision) {
               retVal.timestampThresholdValue = retVal.timestampThresholdValue * 1000;
             }
+          }
+          break;
+        case "ARRAY":
+          String[] vals = (String[]) colValue;
+          for (String val : vals) {
+            sbConcatCols.append(val);
           }
           break;
         default:
