@@ -69,9 +69,6 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
   @Nullable
   public abstract Integer timestampThresholdKeyIndex();
 
-  @Nullable
-  public abstract String rangeFieldName();
-
   public static CustomTransformationDoFn create(
       CustomTransformation customTransformer,
       String tableName,
@@ -80,10 +77,9 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
       Integer keyIndex,
       String rangeFieldType,
       Boolean adjustTimestampPrecision,
-      Integer timestampThresholdKeyIndex,
-      String rangeFieldName
+      Integer timestampThresholdKeyIndex
       ) {
-    return new AutoValue_CustomTransformationDoFn(customTransformer, tableName, shardId, schema, keyIndex, rangeFieldType, adjustTimestampPrecision, timestampThresholdKeyIndex, rangeFieldName);
+    return new AutoValue_CustomTransformationDoFn(customTransformer, tableName, shardId, schema, keyIndex, rangeFieldType, adjustTimestampPrecision, timestampThresholdKeyIndex);
   }
 
   @Setup

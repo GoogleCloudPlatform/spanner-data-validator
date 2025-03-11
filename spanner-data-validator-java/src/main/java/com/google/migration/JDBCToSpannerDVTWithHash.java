@@ -487,7 +487,7 @@ public class JDBCToSpannerDVTWithHash {
                 .withOutputParallelization(false)
         );
 
-    CustomTransformationDoFn customTransformationDoFn = CustomTransformationDoFn.create(customTransformation, tableName, "0", schema, keyIndex, rangeFieldType, options.getAdjustTimestampPrecision(), timestampThresholdKeyIndex, rangeFieldName);
+    CustomTransformationDoFn customTransformationDoFn = CustomTransformationDoFn.create(customTransformation, tableName, "0", schema, keyIndex, rangeFieldType, options.getAdjustTimestampPrecision(), timestampThresholdKeyIndex);
 
     return  jdbcRecords.apply(String.format("CustomTransformation-%s", tableName), ParDo.of(customTransformationDoFn));
   }
