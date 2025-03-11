@@ -1,13 +1,14 @@
 package com.google.migration.dofns;
 
-import com.google.api.services.bigquery.model.TableRow;
 import com.google.auto.value.AutoValue;
 import com.google.cloud.teleport.v2.spanner.exceptions.InvalidTransformationException;
 import com.google.cloud.teleport.v2.spanner.utils.ISpannerMigrationTransformer;
 import com.google.cloud.teleport.v2.spanner.utils.MigrationTransformationRequest;
 import com.google.cloud.teleport.v2.spanner.utils.MigrationTransformationResponse;
 import com.google.migration.dto.HashResult;
+import com.google.migration.dto.SourceRecord;
 import com.google.migration.dto.session.Schema;
+import com.google.migration.dto.session.SourceTable;
 import com.google.migration.transform.CustomTransformation;
 import com.google.migration.transform.CustomTransformationImplFetcher;
 import java.io.Serializable;
@@ -24,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @AutoValue
-public abstract class CustomTransformationDoFn extends DoFn<TableRow, HashResult>
+public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashResult>
   implements Serializable {
 
   private static final Logger LOG = LoggerFactory.getLogger(CustomTransformationDoFn.class);
@@ -91,28 +92,28 @@ public abstract class CustomTransformationDoFn extends DoFn<TableRow, HashResult
 
   @ProcessElement
   public void processElement(ProcessContext c) {
-    TableRow tableRow = c.element();
-    LOG.info("Data read from JDBC: {}", tableRow.toString());
-    Map<String, Object> tableRowMap = new HashMap<>(tableRow);
+    SourceRecord sourceRecord = c.element();
+    LOG.info("Data read from JDBC: {}", sourceRecord.toString());
+    Map<String, Object> sourceRecordMap = getSourceRecordMap(sourceRecord);
     try {
       MigrationTransformationResponse migrationTransformationResponse = getCustomTransformationResponse(
-          tableRowMap, tableName(), shardId());
+          sourceRecordMap, tableName(), shardId());
       if (migrationTransformationResponse.isEventFiltered()) {
         LOG.info("Row was filtered by custom transformer");
         c.output(new HashResult());
       }
       Map<String, Object> transformedCols = migrationTransformationResponse.getResponseRow();
       LOG.info("Returned response from the JAR: {}", transformedCols.toString());
-      tableRowMap.putAll(transformedCols);
-      LOG.info("Response sent for hashing: {}", tableRowMap.toString());
-      HashResult hashResult = HashResult.fromTableRowMapAndSchema(tableRowMap,
-          schema(),
+      //Add the new columns from custom transformation to the end of the existing sourceRow
+      for (Map.Entry<String, Object> entry : transformedCols.entrySet()) {
+        sourceRecord.addField(entry.getKey(), getDataTypeFromSchema(entry.getKey(), tableName(), schema()) ,entry.getValue());
+      }
+      LOG.info("Response sent for hashing: {}", sourceRecord.toString());
+      HashResult hashResult = HashResult.fromSourceRecord(sourceRecord,
           keyIndex(),
           rangeFieldType(),
           adjustTimestampPrecision(),
-          timestampThresholdKeyIndex(),
-          rangeFieldName(),
-          tableName());
+          timestampThresholdKeyIndex());
       c.output(hashResult);
     } catch (Exception e) {
       LOG.error("Error while processing element: ", e);
@@ -147,5 +148,21 @@ public abstract class CustomTransformationDoFn extends DoFn<TableRow, HashResult
         migrationTransformationResponse,
         tableName);
     return migrationTransformationResponse;
+  }
+
+  private Map<String, Object> getSourceRecordMap(SourceRecord sourceRecord) {
+    Map<String, Object> sourceRecordMap = new HashMap<>();
+    for (int i = 0; i < sourceRecord.length(); i++) {
+      sourceRecordMap.put(sourceRecord.getField(i).getFieldName(), sourceRecord.getField(i));
+    }
+    return sourceRecordMap;
+  }
+
+  private String getDataTypeFromSchema(String fieldName, String tableName, Schema schema) {
+    SourceTable sourceTable = schema.getSrcSchema().entrySet().stream().filter((e) -> e.getValue().getName().equals(tableName)).findFirst().get().getValue();
+    if (sourceTable == null) {
+      throw new RuntimeException("SourceTable not found for tableName: " + tableName);
+    }
+    return sourceTable.getColDefs().values().stream().filter(s -> fieldName.equals(s.getName())).findFirst().get().getType().getName();
   }
 }

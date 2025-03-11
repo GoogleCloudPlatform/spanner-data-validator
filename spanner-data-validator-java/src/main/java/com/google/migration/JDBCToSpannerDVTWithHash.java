@@ -47,6 +47,7 @@ import com.google.migration.dto.ComparerResult;
 import com.google.migration.dto.HashResult;
 import com.google.migration.dto.PartitionRange;
 import com.google.migration.dto.ShardSpec;
+import com.google.migration.dto.SourceRecord;
 import com.google.migration.dto.TableSpec;
 import com.google.migration.dto.session.Schema;
 import com.google.migration.dto.session.SessionFileReader;
@@ -470,9 +471,9 @@ public class JDBCToSpannerDVTWithHash {
     String jdbcPass = Helpers.getJDBCPassword(options);
 
     //Return the ResultSet back for custom transformations instead of computing HashResult here.
-    PCollection<TableRow> jdbcRecords =
+    PCollection<SourceRecord> jdbcRecords =
         pRanges.apply(String.format("ReadInParallelForTable-%s", tableName),
-            JdbcIO.<PartitionRange, TableRow>readAll()
+            JdbcIO.<PartitionRange, SourceRecord>readAll()
                 .withDataSourceConfiguration(DataSourceConfiguration.create(
                         driver, connString)
                     .withUsername(options.getUsername())
@@ -482,7 +483,7 @@ public class JDBCToSpannerDVTWithHash {
                   preparedStatement.setString(1, input.getStartRange());
                   preparedStatement.setString(2, input.getEndRange());
                 })
-                .withRowMapper(new TableRowMapper())
+                .withRowMapper(new SourceRecordMapper())
                 .withOutputParallelization(false)
         );
 

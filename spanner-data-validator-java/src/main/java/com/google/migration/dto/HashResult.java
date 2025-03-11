@@ -22,7 +22,6 @@ import com.google.migration.Helpers;
 import com.google.migration.common.JSONNormalizer;
 import com.google.migration.dto.session.Schema;
 import com.google.migration.dto.session.SourceColumnDefinition;
-import com.google.migration.dto.session.SourceColumnType;
 import com.google.migration.dto.session.SourceTable;
 import java.math.BigDecimal;
 import java.sql.Array;
@@ -30,6 +29,7 @@ import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -332,33 +332,73 @@ public class HashResult {
     return retVal;
   }
 
-  public static HashResult fromTableRowMapAndSchema(Map<String, Object> tableRowMap,
-      Schema schema,
+  public static HashResult fromSourceRecord(SourceRecord sourceRecord,
       Integer keyIndex,
       String rangeFieldType,
       Boolean adjustTimestampPrecision,
-      Integer timestampThresholdIndex,
-      String rangeFieldName,
-      String tableName) throws RuntimeException {
+      Integer timestampThresholdIndex) throws RuntimeException {
 
     HashResult retVal = new HashResult();
     StringBuilder sbConcatCols = new StringBuilder();
-    LOG.info("Schema={}", schema.toString());
-    //SrcSchema is keyed by the internal ID, need to find the SourceTable object for using the
-    //tableName to look up.
-    SourceTable sourceTable = schema.getSrcSchema().entrySet().stream().filter((e) -> e.getValue().getName().equals(tableName)).findFirst().get().getValue();
-    if (sourceTable == null) {
-      throw new RuntimeException("SourceTable not found for tableName: " + tableName);
-    }
-    //Sort by the column name before computing the hash. Do the same in Spanner to ensure
-    //that the hash calculation is consistent.
-    List<SourceColumnDefinition> colfDefList = new ArrayList<>(sourceTable.getColDefs().values());
-    colfDefList.sort(Comparator.comparing(SourceColumnDefinition::getName));
-
-    for (SourceColumnDefinition sourceColumnDefinition: colfDefList) {
-      String colName = sourceColumnDefinition.getName();
-      Object colValue = tableRowMap.get(colName);
-      sbConcatCols.append(stringifyValue(colValue, sourceColumnDefinition.getType()));
+    for (int i = 0; i < sourceRecord.length(); i++) {
+      Object colValue = sourceRecord.getField(i).getFieldValue();
+      if (colValue == null) {
+        continue;
+      }
+      String type = sourceRecord.getField(i).getFieldDataType();
+      switch (type) {
+        case "VARCHAR":
+        case "CHAR":
+        case "TEXT":
+        case "UUID":
+        case "BIT":
+        case "BOOLEAN":
+        case "INT":
+        case "INTEGER":
+        case "FLOAT":
+        case "DOUBLE":
+        case "BIGINT":
+          sbConcatCols.append(colValue);
+          break;
+        case "JSONB":
+          sbConcatCols.append(getNormalizedJsonString(colValue.toString()));
+          break;
+        case "LONGVARBINARY":
+        case "VARBINARY":
+          sbConcatCols.append(Base64.encodeBase64String((byte[]) colValue));
+          break;
+        case "NUMERIC":
+        case "DECIMAL":
+          sbConcatCols.append(new BigDecimal(colValue.toString()).stripTrailingZeros().toPlainString());
+          break;
+        case "DATE":
+          LocalDate localDate = ((java.sql.Date) colValue).toLocalDate();
+          sbConcatCols.append(
+              String.format("%d%d%d",
+                  localDate.getYear(),
+                  localDate.getMonth().getValue(),
+                  localDate.getDayOfMonth())
+          );
+        case "TIMESTAMP":
+          Timestamp timeStampVal = (Timestamp) colValue;
+          Long rawTimestamp = timeStampVal.getTime();
+          if (adjustTimestampPrecision) {
+            rawTimestamp = rawTimestamp / 1000;
+          }
+          sbConcatCols.append(rawTimestamp);
+          if(timestampThresholdIndex >= 0) {
+            if(i == timestampThresholdIndex) {
+              retVal.timestampThresholdValue = rawTimestamp;
+            }
+            if (adjustTimestampPrecision) {
+              retVal.timestampThresholdValue = retVal.timestampThresholdValue * 1000;
+            }
+          }
+          break;
+        default:
+          LOG.error("Unsupported type: {}", type);
+          throw new RuntimeException(String.format("Unsupported type: %s", type));
+      }
     }
 
     switch(rangeFieldType) {
@@ -367,7 +407,7 @@ public class HashResult {
       case TableSpec.TIMESTAMP_FIELD_TYPE:
       case TableSpec.INT_FIELD_TYPE:
       case TableSpec.LONG_FIELD_TYPE:
-        retVal.key = tableRowMap.get(rangeFieldName).toString();
+        retVal.key = sourceRecord.getField(keyIndex).getFieldValue().toString();
         break;
       default:
         throw new RuntimeException(String.format("Unexpected range field type %s", rangeFieldType));
@@ -379,48 +419,6 @@ public class HashResult {
     retVal.isSource = true;
     LOG.info("HashResult={}", retVal.toString());
     return retVal;
-  }
-
-  private static String stringifyValue(Object value, SourceColumnType type) {
-    if (value == null) {
-      return "";
-    }
-
-    switch (type.getName().toUpperCase()) {
-      case "VARCHAR":
-      case "CHAR":
-      case "TEXT":
-      case "UUID":
-      case "BIT":
-      case "BOOLEAN":
-      case "INT":
-      case "INTEGER":
-      case "FLOAT":
-      case "DOUBLE":
-      case "BIGINT":
-        return value.toString();
-
-      case "JSONB":
-        return getNormalizedJsonString(value.toString());
-
-      case "LONGVARBINARY":
-      case "VARBINARY":
-        return Base64.encodeBase64String((byte[]) value);
-      case "NUMERIC":
-      case "DECIMAL":
-        return new BigDecimal(value.toString()).stripTrailingZeros().toPlainString();
-      case "DATE":
-        LocalDate localDate = ((java.sql.Date) value).toLocalDate();
-        return String.format("%d%d%d", localDate.getYear(),localDate.getMonth().getValue(),localDate.getDayOfMonth());
-
-      case "TIMESTAMP":
-      case "TIMESTAMPTZ":
-        return String.valueOf(((java.sql.Timestamp) value).getTime());
-
-      default:
-        LOG.error(String.format("Unsupported type: %s", type.getName()));
-        throw new RuntimeException(String.format("Unsupported type: %s", type.getName()));
-    }
   }
 
   private static String getNormalizedJsonString(String rawJsonInput) {
