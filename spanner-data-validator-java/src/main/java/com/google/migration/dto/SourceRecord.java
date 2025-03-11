@@ -2,7 +2,10 @@ package com.google.migration.dto;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.beam.sdk.coders.DefaultCoder;
+import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
 
+@DefaultCoder(AvroCoder.class)
 public class SourceRecord {
 
   private final List<SourceField> sourceFields;

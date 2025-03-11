@@ -8,12 +8,14 @@ import com.google.cloud.teleport.v2.spanner.utils.MigrationTransformationRespons
 import com.google.migration.dto.HashResult;
 import com.google.migration.dto.SourceRecord;
 import com.google.migration.dto.session.Schema;
-import com.google.migration.dto.session.SourceTable;
+import com.google.migration.dto.session.SpannerTable;
 import com.google.migration.transform.CustomTransformation;
 import com.google.migration.transform.CustomTransformationImplFetcher;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 import javax.annotation.Nullable;
 import org.apache.arrow.util.VisibleForTesting;
 import org.apache.beam.sdk.metrics.Counter;
@@ -47,7 +49,6 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
   @Nullable
   public abstract CustomTransformation customTransformation();
 
-  @Nullable
   public abstract String tableName();
 
   @Nullable
@@ -93,7 +94,6 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
   @ProcessElement
   public void processElement(ProcessContext c) {
     SourceRecord sourceRecord = c.element();
-    LOG.info("Data read from JDBC: {}", sourceRecord.toString());
     Map<String, Object> sourceRecordMap = getSourceRecordMap(sourceRecord);
     try {
       MigrationTransformationResponse migrationTransformationResponse = getCustomTransformationResponse(
@@ -103,12 +103,14 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
         c.output(new HashResult());
       }
       Map<String, Object> transformedCols = migrationTransformationResponse.getResponseRow();
-      LOG.info("Returned response from the JAR: {}", transformedCols.toString());
       //Add the new columns from custom transformation to the end of the existing sourceRow
-      for (Map.Entry<String, Object> entry : transformedCols.entrySet()) {
-        sourceRecord.addField(entry.getKey(), getDataTypeFromSchema(entry.getKey(), tableName(), schema()) ,entry.getValue());
+      //Sort the transformedCols map by the field name and add it to the existing sourceRecord
+      //custom transformations columns are thus always appended alphabetically to the end of the
+      //source record.
+      Map<String, Object> sortedTransformedCols = new TreeMap<>(transformedCols);
+      for (String transformedColName: sortedTransformedCols.keySet()) {
+        sourceRecord.addField(transformedColName, getDataTypeFromSchema(transformedColName) ,sortedTransformedCols.get(transformedColName));
       }
-      LOG.info("Response sent for hashing: {}", sourceRecord.toString());
       HashResult hashResult = HashResult.fromSourceRecord(sourceRecord,
           keyIndex(),
           rangeFieldType(),
@@ -153,16 +155,36 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
   private Map<String, Object> getSourceRecordMap(SourceRecord sourceRecord) {
     Map<String, Object> sourceRecordMap = new HashMap<>();
     for (int i = 0; i < sourceRecord.length(); i++) {
-      sourceRecordMap.put(sourceRecord.getField(i).getFieldName(), sourceRecord.getField(i));
+      sourceRecordMap.put(sourceRecord.getField(i).getFieldName(), sourceRecord.getField(i).getFieldValue());
     }
     return sourceRecordMap;
   }
 
-  private String getDataTypeFromSchema(String fieldName, String tableName, Schema schema) {
-    SourceTable sourceTable = schema.getSrcSchema().entrySet().stream().filter((e) -> e.getValue().getName().equals(tableName)).findFirst().get().getValue();
-    if (sourceTable == null) {
-      throw new RuntimeException("SourceTable not found for tableName: " + tableName);
+  private String getDataTypeFromSchema(String fieldName) {
+    //First get the id of the source table
+    String sourceTableId = schema().getSpSchema().entrySet().stream().filter(e -> tableName().equals(e.getValue().getName())).findFirst()
+        .map(Entry::getKey).orElseThrow(() -> new RuntimeException("SourceTable not found for tableName: " + tableName()));
+    //Get the spannerTable for the id
+    SpannerTable spannerTable = schema().getSpSchema().get(sourceTableId);
+    if (spannerTable == null) {
+      throw new RuntimeException("No spanner table found corresponding to the source table: " + tableName());
     }
-    return sourceTable.getColDefs().values().stream().filter(s -> fieldName.equals(s.getName())).findFirst().get().getType().getName();
+    //Fetch the column data type from the spanner table
+    String spannerDataType = spannerTable.getColDefs().values().stream().filter(s -> fieldName.equals(s.getName())).findFirst()
+        .map(s -> s.getType().getName()).orElseThrow(() -> new RuntimeException(String.format("Field: %s not found in Spanner table: %s", fieldName, spannerTable.getName())));
+    return reverseMapSpannerDataTypeToSource(spannerDataType);
+  }
+
+  private String reverseMapSpannerDataTypeToSource(String spannerDataType) {
+    switch (spannerDataType.toUpperCase()) {
+      case "STRING":
+        return "VARCHAR";
+      case "INT64":
+        //It does not really matter if we return "INT" or "BIGINT" here since both will simply
+        //get written as string in the string which will represent the record which we take a hash of.
+        return "BIGINT";
+      default:
+        throw new RuntimeException(String.format("%s is not a supported column data type in custom transformations!", spannerDataType));
+    }
   }
 }

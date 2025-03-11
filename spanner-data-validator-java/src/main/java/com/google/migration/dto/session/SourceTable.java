@@ -83,8 +83,9 @@ public class SourceTable implements Serializable {
     Arrays.sort(commonColIds);
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
-    //add the PK first
+    //add the partition key first
     sb.append(colDefs.get(partitionKeyColId).getName()).append(",");
+    //add the rest of the cols
     for (String colId : commonColIds) {
       if (!colId.equals(partitionKeyColId)) {
         sb.append(colDefs.get(colId).getName()).append(",");

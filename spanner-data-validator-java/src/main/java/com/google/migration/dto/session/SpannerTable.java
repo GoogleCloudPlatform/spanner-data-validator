@@ -75,16 +75,29 @@ public class SpannerTable implements Serializable {
     return shardIdColumn;
   }
 
-  public String getSpannerQuery(String partitionKeyColId, String[] sourceColIds) {
+  public String getSpannerQuery(String partitionKeyColId, String[] sourceColIds, Boolean isCustomTransformation) {
     //find the common colIds between colIds field and the param sourceColIds and sort that to use in rest of the code
     String[] commonColIds = Arrays.stream(colIds).filter(x -> Arrays.asList(sourceColIds).contains(x)).toArray(String[]::new);
     Arrays.sort(commonColIds);
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
-    //add the PK first
+    //add the partition key first
     sb.append(colDefs.get(partitionKeyColId).getName()).append(",");
+    //add the rest of the cols
     for (String colId : commonColIds) {
       if (!colId.equals(partitionKeyColId)) {
+        sb.append(colDefs.get(colId).getName()).append(",");
+      }
+    }
+    //add the custom transformation columns if custom transformations is enabled
+    //all non-common columns in spannerTable are assumed to be under custom transformation
+    //by default. There is no other way to determine which columns are under custom transformation
+    //from the session file. Custom transformations are always added alphabetically sorted
+    //to the end of the query.
+    String []customTransformColIds = Arrays.stream(colIds).filter(x -> !Arrays.asList(sourceColIds).contains(x)).toArray(String[]::new);
+    Arrays.sort(customTransformColIds);
+    if (isCustomTransformation) {
+      for (String colId : customTransformColIds) {
         sb.append(colDefs.get(colId).getName()).append(",");
       }
     }
