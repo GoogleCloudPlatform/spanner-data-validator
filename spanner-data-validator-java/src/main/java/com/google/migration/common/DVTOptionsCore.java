@@ -45,7 +45,6 @@ public interface DVTOptionsCore extends PipelineOptions {
    * The source DB.
    */
   @Description("Source DB")
-  @Required
   String getSourceDB();
 
   void setSourceDB(String value);
@@ -63,7 +62,6 @@ public interface DVTOptionsCore extends PipelineOptions {
    * Username.
    */
   @Description("Username")
-  @Required
   String getUsername();
 
   void setUsername(String value);
@@ -267,4 +265,10 @@ public interface DVTOptionsCore extends PipelineOptions {
   String getTransformationCustomParameters();
 
   void setTransformationCustomParameters(String value);
+
+  @Description("URL to connect to the source database host. It is the GCS location to the shard configuration.")
+  @Default.String("")
+  String getSourceConfigURL();
+
+  void setSourceConfigURL(String value);
 } // class

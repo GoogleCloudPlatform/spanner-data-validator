@@ -166,7 +166,7 @@ public class HashResult {
     retVal.origValue = sbConcatCols.toString();
     retVal.sha256 = Helpers.sha256(retVal.origValue);
     retVal.isSource = false;
-    LOG.info("SpannerHash=> Key={}, OrigValue={} \n HashResult={}", retVal.key, retVal.origValue, retVal.sha256);
+    LOG.debug("SpannerHash=> Key={}, OrigValue={} \n HashResult={}", retVal.key, retVal.origValue, retVal.sha256);
     return retVal;
   }
 
@@ -417,7 +417,7 @@ public class HashResult {
     retVal.origValue = sbConcatCols.toString();
     retVal.sha256 = Helpers.sha256(retVal.origValue);
     retVal.isSource = true;
-    LOG.info("SourceHash=> Key={}, OrigValue={} \n HashResult={}", retVal.key, retVal.origValue, retVal.sha256);
+    LOG.debug("SourceHash=> Key={}, OrigValue={} \n HashResult={}", retVal.key, retVal.origValue, retVal.sha256);
     return retVal;
   }
 

@@ -5,6 +5,7 @@ import com.google.cloud.teleport.v2.spanner.exceptions.InvalidTransformationExce
 import com.google.cloud.teleport.v2.spanner.utils.ISpannerMigrationTransformer;
 import com.google.cloud.teleport.v2.spanner.utils.MigrationTransformationRequest;
 import com.google.cloud.teleport.v2.spanner.utils.MigrationTransformationResponse;
+import com.google.gson.Gson;
 import com.google.migration.dto.HashResult;
 import com.google.migration.dto.SourceRecord;
 import com.google.migration.dto.session.Schema;
@@ -89,6 +90,7 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
 
   @ProcessElement
   public void processElement(ProcessContext c) {
+    Gson gson = new Gson();
     SourceRecord sourceRecord = c.element();
     Map<String, Object> sourceRecordMap = getSourceRecordMap(sourceRecord);
     try {
@@ -179,6 +181,14 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
         //It does not really matter if we return "INT" or "BIGINT" here since both will simply
         //get written as string in the string which will represent the record which we take a hash of.
         return "BIGINT";
+      case "BOOL":
+        return "BOOLEAN";
+      case "FLOAT64":
+        return "DOUBLE";
+      case "TIMESTAMP":
+        return "TIMESTAMP";
+      case "DATE":
+        return "DATE";
       default:
         throw new RuntimeException(String.format("%s is not a supported column data type in custom transformations!", spannerDataType));
     }

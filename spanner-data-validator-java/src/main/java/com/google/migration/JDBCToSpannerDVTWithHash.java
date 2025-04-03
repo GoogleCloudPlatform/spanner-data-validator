@@ -38,7 +38,8 @@ import com.google.api.services.bigquery.model.TableSchema;
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.Struct;
 import com.google.migration.common.DVTOptionsCore;
-import com.google.migration.common.JDBCRowMapper;
+import com.google.migration.common.SecretManagerAccessorImpl;
+import com.google.migration.common.ShardFileReader;
 import com.google.migration.dofns.CountMatchesDoFn;
 import com.google.migration.dofns.CustomTransformationDoFn;
 import com.google.migration.dofns.MapWithRangeFn;
@@ -46,7 +47,7 @@ import com.google.migration.dofns.MapWithRangeFn.MapWithRangeType;
 import com.google.migration.dto.ComparerResult;
 import com.google.migration.dto.HashResult;
 import com.google.migration.dto.PartitionRange;
-import com.google.migration.dto.ShardSpec;
+import com.google.migration.dto.Shard;
 import com.google.migration.dto.SourceRecord;
 import com.google.migration.dto.TableSpec;
 import com.google.migration.dto.session.Schema;
@@ -255,7 +256,7 @@ public class JDBCToSpannerDVTWithHash {
     Helpers.printPartitionRanges(bRanges, tableSpec.getTableName());
 
     String tableName = tableSpec.getTableName();
-    String shardSpecJsonFile = options.getShardSpecJson();
+    String shardConfigurationFileUrl = options.getSourceConfigURL();
 
     String createRangesForTableStep = String.format("CreateRangesForTable-%s", tableName);
     PCollection<PartitionRange> pRanges = p.apply(createRangesForTableStep, Create.of(bRanges));
@@ -285,7 +286,7 @@ public class JDBCToSpannerDVTWithHash {
 
     PCollection<HashResult> jdbcRecords;
 
-    if(Helpers.isNullOrEmpty(shardSpecJsonFile)) {
+    if(Helpers.isNullOrEmpty(shardConfigurationFileUrl)) {
       jdbcRecords =
           getJDBCRecords(tableName,
               tableSpec.getSourceQuery(),
@@ -295,8 +296,7 @@ public class JDBCToSpannerDVTWithHash {
               pRanges,
               tableSpec.getTimestampThresholdColIndex(),
               customTransformation,
-              schema,
-              tableSpec.getRangeFieldName());
+              schema);
     } else {
       jdbcRecords =
           getJDBCRecordsWithSharding(tableName,
@@ -306,7 +306,8 @@ public class JDBCToSpannerDVTWithHash {
               options,
               pRanges,
               tableSpec.getTimestampThresholdColIndex(),
-              customTransformation);
+              customTransformation,
+              schema);
     }
 
     // Map Range [start, end) + hash => HashResult (JDBC)
@@ -446,10 +447,7 @@ public class JDBCToSpannerDVTWithHash {
       PCollection<PartitionRange> pRanges,
       Integer timestampThresholdKeyIndex,
       CustomTransformation customTransformation,
-      Schema schema,
-      String rangeFieldName) {
-
-    Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
+      Schema schema) {
 
     String driver = POSTGRES_JDBC_DRIVER;
     if(options.getProtocol().compareTo("mysql") == 0) {
@@ -489,7 +487,7 @@ public class JDBCToSpannerDVTWithHash {
 
     CustomTransformationDoFn customTransformationDoFn = CustomTransformationDoFn.create(customTransformation, tableName, "0", schema, keyIndex, rangeFieldType, options.getAdjustTimestampPrecision(), timestampThresholdKeyIndex);
 
-    return  jdbcRecords.apply(String.format("CustomTransformation-%s", tableName), ParDo.of(customTransformationDoFn));
+    return  jdbcRecords.apply(String.format("CustomTransformationForTable-%s", tableName), ParDo.of(customTransformationDoFn));
   }
 
   protected static PCollection<HashResult> getJDBCRecordsWithSharding(String tableName,
@@ -499,55 +497,53 @@ public class JDBCToSpannerDVTWithHash {
       DVTOptionsCore options,
       PCollection<PartitionRange> pRanges,
       Integer timestampThresholdIndex,
-      CustomTransformation customTransformation) {
-
-    Boolean adjustTimestampPrecision = options.getAdjustTimestampPrecision();
+      CustomTransformation customTransformation,
+      Schema schema) {
 
     String driver = POSTGRES_JDBC_DRIVER;
     if(options.getProtocol().compareTo("mysql") == 0) {
       driver = MYSQL_JDBC_DRIVER;
     }
 
-    String shardSpecJsonFile = options.getShardSpecJson();
+    String shardConfigurationFileUrl = options.getSourceConfigURL();
 
-    List<ShardSpec> shardSpecs =
-        ShardSpecList.getShardSpecsFromJsonFile(options.getProjectId(), shardSpecJsonFile, options.getVerboseLogging());
+    List<Shard> shards = new ShardFileReader(new SecretManagerAccessorImpl()).readShardingConfig(shardConfigurationFileUrl);
+    LOG.info("Total shards read: {}", shards.size());
     ArrayList<PCollection<HashResult>> pCollections = new ArrayList<>();
 
-    String jdbcPass = Helpers.getJDBCPassword(options);
-
-    for(ShardSpec shardSpec: shardSpecs) {
+    for(Shard shard: shards) {
 
       // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
       String zeroDateTimeNullBehaviorStr = options.getZeroDateTimeBehavior() ? "?zeroDateTimeBehavior=CONVERT_TO_NULL" : "";
 
       // JDBC conn string
       String connString = String.format("jdbc:%s://%s:%d/%s%s", options.getProtocol(),
-          shardSpec.getHost(),
-          options.getPort(),
-          shardSpec.getDb(),
+          shard.getHost(),
+          Integer.parseInt(shard.getPort()),
+          shard.getDbName(),
           zeroDateTimeNullBehaviorStr);
 
       LOG.info(String.format("++++++++++++++++++++++++++++++++JDBC conn string: %s", connString));
-
-      PCollection<HashResult> jdbcRecords =
+      PCollection<SourceRecord> jdbcRecords =
           pRanges.apply(String.format("ReadInParallelWithShardsForTable-%s", tableName),
-              JdbcIO.<PartitionRange, HashResult>readAll()
+              JdbcIO.<PartitionRange, SourceRecord>readAll()
                   .withDataSourceConfiguration(DataSourceConfiguration.create(
                           driver, connString)
-                      .withUsername(shardSpec.getUser())
-                      .withPassword(jdbcPass))
+                      .withUsername(shard.getUserName())
+                      .withPassword(shard.getPassword()))
                   .withQuery(query)
                   .withParameterSetter((input, preparedStatement) -> {
                     preparedStatement.setString(1, input.getStartRange());
                     preparedStatement.setString(2, input.getEndRange());
                   })
-                  .withRowMapper(
-                      new JDBCRowMapper(keyIndex, rangeFieldType, adjustTimestampPrecision, timestampThresholdIndex))
+                  .withRowMapper(new SourceRecordMapper())
                   .withOutputParallelization(false)
           );
+      CustomTransformationDoFn customTransformationDoFn = CustomTransformationDoFn.create(customTransformation, tableName, shard.getLogicalShardId(), schema, keyIndex, rangeFieldType, options.getAdjustTimestampPrecision(), timestampThresholdIndex);
 
-      pCollections.add(jdbcRecords);
+      PCollection<HashResult> hashedJDBCRecordsPerShard = jdbcRecords.apply(String.format("CustomTransformationWithShardsForTable-%s", tableName), ParDo.of(customTransformationDoFn));
+
+      pCollections.add(hashedJDBCRecordsPerShard);
     } // for
 
     String flattenStepName = String.format("FlattenJDBCRecordsForTable-%s", tableName);

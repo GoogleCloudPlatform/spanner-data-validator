@@ -1,12 +1,13 @@
 package com.google.migration.dto;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.beam.sdk.coders.DefaultCoder;
-import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
+import org.apache.beam.sdk.coders.SerializableCoder;
 
-@DefaultCoder(AvroCoder.class)
-public class SourceRecord {
+@DefaultCoder(SerializableCoder.class)
+public class SourceRecord implements Serializable {
 
   private final List<SourceField> sourceFields;
 

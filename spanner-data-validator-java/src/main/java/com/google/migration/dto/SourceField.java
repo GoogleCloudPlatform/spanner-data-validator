@@ -1,6 +1,8 @@
 package com.google.migration.dto;
 
-public class SourceField {
+import java.io.Serializable;
+
+public class SourceField implements Serializable {
 
   private final String fieldName;
 
