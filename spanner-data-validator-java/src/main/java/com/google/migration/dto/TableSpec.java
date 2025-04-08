@@ -45,6 +45,7 @@ public class TableSpec {
   private long timestampThresholdValue = 0L;
   private Integer timestampThresholdDeltaInMins = 0;
   private Integer timestampThresholdZoneOffset = -5;
+  private String rangeFieldName;
 
   public TableSpec() {
   }
@@ -257,5 +258,13 @@ public class TableSpec {
 
   public void setTimestampThresholdZoneOffset(Integer timestampThresholdZoneOffset) {
     this.timestampThresholdZoneOffset = timestampThresholdZoneOffset;
+  }
+
+  public String getRangeFieldName() {
+    return rangeFieldName;
+  }
+
+  public void setRangeFieldName(String rangeFieldName) {
+    this.rangeFieldName = rangeFieldName;
   }
 } // class TableSpec

@@ -26,6 +26,7 @@ import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
 import org.apache.beam.sdk.coders.DefaultCoder;
@@ -46,6 +47,19 @@ public class HashResult {
   public Long timestampThresholdValue = 0L;
 
   public HashResult() {
+  }
+
+  @Override
+  public String toString() {
+    return "HashResult{" +
+        "isSource=" + isSource +
+        ", origValue='" + origValue + '\'' +
+        ", sha256='" + sha256 + '\'' +
+        ", key='" + key + '\'' +
+        ", range='" + range + '\'' +
+        ", rangeFieldType='" + rangeFieldType + '\'' +
+        ", timestampThresholdValue=" + timestampThresholdValue +
+        '}';
   }
 
   public HashResult(String keyIn,
@@ -152,7 +166,7 @@ public class HashResult {
     retVal.origValue = sbConcatCols.toString();
     retVal.sha256 = Helpers.sha256(retVal.origValue);
     retVal.isSource = false;
-
+    LOG.debug("SpannerHash=> Key={}, OrigValue={} \n HashResult={}", retVal.key, retVal.origValue, retVal.sha256);
     return retVal;
   }
 
@@ -308,6 +322,102 @@ public class HashResult {
     retVal.sha256 = Helpers.sha256(retVal.origValue);
     retVal.isSource = true;
 
+    return retVal;
+  }
+
+  public static HashResult fromSourceRecord(SourceRecord sourceRecord,
+      Integer keyIndex,
+      String rangeFieldType,
+      Boolean adjustTimestampPrecision,
+      Integer timestampThresholdIndex) throws RuntimeException {
+
+    HashResult retVal = new HashResult();
+    StringBuilder sbConcatCols = new StringBuilder();
+    for (int i = 0; i < sourceRecord.length(); i++) {
+      Object colValue = sourceRecord.getField(i).getFieldValue();
+      if (colValue == null) {
+        continue;
+      }
+      String type = sourceRecord.getField(i).getFieldDataType();
+      switch (type) {
+        case "VARCHAR":
+        case "CHAR":
+        case "TEXT":
+        case "UUID":
+        case "BIT":
+        case "BOOLEAN":
+        case "INT":
+        case "INTEGER":
+        case "FLOAT":
+        case "DOUBLE":
+        case "BIGINT":
+          sbConcatCols.append(colValue);
+          break;
+        case "JSONB":
+        case "OTHER":
+          sbConcatCols.append(getNormalizedJsonString(colValue.toString()));
+          break;
+        case "LONGVARBINARY":
+        case "VARBINARY":
+          sbConcatCols.append(Base64.encodeBase64String((byte[]) colValue));
+          break;
+        case "NUMERIC":
+        case "DECIMAL":
+          sbConcatCols.append(new BigDecimal(colValue.toString()).stripTrailingZeros().toPlainString());
+          break;
+        case "DATE":
+          LocalDate localDate = ((java.sql.Date) colValue).toLocalDate();
+          sbConcatCols.append(
+              String.format("%d%d%d",
+                  localDate.getYear(),
+                  localDate.getMonth().getValue(),
+                  localDate.getDayOfMonth())
+          );
+        case "TIMESTAMP":
+          Timestamp timeStampVal = (Timestamp) colValue;
+          Long rawTimestamp = timeStampVal.getTime();
+          if (adjustTimestampPrecision) {
+            rawTimestamp = rawTimestamp / 1000;
+          }
+          sbConcatCols.append(rawTimestamp);
+          if(timestampThresholdIndex >= 0) {
+            if(i == timestampThresholdIndex) {
+              retVal.timestampThresholdValue = rawTimestamp;
+            }
+            if (adjustTimestampPrecision) {
+              retVal.timestampThresholdValue = retVal.timestampThresholdValue * 1000;
+            }
+          }
+          break;
+        case "ARRAY":
+          String[] vals = (String[]) colValue;
+          for (String val : vals) {
+            sbConcatCols.append(val);
+          }
+          break;
+        default:
+          LOG.error("Unsupported type: {}", type);
+          throw new RuntimeException(String.format("Unsupported type: %s", type));
+      }
+    }
+
+    switch(rangeFieldType) {
+      case TableSpec.UUID_FIELD_TYPE:
+      case TableSpec.STRING_FIELD_TYPE:
+      case TableSpec.TIMESTAMP_FIELD_TYPE:
+      case TableSpec.INT_FIELD_TYPE:
+      case TableSpec.LONG_FIELD_TYPE:
+        retVal.key = sourceRecord.getField(keyIndex).getFieldValue().toString();
+        break;
+      default:
+        throw new RuntimeException(String.format("Unexpected range field type %s", rangeFieldType));
+    }
+
+    retVal.rangeFieldType = rangeFieldType;
+    retVal.origValue = sbConcatCols.toString();
+    retVal.sha256 = Helpers.sha256(retVal.origValue);
+    retVal.isSource = true;
+    LOG.debug("SourceHash=> Key={}, OrigValue={} \n HashResult={}", retVal.key, retVal.origValue, retVal.sha256);
     return retVal;
   }
 

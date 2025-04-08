@@ -322,9 +322,10 @@ public class TableSpecList {
         continue;
       }
       tableSpec.setRangeEnd(partitionKey.getPartitionKeyMaxValue());
-      tableSpec.setDestQuery(spannerTable.getSpannerQuery(partitionKey.getPartitionKeyColId(), sourceTable.getColIds()));
+      tableSpec.setDestQuery(spannerTable.getSpannerQuery(partitionKey.getPartitionKeyColId(), sourceTable.getColIds(), options.getTransformationCustomParameters() != null));
       tableSpec.setSourceQuery(sourceTable.getSourceQuery(partitionKey.getPartitionKeyColId(), spannerTable.getColIds()));
       tableSpec.setRangeFieldType(partitionKey.getPartitionKeyColDataType());
+      tableSpec.setRangeFieldName(sourceTable.getColDefs().get(partitionKey.getPartitionKeyColId()).getName());
       tableSpecList.add(tableSpec);
     }
     return tableSpecList;

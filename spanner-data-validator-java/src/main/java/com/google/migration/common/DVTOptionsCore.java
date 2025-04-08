@@ -45,7 +45,6 @@ public interface DVTOptionsCore extends PipelineOptions {
    * The source DB.
    */
   @Description("Source DB")
-  @Required
   String getSourceDB();
 
   void setSourceDB(String value);
@@ -63,7 +62,6 @@ public interface DVTOptionsCore extends PipelineOptions {
    * Username.
    */
   @Description("Username")
-  @Required
   String getUsername();
 
   void setUsername(String value);
@@ -249,4 +247,28 @@ public interface DVTOptionsCore extends PipelineOptions {
   Boolean getGenerateTableSpec();
 
   void setGenerateTableSpec(Boolean value);
+
+  @Description("Custom jar location in Cloud Storage")
+  @Default.String("")
+  String getTransformationJarPath();
+
+  void setTransformationJarPath(String value);
+
+  @Description("Fully qualified class name having the custom transformation logic.  It is a mandatory field in case transformationJarPath is specified")
+  @Default.String("")
+  String getTransformationClassName();
+
+  void setTransformationClassName(String value);
+
+  @Description("String containing any custom parameters to be passed to the custom transformation class.")
+  @Default.String("")
+  String getTransformationCustomParameters();
+
+  void setTransformationCustomParameters(String value);
+
+  @Description("URL to connect to the source database host. It is the GCS location to the shard configuration.")
+  @Default.String("")
+  String getSourceConfigURL();
+
+  void setSourceConfigURL(String value);
 } // class
