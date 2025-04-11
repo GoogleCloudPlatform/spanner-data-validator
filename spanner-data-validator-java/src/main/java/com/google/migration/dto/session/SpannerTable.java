@@ -82,11 +82,11 @@ public class SpannerTable implements Serializable {
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
     //add the partition key first
-    sb.append(colDefs.get(partitionKeyColId).getName()).append(",");
+    sb.append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName())).append(",");
     //add the rest of the cols
     for (String colId : commonColIds) {
       if (!colId.equals(partitionKeyColId)) {
-        sb.append(colDefs.get(colId).getName()).append(",");
+        sb.append(prependTableNameToColumn(name, colDefs.get(colId).getName())).append(",");
       }
     }
     //add the custom transformation columns if custom transformations is enabled
@@ -94,19 +94,23 @@ public class SpannerTable implements Serializable {
     //by default. There is no other way to determine which columns are under custom transformation
     //from the session file. Custom transformations are always added alphabetically sorted
     //to the end of the query.
-    String []customTransformColIds = Arrays.stream(colIds).filter(x -> !Arrays.asList(sourceColIds).contains(x)).toArray(String[]::new);
-    Arrays.sort(customTransformColIds);
     if (isCustomTransformation) {
+      String []customTransformColIds = Arrays.stream(colIds).filter(x -> !Arrays.asList(sourceColIds).contains(x)).toArray(String[]::new);
+      Arrays.sort(customTransformColIds);
       for (String colId : customTransformColIds) {
-        sb.append(colDefs.get(colId).getName()).append(",");
+        sb.append(prependTableNameToColumn(name, colDefs.get(colId).getName())).append(",");
       }
     }
     sb.deleteCharAt(sb.length() - 1);
     sb.append(" FROM ").append(name);
-    sb.append(" WHERE ").append(colDefs.get(partitionKeyColId).getName())
-        .append(" >= @p1 AND ").append(colDefs.get(partitionKeyColId).getName())
+    sb.append(" WHERE ").append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName()))
+        .append(" >= @p1 AND ").append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName()))
         .append(" <= @p2");
     return sb.toString();
+  }
+
+  private String prependTableNameToColumn(String tableName, String columnName) {
+    return tableName + "." + columnName;
   }
 
   public String toString() {

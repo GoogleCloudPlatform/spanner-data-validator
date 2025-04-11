@@ -52,9 +52,27 @@ And thanks to partitioning, this query will be run in parallel across Dataflow w
    - Read from JDBC (MySQL or Postgresql)
    - If using Secret Manager to supply password, the dataflow worker service account should have `roles/secretManager.secretAccessor` and `roles/secretManager.secretViewer`
 
+## Cloning the tool
+
+`spanner-data-validator` uses [git-lfs](https://git-lfs.com/) to store a JAR
+that is required to run custom transformations. Users will need to set up and 
+use `git-lfs` to download the JAR file while cloning this repository. Follow
+the instructions below - 
+
+1. Clone the repository.
+2. Install `git-lfs` using instructions [here](https://docs.github.com/en/articles/installing-git-large-file-storage).  
+3. From the `spanner-data-validator` git repository, run `git lfs pull`.
 ## Building the tool
 
 NOTE: Ensure that you're in the `spanner-data-validator-java/` folder before running the following command
+
+```json
+mvn validate
+```
+
+NOTE: `mvn validate` installs required dependencies to your maven cache for the
+build process to work, so don't forget to run this command!. It only needs
+to be run **once** to setup the maven cache successfully. 
 
 ```
 mvn clean package -Pdirect-and-dataflow -DskipTests

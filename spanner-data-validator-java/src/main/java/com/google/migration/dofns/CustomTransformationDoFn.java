@@ -5,7 +5,6 @@ import com.google.cloud.teleport.v2.spanner.exceptions.InvalidTransformationExce
 import com.google.cloud.teleport.v2.spanner.utils.ISpannerMigrationTransformer;
 import com.google.cloud.teleport.v2.spanner.utils.MigrationTransformationRequest;
 import com.google.cloud.teleport.v2.spanner.utils.MigrationTransformationResponse;
-import com.google.gson.Gson;
 import com.google.migration.dto.HashResult;
 import com.google.migration.dto.SourceRecord;
 import com.google.migration.dto.session.Schema;
@@ -90,24 +89,26 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
 
   @ProcessElement
   public void processElement(ProcessContext c) {
-    Gson gson = new Gson();
     SourceRecord sourceRecord = c.element();
-    Map<String, Object> sourceRecordMap = getSourceRecordMap(sourceRecord);
     try {
-      MigrationTransformationResponse migrationTransformationResponse = getCustomTransformationResponse(
-          sourceRecordMap, tableName(), shardId());
-      if (migrationTransformationResponse.isEventFiltered()) {
-        LOG.info("Row was filtered by custom transformer");
-        c.output(new HashResult());
-      }
-      Map<String, Object> transformedCols = migrationTransformationResponse.getResponseRow();
-      //Add the new columns from custom transformation to the end of the existing sourceRow
-      //Sort the transformedCols map by the field name and add it to the existing sourceRecord
-      //custom transformations columns are thus always appended alphabetically to the end of the
-      //source record.
-      Map<String, Object> sortedTransformedCols = new TreeMap<>(transformedCols);
-      for (String transformedColName: sortedTransformedCols.keySet()) {
-        sourceRecord.addField(transformedColName, getDataTypeFromSchema(transformedColName) ,sortedTransformedCols.get(transformedColName));
+      //if customTransformer is not null, then do the custom transformation.
+      if (customTransformer != null) {
+        Map<String, Object> sourceRecordMap = getSourceRecordMap(sourceRecord);
+        MigrationTransformationResponse migrationTransformationResponse = getCustomTransformationResponse(
+            sourceRecordMap, tableName(), shardId());
+        if (migrationTransformationResponse.isEventFiltered()) {
+          LOG.info("Row was filtered by custom transformer");
+          c.output(new HashResult());
+        }
+        Map<String, Object> transformedCols = migrationTransformationResponse.getResponseRow();
+        //Add the new columns from custom transformation to the end of the existing sourceRow
+        //Sort the transformedCols map by the field name and add it to the existing sourceRecord
+        //custom transformations columns are thus always appended alphabetically to the end of the
+        //source record.
+        Map<String, Object> sortedTransformedCols = new TreeMap<>(transformedCols);
+        for (String transformedColName: sortedTransformedCols.keySet()) {
+          sourceRecord.addField(transformedColName, getDataTypeFromSchema(transformedColName) ,sortedTransformedCols.get(transformedColName));
+        }
       }
       HashResult hashResult = HashResult.fromSourceRecord(sourceRecord,
           keyIndex(),

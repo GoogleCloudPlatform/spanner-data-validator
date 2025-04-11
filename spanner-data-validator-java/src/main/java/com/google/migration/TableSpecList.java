@@ -315,14 +315,14 @@ public class TableSpecList {
       tableSpec.setPartitionCount(options.getPartitionCount());
       tableSpec.setPartitionFilterRatio(options.getPartitionFilterRatio());
       tableSpec.setRangeFieldIndex(0);
-      tableSpec.setRangeStart("0");
       tableSpec.setRangeCoverage(BigDecimal.valueOf(1));
       PartitionKey partitionKey = determinePartitionKey(sourceTable, spannerTable);
       if (partitionKey == null) {
         continue;
       }
+      tableSpec.setRangeStart(partitionKey.getPartitionKeyMinValue());
       tableSpec.setRangeEnd(partitionKey.getPartitionKeyMaxValue());
-      tableSpec.setDestQuery(spannerTable.getSpannerQuery(partitionKey.getPartitionKeyColId(), sourceTable.getColIds(), options.getTransformationCustomParameters() != null));
+      tableSpec.setDestQuery(spannerTable.getSpannerQuery(partitionKey.getPartitionKeyColId(), sourceTable.getColIds(), !Helpers.isNullOrEmpty(options.getTransformationJarPath()) && !Helpers.isNullOrEmpty(options.getTransformationClassName())));
       tableSpec.setSourceQuery(sourceTable.getSourceQuery(partitionKey.getPartitionKeyColId(), spannerTable.getColIds()));
       tableSpec.setRangeFieldType(partitionKey.getPartitionKeyColDataType());
       tableSpec.setRangeFieldName(sourceTable.getColDefs().get(partitionKey.getPartitionKeyColId()).getName());
@@ -413,9 +413,9 @@ public class TableSpecList {
   private static PartitionKey createPartitionKey(String colId, String colDataType) {
     switch (colDataType.toUpperCase()) {
       case "INT":
-        return new PartitionKey(colId, "INTEGER", String.valueOf(Integer.MAX_VALUE));
+        return new PartitionKey(colId, "INTEGER", String.valueOf(Integer.MIN_VALUE), String.valueOf(Integer.MAX_VALUE));
       case "BIGINT":
-        return new PartitionKey(colId, "LONG", String.valueOf(Long.MAX_VALUE));
+        return new PartitionKey(colId, "LONG", String.valueOf(Long.MIN_VALUE), String.valueOf(Long.MAX_VALUE));
     }
     return null;
   }

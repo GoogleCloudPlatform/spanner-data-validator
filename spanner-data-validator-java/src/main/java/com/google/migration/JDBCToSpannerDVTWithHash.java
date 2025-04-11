@@ -698,17 +698,23 @@ public class JDBCToSpannerDVTWithHash {
         .setCustomParameters(options.getTransformationCustomParameters())
         .build();
 
+    if (!Helpers.isNullOrEmpty(options.getTransformationJarPath()) && !Helpers.isNullOrEmpty(options.getTransformationClassName()) && Helpers.isNullOrEmpty(options.getSessionFileJson())) {
+      throw new RuntimeException("Custom transformations is only supported with session file integration. Please specify the session file and re-run the pipeline");
+    }
+
     List<TableSpec> tableSpecs = getTableSpecs();
     String tableSpecJson = options.getTableSpecJson();
     String sessionFileJson = options.getSessionFileJson();
+    Schema schema = null;
     if (!Helpers.isNullOrEmpty(tableSpecJson) && !Helpers.isNullOrEmpty(sessionFileJson)) {
       throw new RuntimeException("Both session file and tableSpec cannot be specified together! Please specify either one!!");
     }
     if(!Helpers.isNullOrEmpty(tableSpecJson)) {
       tableSpecs = TableSpecList.getFromJsonFile(options.getProjectId(), tableSpecJson);
     }
-    if (!Helpers.isNullOrEmpty(sessionFileJson)) {
+    else if (!Helpers.isNullOrEmpty(sessionFileJson)) {
       tableSpecs = TableSpecList.getFromSessionFile(options);
+      schema = SessionFileReader.read(options.getSessionFileJson());
     }
 
     for(TableSpec tableSpec: tableSpecs) {
@@ -735,8 +741,6 @@ public class JDBCToSpannerDVTWithHash {
         LOG.info(String.format("*******NOT enabling writing of conflicting records! %s",
             conflictingRecordsBQTableName));
       }
-
-      Schema schema = SessionFileReader.read(options.getSessionFileJson());
 
       configureComparisonPipeline(p,
           options,
