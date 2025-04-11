@@ -5,7 +5,6 @@ import com.google.cloud.teleport.v2.spanner.exceptions.InvalidTransformationExce
 import com.google.cloud.teleport.v2.spanner.utils.ISpannerMigrationTransformer;
 import com.google.cloud.teleport.v2.spanner.utils.MigrationTransformationRequest;
 import com.google.cloud.teleport.v2.spanner.utils.MigrationTransformationResponse;
-import com.google.gson.Gson;
 import com.google.migration.dto.HashResult;
 import com.google.migration.dto.SourceRecord;
 import com.google.migration.dto.session.Schema;
@@ -90,7 +89,6 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
 
   @ProcessElement
   public void processElement(ProcessContext c) {
-    Gson gson = new Gson();
     SourceRecord sourceRecord = c.element();
     Map<String, Object> sourceRecordMap = getSourceRecordMap(sourceRecord);
     try {
