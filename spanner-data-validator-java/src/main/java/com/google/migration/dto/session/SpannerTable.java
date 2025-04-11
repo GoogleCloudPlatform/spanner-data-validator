@@ -94,9 +94,9 @@ public class SpannerTable implements Serializable {
     //by default. There is no other way to determine which columns are under custom transformation
     //from the session file. Custom transformations are always added alphabetically sorted
     //to the end of the query.
-    String []customTransformColIds = Arrays.stream(colIds).filter(x -> !Arrays.asList(sourceColIds).contains(x)).toArray(String[]::new);
-    Arrays.sort(customTransformColIds);
     if (isCustomTransformation) {
+      String []customTransformColIds = Arrays.stream(colIds).filter(x -> !Arrays.asList(sourceColIds).contains(x)).toArray(String[]::new);
+      Arrays.sort(customTransformColIds);
       for (String colId : customTransformColIds) {
         sb.append(colDefs.get(colId).getName()).append(",");
       }
