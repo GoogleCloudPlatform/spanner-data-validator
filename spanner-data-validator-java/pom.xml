@@ -75,7 +75,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-install-plugin</artifactId>
-        <version>3.1.2</version>
+        <version>3.1.4</version>
         <configuration>
           <groupId>com.google.cloud.teleport.v2</groupId>
           <artifactId>spanner-migrations-sdk</artifactId>
