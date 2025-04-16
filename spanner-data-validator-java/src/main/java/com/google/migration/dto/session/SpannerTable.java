@@ -90,15 +90,20 @@ public class SpannerTable implements Serializable {
       }
     }
     //add the custom transformation columns if custom transformations is enabled
-    //all non-common columns in spannerTable are assumed to be under custom transformation
+    //There are two cases: an existing column is under transformation or a new one is added.
+    //If an existing column is under transformation, the dst query does not get modified.
+    //If a new column is added, the dst query gets modified. Below is how -
+    // All non-common columns in spannerTable are assumed to be under custom transformation
     //by default. There is no other way to determine which columns are under custom transformation
     //from the session file. Custom transformations are always added alphabetically sorted
     //to the end of the query.
     if (isCustomTransformation) {
       String []customTransformColIds = Arrays.stream(colIds).filter(x -> !Arrays.asList(sourceColIds).contains(x)).toArray(String[]::new);
-      Arrays.sort(customTransformColIds);
-      for (String colId : customTransformColIds) {
-        sb.append(prependTableNameToColumn(name, colDefs.get(colId).getName())).append(",");
+      if (customTransformColIds.length > 0) {
+        Arrays.sort(customTransformColIds);
+        for (String colId : customTransformColIds) {
+          sb.append(prependTableNameToColumn(name, colDefs.get(colId).getName())).append(",");
+        }
       }
     }
     sb.deleteCharAt(sb.length() - 1);

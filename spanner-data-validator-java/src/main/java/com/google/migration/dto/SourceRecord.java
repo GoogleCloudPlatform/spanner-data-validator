@@ -27,6 +27,10 @@ public class SourceRecord implements Serializable {
     return sourceFields.get(index);
   }
 
+  public void setField(int index, String fieldName, String fieldDataType, Object fieldValue) {
+    this.sourceFields.set(index, new SourceField(fieldName, fieldDataType, fieldValue));
+  }
+
   public int length() {
     return sourceFields.size();
   }

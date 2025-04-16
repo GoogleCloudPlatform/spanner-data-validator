@@ -59,6 +59,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
@@ -667,11 +668,39 @@ public class JDBCToSpannerDVTWithHash {
     return bRanges;
   }
 
-  private static void generateTableSpecFromSessionFile(DVTOptionsCore options) {
-    List<TableSpec> tableSpecList = TableSpecList.getFromSessionFile(options);
-    String jsonFileName = String.format("tableSpec-%s.json", System.currentTimeMillis());
-    TableSpecList.toJsonFile(tableSpecList, jsonFileName);
-    LOG.info("TableSpec has been written to {} file", jsonFileName);
+  private static List<TableSpec> generateTableSpec(DVTOptionsCore options) {
+    String tableSpecJson = options.getTableSpecJson();
+    String sessionFileJson = options.getSessionFileJson();
+    List<TableSpec> tableSpecListFromTableSpecJson = null;
+    List<TableSpec> tableSpecListFromSessionFileJson = null;
+    if (!Helpers.isNullOrEmpty(sessionFileJson)) {
+      tableSpecListFromSessionFileJson = TableSpecList.getFromSessionFile(options);
+    }
+    if(!Helpers.isNullOrEmpty(tableSpecJson)) {
+      tableSpecListFromTableSpecJson = TableSpecList.getFromJsonFile(options.getProjectId(), tableSpecJson);
+    }
+    List<TableSpec> tableSpecs = new ArrayList<>();
+    if (tableSpecListFromSessionFileJson != null && tableSpecListFromTableSpecJson != null) {
+      LOG.warn("Session file and tableSpec have both been specified! TableSpec will take "
+          + "precedence over session file for the tables for which it is defined!!");
+      List<String> tableNamesFromTableSpecJson = tableSpecListFromTableSpecJson.stream()
+          .map(TableSpec::getTableName)
+          .collect(Collectors.toList());
+
+      List<TableSpec> filteredTableSpecs = tableSpecListFromSessionFileJson.stream()
+          .filter(tableSpec -> !tableNamesFromTableSpecJson.contains(tableSpec.getTableName()))
+          .collect(Collectors.toList());
+
+      tableSpecs.addAll(filteredTableSpecs);
+      tableSpecs.addAll(tableSpecListFromTableSpecJson);
+    } else if (!Helpers.isNullOrEmpty(tableSpecJson)) {
+      tableSpecs = tableSpecListFromTableSpecJson;
+    } else if (!Helpers.isNullOrEmpty(sessionFileJson)) {
+      tableSpecs = tableSpecListFromSessionFileJson;
+    } else {
+      tableSpecs = getTableSpecs();
+    }
+    return tableSpecs;
   }
 
   public static void runDVT(DVTOptionsCore options) throws IOException {
@@ -680,7 +709,10 @@ public class JDBCToSpannerDVTWithHash {
       if (Helpers.isNullOrEmpty(sessionFileJson)) {
         throw new RuntimeException("Session file needs to be provided to generate the tableSpec from it!");
       }
-      generateTableSpecFromSessionFile(options);
+      List<TableSpec> tableSpecs = generateTableSpec(options);
+      String jsonFileName = String.format("tableSpec-%s.json", System.currentTimeMillis());
+      TableSpecList.toJsonFile(tableSpecs, jsonFileName);
+      LOG.info("TableSpec has been written to {} file", jsonFileName);
       return;
     }
 
@@ -702,20 +734,12 @@ public class JDBCToSpannerDVTWithHash {
       throw new RuntimeException("Custom transformations is only supported with session file integration. Please specify the session file and re-run the pipeline");
     }
 
-    List<TableSpec> tableSpecs = getTableSpecs();
-    String tableSpecJson = options.getTableSpecJson();
-    String sessionFileJson = options.getSessionFileJson();
     Schema schema = null;
-    if (!Helpers.isNullOrEmpty(tableSpecJson) && !Helpers.isNullOrEmpty(sessionFileJson)) {
-      throw new RuntimeException("Both session file and tableSpec cannot be specified together! Please specify either one!!");
-    }
-    if(!Helpers.isNullOrEmpty(tableSpecJson)) {
-      tableSpecs = TableSpecList.getFromJsonFile(options.getProjectId(), tableSpecJson);
-    }
-    else if (!Helpers.isNullOrEmpty(sessionFileJson)) {
-      tableSpecs = TableSpecList.getFromSessionFile(options);
+    if (!Helpers.isNullOrEmpty(options.getSessionFileJson())) {
       schema = SessionFileReader.read(options.getSessionFileJson());
     }
+
+    List<TableSpec> tableSpecs = generateTableSpec(options);
 
     for(TableSpec tableSpec: tableSpecs) {
       BigQueryIO.Write<ComparerResult> comparerResultWrite =
