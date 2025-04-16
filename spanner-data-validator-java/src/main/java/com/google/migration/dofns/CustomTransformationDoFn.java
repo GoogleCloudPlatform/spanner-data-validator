@@ -101,13 +101,22 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
           c.output(new HashResult());
         }
         Map<String, Object> transformedCols = migrationTransformationResponse.getResponseRow();
-        //Add the new columns from custom transformation to the end of the existing sourceRow
+        //There are two possible cases: The column under transformation is an existing one
+        //or a new one.
+        //If it is an existing one, the sourceRecord needs to be updated in place at the
+        //positional value of that column.
+        //If it's a new column, add the new columns from custom transformation to the end of the existing sourceRow
         //Sort the transformedCols map by the field name and add it to the existing sourceRecord
-        //custom transformations columns are thus always appended alphabetically to the end of the
-        //source record.
         Map<String, Object> sortedTransformedCols = new TreeMap<>(transformedCols);
         for (String transformedColName: sortedTransformedCols.keySet()) {
-          sourceRecord.addField(transformedColName, getDataTypeFromSchema(transformedColName) ,sortedTransformedCols.get(transformedColName));
+          boolean fieldExists = false;
+          for (int i = 0; i < sourceRecord.length(); i++) {
+            if (sourceRecord.getField(i).getFieldName().equals(transformedColName)) {
+              sourceRecord.setField(i, transformedColName, getDataTypeFromSchema(transformedColName), sortedTransformedCols.get(transformedColName));
+              fieldExists = true;
+            }
+          }
+          if (!fieldExists) sourceRecord.addField(transformedColName, getDataTypeFromSchema(transformedColName) ,sortedTransformedCols.get(transformedColName));
         }
       }
       HashResult hashResult = HashResult.fromSourceRecord(sourceRecord,
