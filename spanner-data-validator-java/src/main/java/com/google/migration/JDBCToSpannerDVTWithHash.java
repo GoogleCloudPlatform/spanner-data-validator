@@ -681,7 +681,7 @@ public class JDBCToSpannerDVTWithHash {
     }
     List<TableSpec> tableSpecs = new ArrayList<>();
     if (tableSpecListFromSessionFileJson != null && tableSpecListFromTableSpecJson != null) {
-      LOG.warn("WARNING: Session file and tableSpec have both been specified! TableSpec will take "
+      LOG.warn("Session file and tableSpec have both been specified! TableSpec will take "
           + "precedence over session file for the tables for which it is defined!!");
       List<String> tableNamesFromTableSpecJson = tableSpecListFromTableSpecJson.stream()
           .map(TableSpec::getTableName)
