@@ -18,6 +18,7 @@ package com.google.migration.partitioning;
 
 import com.google.migration.dto.PartitionRange;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -49,8 +50,8 @@ public class LongPartitionRangeListFetcher implements PartitionRangeListFetcher 
 
     Long start = Long.parseLong(startStr);
     Long end = Long.parseLong(endStr);
-    Long fullRange = end - start;
-    Long stepSize = fullRange/partitionCount;
+    BigInteger fullRange = BigInteger.valueOf(end).subtract(BigInteger.valueOf(start));
+    Long stepSize = fullRange.divide(BigInteger.valueOf(partitionCount)).longValue();
     Long constrainedStepSize = stepSize;
 
     if(coveragePercent.compareTo(BigDecimal.ONE) > 0) {

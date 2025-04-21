@@ -79,6 +79,45 @@ public class PartitionRangeTest {
   }
 
   @Test
+  public void longMinMaxPartitionRangeTest() {
+    String fieldType = TableSpec.LONG_FIELD_TYPE;
+
+    // fetch w/ partition filter ratio
+    PartitionRangeListFetcher fetcher =
+        PartitionRangeListFetcherFactory.getFetcher(fieldType);
+
+    Integer partitionCount = 10;
+
+    String minVal = String.valueOf(Long.MIN_VALUE);
+    String maxVal = String.valueOf(Long.MAX_VALUE);
+
+    // fetch w/ partition 50% coverage
+    List<PartitionRange> pRanges50 = fetcher.getPartitionRangesWithCoverage(minVal,
+        maxVal,
+        partitionCount,
+        BigDecimal.valueOf(0.5));
+
+    assertEquals(pRanges50.size(), (long)partitionCount);
+    assertEquals(minVal, pRanges50.get(0).getStartRange());
+    assertNotEquals(maxVal, pRanges50.get(partitionCount-1).getEndRange());
+
+    Helpers.printPartitionRanges(pRanges50, "TestTableLongMinMaxFull50");
+
+    // full coverage
+    List<PartitionRange> pRanges = fetcher.getPartitionRangesWithCoverage(minVal,
+        maxVal,
+        partitionCount,
+        BigDecimal.valueOf(1));
+
+    assertEquals(pRanges.size(), (long)partitionCount);
+    assertEquals(minVal, pRanges.get(0).getStartRange());
+    assertNotEquals(maxVal, pRanges.get(0).getEndRange());
+    assertEquals(maxVal, pRanges.get(partitionCount-1).getEndRange());
+
+    Helpers.printPartitionRanges(pRanges, "TestTableLongMinMaxFull");
+  }
+
+  @Test
   public void longSinglePartitionRangeTest() {
     String fieldType = TableSpec.LONG_FIELD_TYPE;
 
