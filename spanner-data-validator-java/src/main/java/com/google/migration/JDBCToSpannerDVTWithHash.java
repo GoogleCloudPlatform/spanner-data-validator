@@ -77,6 +77,7 @@ import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.Flatten;
 import org.apache.beam.sdk.transforms.MapElements;
 import org.apache.beam.sdk.transforms.ParDo;
+import org.apache.beam.sdk.transforms.Reshuffle;
 import org.apache.beam.sdk.transforms.SerializableFunction;
 import org.apache.beam.sdk.transforms.View;
 import org.apache.beam.sdk.transforms.join.CoGbkResult;
@@ -471,7 +472,8 @@ public class JDBCToSpannerDVTWithHash {
 
     //Return the ResultSet back for custom transformations instead of computing HashResult here.
     PCollection<SourceRecord> jdbcRecords =
-        pRanges.apply(String.format("ReadInParallelForTable-%s", tableName),
+        pRanges.apply(String.format("ReshuffleJDBCForTable-%s", tableName), Reshuffle.viaRandomKey())
+            .apply(String.format("ReadInParallelForTable-%s", tableName),
             JdbcIO.<PartitionRange, SourceRecord>readAll()
                 .withDataSourceConfiguration(DataSourceConfiguration.create(
                         driver, connString)
@@ -526,7 +528,8 @@ public class JDBCToSpannerDVTWithHash {
 
       LOG.info(String.format("++++++++++++++++++++++++++++++++JDBC conn string: %s", connString));
       PCollection<SourceRecord> jdbcRecords =
-          pRanges.apply(String.format("ReadInParallelWithShardsForTable-%s", tableName),
+          pRanges.apply(String.format("ReshuffleShardedJDBCForTable-%s", tableName), Reshuffle.viaRandomKey())
+              .apply(String.format("ReadInParallelWithShardsForTable-%s", tableName),
               JdbcIO.<PartitionRange, SourceRecord>readAll()
                   .withDataSourceConfiguration(DataSourceConfiguration.create(
                           driver, connString)
@@ -566,8 +569,12 @@ public class JDBCToSpannerDVTWithHash {
 
     String readOpsStepName = String.format("ConvertToSpannerIOReadOperationsForTable-%s",
         tableName);
+    String reshuffleOpsStepName = String.format("ReshuffleSpannerForTable-%s",
+        tableName);
     // https://cloud.google.com/spanner/docs/samples/spanner-dataflow-readall
-    PCollection<ReadOperation> readOps = pRanges.apply(readOpsStepName,
+    PCollection<ReadOperation> readOps = pRanges
+        .apply(reshuffleOpsStepName, Reshuffle.viaRandomKey())
+        .apply(readOpsStepName,
         MapElements.into(TypeDescriptor.of(ReadOperation.class))
         .via(
             (SerializableFunction<PartitionRange, ReadOperation>)
