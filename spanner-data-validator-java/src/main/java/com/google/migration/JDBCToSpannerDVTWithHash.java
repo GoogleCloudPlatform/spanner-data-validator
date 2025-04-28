@@ -38,6 +38,7 @@ import com.google.api.services.bigquery.model.TableSchema;
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.Struct;
 import com.google.migration.common.DVTOptionsCore;
+import com.google.migration.common.JDBCRowMapper;
 import com.google.migration.common.SecretManagerAccessorImpl;
 import com.google.migration.common.ShardFileReader;
 import com.google.migration.dofns.CountMatchesDoFn;
@@ -91,6 +92,7 @@ import org.apache.beam.sdk.values.PCollectionView;
 import org.apache.beam.sdk.values.TupleTag;
 import org.apache.beam.sdk.values.TupleTagList;
 import org.apache.beam.sdk.values.TypeDescriptor;
+import org.jetbrains.annotations.NotNull;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -233,6 +235,7 @@ public class JDBCToSpannerDVTWithHash {
   }
 
   protected static void configureComparisonPipeline(Pipeline p,
+      PipelineTracker pipelineTracker,
       DVTOptionsCore options,
       TableSpec tableSpec,
       BigQueryIO.Write<ComparerResult> comparerResultWrite,
@@ -270,12 +273,15 @@ public class JDBCToSpannerDVTWithHash {
 
     PCollection<HashResult> spannerRecords =
         getSpannerRecords(tableName,
+            pipelineTracker,
             tableSpec.getDestQuery(),
             tableSpec.getRangeFieldIndex(),
             tableSpec.getRangeFieldType(),
             options,
             pRanges,
             tableSpec.getTimestampThresholdColIndex());
+
+    pipelineTracker.addToSpannerReadList(spannerRecords);
 
     // Map Range [start, end) + hash => HashResult (spanner)
     String mapWithRangesForSpannerStep =
@@ -286,11 +292,14 @@ public class JDBCToSpannerDVTWithHash {
                 tableSpec.getRangeFieldType()))
             .withSideInputs(partitionRangesView));
 
+    pRanges = (PCollection<PartitionRange>) pipelineTracker.applyJDBCWait(pRanges);
+
     PCollection<HashResult> jdbcRecords;
 
     if(Helpers.isNullOrEmpty(shardConfigurationFileUrl)) {
       jdbcRecords =
           getJDBCRecords(tableName,
+              pipelineTracker,
               tableSpec.getSourceQuery(),
               tableSpec.getRangeFieldIndex(),
               tableSpec.getRangeFieldType(),
@@ -302,6 +311,7 @@ public class JDBCToSpannerDVTWithHash {
     } else {
       jdbcRecords =
           getJDBCRecordsWithSharding(tableName,
+              pipelineTracker,
               tableSpec.getSourceQuery(),
               tableSpec.getRangeFieldIndex(),
               tableSpec.getRangeFieldType(),
@@ -312,11 +322,14 @@ public class JDBCToSpannerDVTWithHash {
               schema);
     }
 
+    pipelineTracker.addToJDBCReadList(jdbcRecords);
+
     // Map Range [start, end) + hash => HashResult (JDBC)
     String mapWithRangesForJDBCStep =
         String.format("MapWithRangesJDBCRecordsForTable-%s", tableName);
     PCollection<KV<String, HashResult>> mappedWithHashJdbcRecords =
-        jdbcRecords.apply(mapWithRangesForJDBCStep, ParDo.of(new MapWithRangeFn(partitionRangesView,
+        jdbcRecords
+            .apply(mapWithRangesForJDBCStep, ParDo.of(new MapWithRangeFn(partitionRangesView,
                 MapWithRangeType.RANGE_PLUS_HASH,
                 tableSpec.getRangeFieldType()))
             .withSideInputs(partitionRangesView));
@@ -430,7 +443,8 @@ public class JDBCToSpannerDVTWithHash {
               }
             }));
 
-    reportOutput.apply(String.format("BQWriteForTable-%s", tableName), comparerResultWrite);
+    reportOutput.apply(String.format("BQWriteForTable-%s", tableName),
+        comparerResultWrite);
   }
 
   protected static Long getCountForTag(CoGbkResult result, TupleTag<Long> tag) {
@@ -442,6 +456,7 @@ public class JDBCToSpannerDVTWithHash {
   }
 
   protected static PCollection<HashResult> getJDBCRecords(String tableName,
+      PipelineTracker pipelineTracker,
       String query,
       Integer keyIndex,
       String rangeFieldType,
@@ -471,29 +486,101 @@ public class JDBCToSpannerDVTWithHash {
     String jdbcPass = Helpers.getJDBCPassword(options);
 
     //Return the ResultSet back for custom transformations instead of computing HashResult here.
-    PCollection<SourceRecord> jdbcRecords =
-        pRanges.apply(String.format("ReshuffleJDBCForTable-%s", tableName), Reshuffle.viaRandomKey())
-            .apply(String.format("ReadInParallelForTable-%s", tableName),
-            JdbcIO.<PartitionRange, SourceRecord>readAll()
-                .withDataSourceConfiguration(DataSourceConfiguration.create(
-                        driver, connString)
-                    .withUsername(options.getUsername())
-                    .withPassword(jdbcPass))
-                .withQuery(query)
-                .withParameterSetter((input, preparedStatement) -> {
-                  preparedStatement.setString(1, input.getStartRange());
-                  preparedStatement.setString(2, input.getEndRange());
-                })
-                .withRowMapper(new SourceRecordMapper())
-                .withOutputParallelization(false)
-        );
+    return getJDBCRecordsHelper(tableName,
+        pipelineTracker,
+        query,
+        keyIndex,
+        rangeFieldType,
+        options,
+        pRanges,
+        timestampThresholdKeyIndex,
+        customTransformation,
+        schema,
+        driver,
+        connString,
+        "0",
+        options.getUsername(),
+        jdbcPass);
+  }
 
-    CustomTransformationDoFn customTransformationDoFn = CustomTransformationDoFn.create(customTransformation, tableName, "0", schema, keyIndex, rangeFieldType, options.getAdjustTimestampPrecision(), timestampThresholdKeyIndex);
+  @NotNull
+  private static PCollection<HashResult> getJDBCRecordsHelper(String tableName,
+      PipelineTracker pipelineTracker,
+      String query,
+      Integer keyIndex,
+      String rangeFieldType,
+      DVTOptionsCore options,
+      PCollection<PartitionRange> pRanges,
+      Integer timestampThresholdKeyIndex,
+      CustomTransformation customTransformation,
+      Schema schema,
+      String driver,
+      String connString,
+      String shardId,
+      String username,
+      String jdbcPass) {
 
-    return  jdbcRecords.apply(String.format("CustomTransformationForTable-%s", tableName), ParDo.of(customTransformationDoFn));
+    if(customTransformation != null) {
+      PCollection<SourceRecord> jdbcRecordsSR =
+          pRanges.apply(String.format("ReshuffleJDBCForTable-%s", tableName),
+                  Reshuffle.viaRandomKey())
+              .apply(String.format("ReadInParallelForTable-%s", tableName),
+                  JdbcIO.<PartitionRange, SourceRecord>readAll()
+                      .withDataSourceConfiguration(DataSourceConfiguration.create(
+                              driver, connString)
+                          .withUsername(username)
+                          .withPassword(jdbcPass))
+                      .withQuery(query)
+                      .withParameterSetter((input, preparedStatement) -> {
+                        preparedStatement.setString(1, input.getStartRange());
+                        preparedStatement.setString(2, input.getEndRange());
+                      })
+                      .withRowMapper(new SourceRecordMapper())
+                      .withOutputParallelization(false)
+              );
+
+      CustomTransformationDoFn customTransformationDoFn = CustomTransformationDoFn.create(
+          customTransformation,
+          tableName,
+          shardId,
+          schema,
+          keyIndex,
+          rangeFieldType,
+          options.getAdjustTimestampPrecision(),
+          timestampThresholdKeyIndex);
+
+      return jdbcRecordsSR.apply(String.format("CustomTransformationForTable-%s", tableName),
+          ParDo.of(customTransformationDoFn));
+    } else {
+      PCollection<HashResult> jdbcRecords =
+          pRanges.apply(String.format("ReshuffleJDBCForTable-%s", tableName),
+                  Reshuffle.viaRandomKey())
+              .apply(String.format("ReadInParallelForTable-%s", tableName),
+                  JdbcIO.<PartitionRange, HashResult>readAll()
+                      .withDataSourceConfiguration(DataSourceConfiguration.create(
+                              driver, connString)
+                          .withUsername(options.getUsername())
+                          .withPassword(jdbcPass))
+                      .withQuery(query)
+                      .withParameterSetter((input, preparedStatement) -> {
+                        preparedStatement.setString(1, input.getStartRange());
+                        preparedStatement.setString(2, input.getEndRange());
+                      })
+                      .withRowMapper(new JDBCRowMapper(
+                          keyIndex,
+                          rangeFieldType,
+                          options.getAdjustTimestampPrecision(),
+                          timestampThresholdKeyIndex
+                      ))
+                      .withOutputParallelization(false)
+              );
+
+      return jdbcRecords;
+    } // if/else
   }
 
   protected static PCollection<HashResult> getJDBCRecordsWithSharding(String tableName,
+      PipelineTracker pipelineTracker,
       String query,
       Integer keyIndex,
       String rangeFieldType,
@@ -526,26 +613,22 @@ public class JDBCToSpannerDVTWithHash {
           shard.getDbName(),
           zeroDateTimeNullBehaviorStr);
 
-      LOG.info(String.format("++++++++++++++++++++++++++++++++JDBC conn string: %s", connString));
-      PCollection<SourceRecord> jdbcRecords =
-          pRanges.apply(String.format("ReshuffleShardedJDBCForTable-%s", tableName), Reshuffle.viaRandomKey())
-              .apply(String.format("ReadInParallelWithShardsForTable-%s", tableName),
-              JdbcIO.<PartitionRange, SourceRecord>readAll()
-                  .withDataSourceConfiguration(DataSourceConfiguration.create(
-                          driver, connString)
-                      .withUsername(shard.getUserName())
-                      .withPassword(shard.getPassword()))
-                  .withQuery(query)
-                  .withParameterSetter((input, preparedStatement) -> {
-                    preparedStatement.setString(1, input.getStartRange());
-                    preparedStatement.setString(2, input.getEndRange());
-                  })
-                  .withRowMapper(new SourceRecordMapper())
-                  .withOutputParallelization(false)
-          );
-      CustomTransformationDoFn customTransformationDoFn = CustomTransformationDoFn.create(customTransformation, tableName, shard.getLogicalShardId(), schema, keyIndex, rangeFieldType, options.getAdjustTimestampPrecision(), timestampThresholdIndex);
-
-      PCollection<HashResult> hashedJDBCRecordsPerShard = jdbcRecords.apply(String.format("CustomTransformationWithShardsForTable-%s", tableName), ParDo.of(customTransformationDoFn));
+      PCollection<HashResult> hashedJDBCRecordsPerShard = getJDBCRecordsHelper(
+          tableName,
+          pipelineTracker,
+          query,
+          keyIndex,
+          rangeFieldType,
+          options,
+          pRanges,
+          timestampThresholdIndex,
+          customTransformation,
+          schema,
+          driver,
+          connString,
+          shard.getLogicalShardId(),
+          shard.getUserName(),
+          shard.getPassword());
 
       pCollections.add(hashedJDBCRecordsPerShard);
     } // for
@@ -558,6 +641,7 @@ public class JDBCToSpannerDVTWithHash {
   }
 
   protected static PCollection<HashResult> getSpannerRecords(String tableName,
+      PipelineTracker pipelineTracker,
       String query,
       Integer keyIndex,
       String rangeFieldType,
@@ -571,9 +655,12 @@ public class JDBCToSpannerDVTWithHash {
         tableName);
     String reshuffleOpsStepName = String.format("ReshuffleSpannerForTable-%s",
         tableName);
+
+    pRanges = (PCollection<PartitionRange>) pipelineTracker.applySpannerWait(pRanges);
+    pRanges = pRanges.apply(reshuffleOpsStepName, Reshuffle.viaRandomKey());
+
     // https://cloud.google.com/spanner/docs/samples/spanner-dataflow-readall
     PCollection<ReadOperation> readOps = pRanges
-        .apply(reshuffleOpsStepName, Reshuffle.viaRandomKey())
         .apply(readOpsStepName,
         MapElements.into(TypeDescriptor.of(ReadOperation.class))
         .via(
@@ -733,7 +820,8 @@ public class JDBCToSpannerDVTWithHash {
       options.setRunName(String.format("Run-%s", timestampStr));
     }
 
-    CustomTransformation customTransformation = CustomTransformation.builder(options.getTransformationJarPath(), options.getTransformationClassName())
+    CustomTransformation customTransformation = CustomTransformation
+        .builder(options.getTransformationJarPath(), options.getTransformationClassName())
         .setCustomParameters(options.getTransformationCustomParameters())
         .build();
 
@@ -747,6 +835,9 @@ public class JDBCToSpannerDVTWithHash {
     }
 
     List<TableSpec> tableSpecs = generateTableSpec(options);
+
+    PipelineTracker pipelineTracker = new PipelineTracker();
+    pipelineTracker.setMaxTablesInEffectAtOneTime(options.getMaxTablesInEffectAtOneTime());
 
     for(TableSpec tableSpec: tableSpecs) {
       BigQueryIO.Write<ComparerResult> comparerResultWrite =
@@ -774,6 +865,7 @@ public class JDBCToSpannerDVTWithHash {
       }
 
       configureComparisonPipeline(p,
+          pipelineTracker,
           options,
           tableSpec,
           comparerResultWrite,

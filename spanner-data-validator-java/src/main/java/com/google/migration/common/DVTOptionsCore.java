@@ -271,4 +271,13 @@ public interface DVTOptionsCore extends PipelineOptions {
   String getSourceConfigURL();
 
   void setSourceConfigURL(String value);
+
+  /**
+   * Max tables in effect at one time
+   */
+  @Description("Max tables in effect at one time")
+  @Default.Integer(10)
+  Integer getMaxTablesInEffectAtOneTime();
+
+  void setMaxTablesInEffectAtOneTime(Integer value);
 } // class

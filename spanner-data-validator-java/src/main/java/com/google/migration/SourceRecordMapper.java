@@ -31,6 +31,7 @@ public class SourceRecordMapper implements RowMapper<SourceRecord> {
         case Types.CHAR:
         case Types.VARCHAR:
         case Types.LONGVARCHAR:
+        case Types.OTHER:
           String stringVal = resultSet.getString(colOrdinal);
           if (stringVal != null && !resultSet.wasNull()) {
             sourceRecord.addField(resultSetMetaData.getColumnName(colOrdinal),
@@ -111,18 +112,13 @@ public class SourceRecordMapper implements RowMapper<SourceRecord> {
                 resultSetMetaData.getColumnTypeName(colOrdinal), timestampVal);
           }
           break;
-        case Types.OTHER:
-          String otherVal = resultSet.getString(colOrdinal);
-          if (otherVal != null && !resultSet.wasNull()) {
-            sourceRecord.addField(resultSetMetaData.getColumnName(colOrdinal),
-                resultSetMetaData.getColumnTypeName(colOrdinal), otherVal);
-          }
         case Types.ARRAY:
           Array arrayVal = resultSet.getArray(colOrdinal);
           if (arrayVal != null && !resultSet.wasNull()) {
             sourceRecord.addField(resultSetMetaData.getColumnName(colOrdinal),
                 resultSetMetaData.getColumnTypeName(colOrdinal), arrayVal);
           }
+          break;
         default:
           LOG.error("Unsupported type: {}", type);
           throw new RuntimeException(String.format("Unsupported type: %d", type));
