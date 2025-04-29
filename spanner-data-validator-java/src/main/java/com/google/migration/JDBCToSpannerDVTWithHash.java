@@ -526,10 +526,12 @@ public class JDBCToSpannerDVTWithHash {
                   Reshuffle.viaRandomKey())
               .apply(String.format("ReadInParallelForTable-%s", tableName),
                   JdbcIO.<PartitionRange, SourceRecord>readAll()
-                      .withDataSourceConfiguration(DataSourceConfiguration.create(
+                      .withDataSourceProviderFn(
+                          JdbcIO.PoolableDataSourceProvider.of(DataSourceConfiguration.create(
                               driver, connString)
                           .withUsername(username)
-                          .withPassword(jdbcPass))
+                          .withPassword(jdbcPass)
+                          .withMaxConnections(options.getMaxJDBCConnectionsPerJVM())))
                       .withQuery(query)
                       .withParameterSetter((input, preparedStatement) -> {
                         preparedStatement.setString(1, input.getStartRange());
@@ -557,10 +559,12 @@ public class JDBCToSpannerDVTWithHash {
                   Reshuffle.viaRandomKey())
               .apply(String.format("ReadInParallelForTable-%s", tableName),
                   JdbcIO.<PartitionRange, HashResult>readAll()
-                      .withDataSourceConfiguration(DataSourceConfiguration.create(
-                              driver, connString)
-                          .withUsername(options.getUsername())
-                          .withPassword(jdbcPass))
+                      .withDataSourceProviderFn(
+                          JdbcIO.PoolableDataSourceProvider.of(DataSourceConfiguration.create(
+                                  driver, connString)
+                              .withUsername(username)
+                              .withPassword(jdbcPass)
+                              .withMaxConnections(options.getMaxJDBCConnectionsPerJVM())))
                       .withQuery(query)
                       .withParameterSetter((input, preparedStatement) -> {
                         preparedStatement.setString(1, input.getStartRange());

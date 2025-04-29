@@ -280,4 +280,14 @@ public interface DVTOptionsCore extends PipelineOptions {
   Integer getMaxTablesInEffectAtOneTime();
 
   void setMaxTablesInEffectAtOneTime(Integer value);
+
+  /**
+   * Max JDBC connections per JVM
+   */
+  @Description("Max JDBC connections per JVM")
+  @Default.Integer(160)
+  Integer getMaxJDBCConnectionsPerJVM();
+
+  void setMaxJDBCConnectionsPerJVM(Integer value);
+
 } // class
