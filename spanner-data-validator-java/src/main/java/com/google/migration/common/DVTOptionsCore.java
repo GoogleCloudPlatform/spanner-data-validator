@@ -290,4 +290,9 @@ public interface DVTOptionsCore extends PipelineOptions {
 
   void setMaxJDBCConnectionsPerJVM(Integer value);
 
+  @Description("Read from Spanner w/ high priority CPU (default is medium priority)")
+  @Default.Boolean(false)
+  Boolean getReadFromSpannerWithHighPriorityCPU();
+
+  void setReadFromSpannerWithHighPriorityCPU(Boolean value);
 } // class

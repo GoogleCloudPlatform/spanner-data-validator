@@ -69,6 +69,7 @@ import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.CreateDisposition;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.WriteDisposition;
 import org.apache.beam.sdk.io.gcp.spanner.ReadOperation;
 import org.apache.beam.sdk.io.gcp.spanner.SpannerIO;
+import org.apache.beam.sdk.io.gcp.spanner.SpannerIO.ReadAll;
 import org.apache.beam.sdk.io.jdbc.JdbcIO;
 import org.apache.beam.sdk.io.jdbc.JdbcIO.DataSourceConfiguration;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
@@ -715,8 +716,14 @@ public class JDBCToSpannerDVTWithHash {
         options.getProjectId() : options.getSpannerProjectId();
 
     String spannerReadStepName = String.format("SpannerReadAllForTable-%s", tableName);
+
+    ReadAll spannerRead = SpannerIO.readAll();
+    if(options.getReadFromSpannerWithHighPriorityCPU()) {
+      spannerRead = spannerRead.withHighPriority();
+    }
+
     PCollection<Struct> spannerRecords =
-        readOps.apply(spannerReadStepName, SpannerIO.readAll()
+        readOps.apply(spannerReadStepName, spannerRead
         .withProjectId(spannerProjectId)
         .withInstanceId(options.getInstanceId())
         .withDatabaseId(options.getSpannerDatabaseId()));
