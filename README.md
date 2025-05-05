@@ -197,3 +197,62 @@ You specify tables/queries for validation using the TableSpec json files.
 ]
 ```
 
+### Custom transformations
+
+Custom transformations allow the user to inject a JAR which implements the
+[spanner-migrations-sdk](https://github.com/GoogleCloudPlatform/DataflowTemplates/tree/main/v2/spanner-migrations-sdk)
+interface to augment the validation logic. This
+functionality is useful to pass the same custom transformation JAR what might
+have been used in other data migration tools, such as [source-to-spanner
+dataflow template](https://github.com/GoogleCloudPlatform/DataflowTemplates/blob/main/v2/sourcedb-to-spanner/README_Sourcedb_to_Spanner.md)
+or [datastream-to-spanner dataflow template](https://github.com/GoogleCloudPlatform/DataflowTemplates/blob/main/v2/datastream-to-spanner/README_Cloud_Datastream_to_Spanner.md).
+
+#### Assumptions
+
+When custom transformations are enabled (that is, the relevant flags are
+configured), all non-common columns on the spanner that are part of the session
+file will be assumed under custom transformation.
+
+#### Pre-requisites
+
+1. Build the JAR for spanner-data-validator using
+   instructions [here](#building-the-tool).
+2. Build the JAR for your custom transformation as per the
+   instructions [here](https://googlecloudplatform.github.io/spanner-migration-tool/custom-transformation).
+3. Using a session file is mandatory for using custom transformations.
+4. The column under custom transformation should be part of the supplied session
+   file.
+
+#### Configuring custom transformations in validations
+
+Custom transformation support requires configuring identical parameters to bulk,
+live and reverse replication dataflow jobs. This includes
+`transformationJarPath`,
+`transformationClassName` and `transformationCustomParameters`. A sample command
+is
+given below -
+
+```shell
+java -jar target/spanner-data-validator-java-bundled-0.1.jar  \
+--project=sample-project \
+--network=sample-vpc \
+--subnetwork=https://www.googleapis.com/compute/v1/projects/span-cloud-testing/regions/us-central1/subnetworks/aks-test-vpc \
+--numWorkers=10 \
+--region=us-central1 \
+--protocol=mysql \
+--server=10.36.112.26 \
+--port=3306 \
+--username=username \
+--password=pwd \
+--sourceDB=validation_test \
+--sessionFileJson=src/main/resources/json/custom_transform.json \
+--tempLocation=gs://sample-bucket/validation-testing \
+--projectId=sample-project \
+--instanceId=sample-instance \
+--spannerDatabaseId=sample-database \
+--BQDatasetName=SpannerDVTDataset \
+--transformationJarPath=gs://sample-bucket/test/smt_util-0.0.2-SNAPSHOT.jar \
+--transformationClassName=com.example.test.smtutil.spanner.Transformer \
+--transformationCustomParameters=table.default.abc=colName1,table.list=colName2 \
+--runner=DataflowRunner
+```
