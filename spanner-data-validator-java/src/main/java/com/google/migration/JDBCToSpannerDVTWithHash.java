@@ -809,19 +809,18 @@ public class JDBCToSpannerDVTWithHash {
   }
 
   public static void runDVT(DVTOptionsCore options) throws IOException {
+    Pipeline p = Pipeline.create(options);
     if (options.getGenerateTableSpec()) {
       String sessionFileJson = options.getSessionFileJson();
       if (Helpers.isNullOrEmpty(sessionFileJson)) {
         throw new RuntimeException("Session file needs to be provided to generate the tableSpec from it!");
       }
       List<TableSpec> tableSpecs = generateTableSpec(options);
-      String jsonFileName = String.format("tableSpec-%s.json", System.currentTimeMillis());
+      String jsonFileName = String.format("%s-tableSpec-%s.json", options.getSpannerDatabaseId(), System.currentTimeMillis());
       TableSpecList.toJsonFile(tableSpecs, jsonFileName);
       LOG.info("TableSpec has been written to {} file", jsonFileName);
       return;
     }
-
-    Pipeline p = Pipeline.create(options);
 
     p.getCoderRegistry().registerCoderForClass(HashResult.class, AvroCoder.of(HashResult.class));
 
