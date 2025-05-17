@@ -72,6 +72,9 @@ import org.apache.beam.sdk.io.gcp.spanner.SpannerIO;
 import org.apache.beam.sdk.io.gcp.spanner.SpannerIO.ReadAll;
 import org.apache.beam.sdk.io.jdbc.JdbcIO;
 import org.apache.beam.sdk.io.jdbc.JdbcIO.DataSourceConfiguration;
+import org.apache.beam.sdk.metrics.Counter;
+import org.apache.beam.sdk.metrics.Gauge;
+import org.apache.beam.sdk.metrics.Metrics;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.Count;
 import org.apache.beam.sdk.transforms.Create;
@@ -420,6 +423,12 @@ public class JDBCToSpannerDVTWithHash {
         comparerResults.apply(String.format("ReportOutputForTable-%s", tableName),
             ParDo.of(
             new DoFn<KV<String, CoGbkResult>, ComparerResult>() {
+              String spannerDVTRunNamespace = String.format("SpannerDVT-%s", runName);
+              Gauge matchedRecordsCounter = Metrics.gauge(spannerDVTRunNamespace, "matchedrecords");
+              Gauge unmatchedJDBCRecordsCounter = Metrics.gauge(spannerDVTRunNamespace, "unmatchedjdbcrecords");
+              Gauge unmatchedSpannerRecordsCounter = Metrics.gauge(spannerDVTRunNamespace, "unmatchedspannerrecords");
+              Gauge sourceRecordCounter = Metrics.gauge(spannerDVTRunNamespace, "sourcerecords");
+              Gauge targetRecordCounter = Metrics.gauge(spannerDVTRunNamespace, "targetrecords");
               @ProcessElement
               public void processElement(ProcessContext c) {
                 ComparerResult comparerResult =
@@ -427,18 +436,23 @@ public class JDBCToSpannerDVTWithHash {
 
                 comparerResult.matchCount =
                     getCountForTag(c.element().getValue(), matchedRecordCountTag);
+                matchedRecordsCounter.set(comparerResult.matchCount);
 
                 comparerResult.sourceConflictCount =
                     getCountForTag(c.element().getValue(), unmatchedJDBCRecordCountTag);
+                unmatchedJDBCRecordsCounter.set(comparerResult.sourceConflictCount);
 
                 comparerResult.targetConflictCount =
                     getCountForTag(c.element().getValue(), unmatchedSpannerRecordCountTag);
+                unmatchedSpannerRecordsCounter.set(comparerResult.targetConflictCount);
 
                 comparerResult.sourceCount =
                     getCountForTag(c.element().getValue(), sourceRecordCountTag);
+                sourceRecordCounter.set(comparerResult.sourceCount);
 
                 comparerResult.targetCount =
                     getCountForTag(c.element().getValue(), targetRecordCountTag);
+                targetRecordCounter.set(comparerResult.targetCount);
 
                 c.output(comparerResult);
               }
