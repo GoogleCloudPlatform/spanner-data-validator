@@ -86,22 +86,12 @@ public class SpannerTable implements Serializable {
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
     //add the partition key first
-    if(includeBackTicks) {
-      sb.append("`").append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName()))
-          .append("`")
-          .append(",");
-    } else {
-      sb.append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName()))
-          .append(",");
-    }
+    sb.append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName(), includeBackTicks))
+        .append(",");
     //add the rest of the cols
     for (String colId : commonColIds) {
       if (!colId.equals(partitionKeyColId)) {
-        if(includeBackTicks) {
-          sb.append("`").append(prependTableNameToColumn(name, colDefs.get(colId).getName())).append("`").append(",");
-        } else {
-          sb.append(prependTableNameToColumn(name, colDefs.get(colId).getName())).append(",");
-        }
+        sb.append(prependTableNameToColumn(name, colDefs.get(colId).getName(), includeBackTicks)).append(",");
       }
     }
     //add the custom transformation columns if custom transformations is enabled
@@ -117,24 +107,24 @@ public class SpannerTable implements Serializable {
       if (customTransformColIds.length > 0) {
         Arrays.sort(customTransformColIds);
         for (String colId : customTransformColIds) {
-          if(includeBackTicks) {
-            sb.append("`").append(prependTableNameToColumn(name, colDefs.get(colId).getName())).append("`").append(",");
-          } else {
-            sb.append(prependTableNameToColumn(name, colDefs.get(colId).getName())).append(",");
-          }
+          sb.append(prependTableNameToColumn(name, colDefs.get(colId).getName(), includeBackTicks)).append(",");
         }
       }
     }
     sb.deleteCharAt(sb.length() - 1);
     sb.append(" FROM ").append(name);
-    sb.append(" WHERE ").append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName()))
-        .append(" >= @p1 AND ").append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName()))
+    sb.append(" WHERE ").append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName(), includeBackTicks))
+        .append(" >= @p1 AND ").append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName(), includeBackTicks))
         .append(" <= @p2");
     return sb.toString();
   }
 
-  private String prependTableNameToColumn(String tableName, String columnName) {
-    return tableName + "." + columnName;
+  private String prependTableNameToColumn(String tableName, String columnName, Boolean includeBackTicks) {
+    if(includeBackTicks) {
+      return "`" + tableName + "`" + ".`" + columnName + "`";
+    } else {
+      return tableName + "." + columnName;
+    }
   }
 
   public String toString() {
