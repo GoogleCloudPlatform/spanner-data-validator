@@ -844,13 +844,17 @@ public class JDBCToSpannerDVTWithHash {
       options.setRunName(String.format("Run-%s", timestampStr));
     }
 
-    CustomTransformation customTransformation = CustomTransformation
-        .builder(options.getTransformationJarPath(), options.getTransformationClassName())
-        .setCustomParameters(options.getTransformationCustomParameters())
-        .build();
+    CustomTransformation customTransformation = null;
 
-    if (!Helpers.isNullOrEmpty(options.getTransformationJarPath()) && !Helpers.isNullOrEmpty(options.getTransformationClassName()) && Helpers.isNullOrEmpty(options.getSessionFileJson())) {
-      throw new RuntimeException("Custom transformations is only supported with session file integration. Please specify the session file and re-run the pipeline");
+    if(!Helpers.isNullOrEmpty(options.getTransformationJarPath())) {
+      if (!Helpers.isNullOrEmpty(options.getTransformationJarPath()) && !Helpers.isNullOrEmpty(options.getTransformationClassName()) && Helpers.isNullOrEmpty(options.getSessionFileJson())) {
+        throw new RuntimeException("Custom transformations is only supported with session file integration. Please specify the session file and re-run the pipeline");
+      }
+
+      customTransformation = CustomTransformation
+          .builder(options.getTransformationJarPath(), options.getTransformationClassName())
+          .setCustomParameters(options.getTransformationCustomParameters())
+          .build();
     }
 
     Schema schema = null;
