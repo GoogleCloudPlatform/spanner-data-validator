@@ -295,4 +295,10 @@ public interface DVTOptionsCore extends PipelineOptions {
   Boolean getReadFromSpannerWithHighPriorityCPU();
 
   void setReadFromSpannerWithHighPriorityCPU(Boolean value);
+
+  @Description("Include backticks for col names in table spec gen")
+  @Default.Boolean(false)
+  Boolean getIncludeBackTicksInColNameForTableSpecGen();
+
+  void setIncludeBackTicksInColNameForTableSpecGen(Boolean value);
 } // class

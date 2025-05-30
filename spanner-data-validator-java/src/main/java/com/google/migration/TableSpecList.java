@@ -322,8 +322,13 @@ public class TableSpecList {
       }
       tableSpec.setRangeStart(partitionKey.getPartitionKeyMinValue());
       tableSpec.setRangeEnd(partitionKey.getPartitionKeyMaxValue());
-      tableSpec.setDestQuery(spannerTable.getSpannerQuery(partitionKey.getPartitionKeyColId(), sourceTable.getColIds(), !Helpers.isNullOrEmpty(options.getTransformationJarPath()) && !Helpers.isNullOrEmpty(options.getTransformationClassName())));
-      tableSpec.setSourceQuery(sourceTable.getSourceQuery(partitionKey.getPartitionKeyColId(), spannerTable.getColIds()));
+      tableSpec.setDestQuery(spannerTable.getSpannerQuery(partitionKey.getPartitionKeyColId(),
+          sourceTable.getColIds(),
+          !Helpers.isNullOrEmpty(options.getTransformationJarPath()) && !Helpers.isNullOrEmpty(options.getTransformationClassName()),
+          options.getIncludeBackTicksInColNameForTableSpecGen()));
+      tableSpec.setSourceQuery(sourceTable.getSourceQuery(partitionKey.getPartitionKeyColId(),
+          spannerTable.getColIds(),
+          options.getIncludeBackTicksInColNameForTableSpecGen()));
       tableSpec.setRangeFieldType(partitionKey.getPartitionKeyColDataType());
       tableSpec.setRangeFieldName(sourceTable.getColDefs().get(partitionKey.getPartitionKeyColId()).getName());
       tableSpecList.add(tableSpec);

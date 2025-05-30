@@ -77,18 +77,26 @@ public class SourceTable implements Serializable {
     return response;
   }
 
-  public String getSourceQuery(String partitionKeyColId, String[] spannerColIds) {
+  public String getSourceQuery(String partitionKeyColId, String[] spannerColIds, boolean includeBackTicks) {
     //find the common colIds between colIds field and the param spannerColIds and sort that to use in rest of the code
     String[] commonColIds = Arrays.stream(colIds).filter(x -> Arrays.asList(spannerColIds).contains(x)).toArray(String[]::new);
     Arrays.sort(commonColIds);
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
     //add the partition key first
-    sb.append(colDefs.get(partitionKeyColId).getName()).append(",");
+    if(includeBackTicks) {
+      sb.append("`").append(colDefs.get(partitionKeyColId).getName()).append("`").append(",");
+    } else {
+      sb.append(colDefs.get(partitionKeyColId).getName()).append(",");
+    }
     //add the rest of the cols
     for (String colId : commonColIds) {
       if (!colId.equals(partitionKeyColId)) {
-        sb.append(colDefs.get(colId).getName()).append(",");
+        if(includeBackTicks) {
+          sb.append("`").append(colDefs.get(colId).getName()).append("`").append(",");
+        } else {
+          sb.append(colDefs.get(colId).getName()).append(",");
+        }
       }
     }
     sb.deleteCharAt(sb.length() - 1);

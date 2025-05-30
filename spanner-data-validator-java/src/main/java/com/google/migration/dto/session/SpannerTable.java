@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.apache.arrow.flatbuf.Bool;
 
 /** SpannerTable object to store Spanner table name and column name mapping information. */
 public class SpannerTable implements Serializable {
@@ -75,18 +76,32 @@ public class SpannerTable implements Serializable {
     return shardIdColumn;
   }
 
-  public String getSpannerQuery(String partitionKeyColId, String[] sourceColIds, Boolean isCustomTransformation) {
+  public String getSpannerQuery(String partitionKeyColId,
+      String[] sourceColIds,
+      Boolean isCustomTransformation,
+      Boolean includeBackTicks) {
     //find the common colIds between colIds field and the param sourceColIds and sort that to use in rest of the code
     String[] commonColIds = Arrays.stream(colIds).filter(x -> Arrays.asList(sourceColIds).contains(x)).toArray(String[]::new);
     Arrays.sort(commonColIds);
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
     //add the partition key first
-    sb.append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName())).append(",");
+    if(includeBackTicks) {
+      sb.append("`").append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName()))
+          .append("`")
+          .append(",");
+    } else {
+      sb.append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName()))
+          .append(",");
+    }
     //add the rest of the cols
     for (String colId : commonColIds) {
       if (!colId.equals(partitionKeyColId)) {
-        sb.append(prependTableNameToColumn(name, colDefs.get(colId).getName())).append(",");
+        if(includeBackTicks) {
+          sb.append("`").append(prependTableNameToColumn(name, colDefs.get(colId).getName())).append("`").append(",");
+        } else {
+          sb.append(prependTableNameToColumn(name, colDefs.get(colId).getName())).append(",");
+        }
       }
     }
     //add the custom transformation columns if custom transformations is enabled
@@ -102,7 +117,11 @@ public class SpannerTable implements Serializable {
       if (customTransformColIds.length > 0) {
         Arrays.sort(customTransformColIds);
         for (String colId : customTransformColIds) {
-          sb.append(prependTableNameToColumn(name, colDefs.get(colId).getName())).append(",");
+          if(includeBackTicks) {
+            sb.append("`").append(prependTableNameToColumn(name, colDefs.get(colId).getName())).append("`").append(",");
+          } else {
+            sb.append(prependTableNameToColumn(name, colDefs.get(colId).getName())).append(",");
+          }
         }
       }
     }
