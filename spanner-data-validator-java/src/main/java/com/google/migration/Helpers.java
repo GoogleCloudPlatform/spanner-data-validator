@@ -45,14 +45,17 @@ import java.util.List;
 import java.util.UUID;
 import java.util.zip.CRC32C;
 import java.util.zip.Checksum;
+import javax.sql.DataSource;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.beam.sdk.io.jdbc.JdbcIO.DataSourceConfiguration;
 import org.apache.beam.sdk.values.KV;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -452,5 +455,22 @@ public class Helpers {
         Instant.ofEpochMilli(baseValue),
         Instant.ofEpochMilli(startFilter),
         Instant.ofEpochMilli(endFilter)));
+  }
+
+  public static DataSource getDefaultDataSourceConfig(String driverClassName, String connString) {
+    BasicDataSource basicDS = new BasicDataSource();
+
+    basicDS.setDriverClassName(driverClassName);
+    basicDS.setUrl(connString);
+
+    basicDS.setTestOnBorrow(true);
+    basicDS.setTestOnCreate(true);
+    basicDS.setTestOnReturn(true);
+    basicDS.setTestWhileIdle(true);
+    basicDS.setValidationQuery("SELECT 1");
+    basicDS.setRemoveAbandonedTimeout(8 * 3600);
+    basicDS.setMinEvictableIdleTimeMillis(8 * 3600 * 1000);
+
+    return basicDS;
   }
 } // class Helpers

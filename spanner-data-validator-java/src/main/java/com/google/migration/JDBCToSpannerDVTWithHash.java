@@ -543,7 +543,7 @@ public class JDBCToSpannerDVTWithHash {
                   JdbcIO.<PartitionRange, SourceRecord>readAll()
                       .withDataSourceProviderFn(
                           JdbcIO.PoolableDataSourceProvider.of(DataSourceConfiguration.create(
-                              driver, connString)
+                              Helpers.getDefaultDataSourceConfig(driver, connString))
                           .withUsername(username)
                           .withPassword(jdbcPass)
                           .withMaxConnections(options.getMaxJDBCConnectionsPerJVM())))
