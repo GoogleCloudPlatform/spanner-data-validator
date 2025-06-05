@@ -60,6 +60,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Helpers {
+
   private static final Logger LOG = LoggerFactory.getLogger(Helpers.class);
   public static UUID bigIntToUUID(BigInteger in) {
     long low = in.longValue();
@@ -463,6 +464,7 @@ public class Helpers {
     basicDS.setDriverClassName(driverClassName);
     basicDS.setUrl(connString);
 
+    // tune settings for long running queries
     basicDS.setTestOnBorrow(true);
     basicDS.setTestOnCreate(true);
     basicDS.setTestOnReturn(true);
