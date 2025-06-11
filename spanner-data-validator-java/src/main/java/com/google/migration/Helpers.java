@@ -25,6 +25,7 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.migration.common.DVTOptionsCore;
+import com.google.migration.common.JdbcDataSource;
 import com.google.migration.dto.GCSObject;
 import com.google.migration.dto.PartitionRange;
 import java.io.IOException;
@@ -52,7 +53,6 @@ import org.apache.avro.SchemaBuilder;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.beam.sdk.io.jdbc.JdbcIO.DataSourceConfiguration;
 import org.apache.beam.sdk.values.KV;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -456,23 +456,5 @@ public class Helpers {
         Instant.ofEpochMilli(baseValue),
         Instant.ofEpochMilli(startFilter),
         Instant.ofEpochMilli(endFilter)));
-  }
-
-  public static DataSource getDefaultDataSourceConfig(String driverClassName, String connString) {
-    BasicDataSource basicDS = new BasicDataSource();
-
-    basicDS.setDriverClassName(driverClassName);
-    basicDS.setUrl(connString);
-
-    // tune settings for long running queries
-    basicDS.setTestOnBorrow(true);
-    basicDS.setTestOnCreate(true);
-    basicDS.setTestOnReturn(true);
-    basicDS.setTestWhileIdle(true);
-    basicDS.setValidationQuery("SELECT 1");
-    basicDS.setRemoveAbandonedTimeout(8 * 3600);
-    basicDS.setMinEvictableIdleTimeMillis(8 * 3600 * 1000);
-
-    return basicDS;
   }
 } // class Helpers

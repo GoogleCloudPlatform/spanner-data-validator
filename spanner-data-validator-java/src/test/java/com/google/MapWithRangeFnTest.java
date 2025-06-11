@@ -27,6 +27,7 @@ import com.google.migration.dto.PartitionRange;
 import com.google.migration.dto.TableSpec;
 import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.UUID;
@@ -87,6 +88,50 @@ public class MapWithRangeFnTest {
     hr.key = String.valueOf(Long.MAX_VALUE - 1);
     pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
     assertNotEquals(pRange.getStartRange(), "1");
+  }
+
+  @Test
+  public void mapWithRangeForSignedLongTest()  {
+    String fieldType = TableSpec.LONG_FIELD_TYPE;
+
+    Integer partitionCount = 100000;
+    Long startRangeL = -99999999L;
+    Long endRangeL = 99999998L;
+    String startRange = String.valueOf(startRangeL);
+    String endRange = String.valueOf(endRangeL);
+
+    PartitionRangeListFetcher fetcher =
+        PartitionRangeListFetcherFactory.getFetcher(fieldType);
+    List<PartitionRange> pRanges = fetcher.getPartitionRangesWithCoverage(startRange,
+        endRange,
+        partitionCount,
+        BigDecimal.ONE);
+    assertEquals((Integer)pRanges.size(), partitionCount);
+
+    for(PartitionRange pRange: pRanges) {
+      System.out.println(String.format("Start: %s, end: %s", pRange.getStartRange(), pRange.getEndRange()));
+    }
+
+    HashResult hr = new HashResult(String.valueOf(startRangeL),
+        true,
+        "orig",
+        "hash",
+        0L);
+    MapWithRangeFn mapFn = new MapWithRangeFn(null,
+        MapWithRangeType.RANGE_PLUS_HASH,
+        fieldType);
+
+    PartitionRange pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    assertEquals(pRange.getStartRange(), startRange);
+
+    hr.key = String.valueOf(startRangeL + 1L);
+    pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    assertEquals(pRange.getStartRange(), startRange);
+
+    hr.key = String.valueOf(endRangeL - 1);
+    pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    assertNotEquals(pRange.getStartRange(), "1");
+    assertEquals(pRange.getEndRange(), endRange);
   }
 
   @Test

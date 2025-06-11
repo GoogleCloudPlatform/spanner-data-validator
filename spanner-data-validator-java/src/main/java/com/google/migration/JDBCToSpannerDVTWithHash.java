@@ -37,7 +37,9 @@ import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.Struct;
+import com.google.migration.common.CustomPoolableDataSourceProvider;
 import com.google.migration.common.DVTOptionsCore;
+import com.google.migration.common.HikariPoolableDataSourceProvider;
 import com.google.migration.common.JDBCRowMapper;
 import com.google.migration.common.SecretManagerAccessorImpl;
 import com.google.migration.common.ShardFileReader;
@@ -61,6 +63,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.sql.DataSource;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
@@ -72,7 +75,7 @@ import org.apache.beam.sdk.io.gcp.spanner.SpannerIO;
 import org.apache.beam.sdk.io.gcp.spanner.SpannerIO.ReadAll;
 import org.apache.beam.sdk.io.jdbc.JdbcIO;
 import org.apache.beam.sdk.io.jdbc.JdbcIO.DataSourceConfiguration;
-import org.apache.beam.sdk.metrics.Counter;
+import org.apache.beam.sdk.io.jdbc.JdbcIO.PoolableDataSourceProvider;
 import org.apache.beam.sdk.metrics.Gauge;
 import org.apache.beam.sdk.metrics.Metrics;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
@@ -96,6 +99,10 @@ import org.apache.beam.sdk.values.PCollectionView;
 import org.apache.beam.sdk.values.TupleTag;
 import org.apache.beam.sdk.values.TupleTagList;
 import org.apache.beam.sdk.values.TypeDescriptor;
+import org.checkerframework.checker.initialization.qual.Initialized;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.UnknownKeyFor;
 import org.jetbrains.annotations.NotNull;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -542,12 +549,13 @@ public class JDBCToSpannerDVTWithHash {
               .apply(String.format("ReadInParallelForTable-%s", tableName),
                   JdbcIO.<PartitionRange, SourceRecord>readAll()
                       .withDataSourceProviderFn(
-                          JdbcIO.PoolableDataSourceProvider.of(DataSourceConfiguration.create(
-                              Helpers.getDefaultDataSourceConfig(driver, connString))
-                          .withUsername(username)
-                          .withPassword(jdbcPass)
-                          .withMaxConnections(options.getMaxJDBCConnectionsPerJVM())))
+                          HikariPoolableDataSourceProvider.of(connString,
+                              username,
+                              jdbcPass,
+                              driver,
+                              options.getMaxJDBCConnectionsPerJVM()))
                       .withQuery(query)
+                      .withDisableAutoCommit(false)
                       .withParameterSetter((input, preparedStatement) -> {
                         preparedStatement.setString(1, input.getStartRange());
                         preparedStatement.setString(2, input.getEndRange());
@@ -575,12 +583,13 @@ public class JDBCToSpannerDVTWithHash {
               .apply(String.format("ReadInParallelForTable-%s", tableName),
                   JdbcIO.<PartitionRange, HashResult>readAll()
                       .withDataSourceProviderFn(
-                          JdbcIO.PoolableDataSourceProvider.of(DataSourceConfiguration.create(
-                                  driver, connString)
-                              .withUsername(username)
-                              .withPassword(jdbcPass)
-                              .withMaxConnections(options.getMaxJDBCConnectionsPerJVM())))
+                          HikariPoolableDataSourceProvider.of(connString,
+                              username,
+                              jdbcPass,
+                              driver,
+                              options.getMaxJDBCConnectionsPerJVM()))
                       .withQuery(query)
+                      .withDisableAutoCommit(false)
                       .withParameterSetter((input, preparedStatement) -> {
                         preparedStatement.setString(1, input.getStartRange());
                         preparedStatement.setString(2, input.getEndRange());
