@@ -799,34 +799,52 @@ public class JDBCToSpannerDVTWithHash {
   private static List<TableSpec> generateTableSpec(DVTOptionsCore options) {
     String tableSpecJson = options.getTableSpecJson();
     String sessionFileJson = options.getSessionFileJson();
-    List<TableSpec> tableSpecListFromTableSpecJson = null;
-    List<TableSpec> tableSpecListFromSessionFileJson = null;
-    if (!Helpers.isNullOrEmpty(sessionFileJson)) {
-      tableSpecListFromSessionFileJson = TableSpecList.getFromSessionFile(options);
-    }
-    if(!Helpers.isNullOrEmpty(tableSpecJson)) {
-      tableSpecListFromTableSpecJson = TableSpecList.getFromJsonFile(options.getProjectId(), tableSpecJson);
-    }
+    Boolean isGenerateTableSpecFlagEnabled = options.getGenerateTableSpec();
     List<TableSpec> tableSpecs = new ArrayList<>();
-    if (tableSpecListFromSessionFileJson != null && tableSpecListFromTableSpecJson != null) {
-      LOG.warn("Session file and tableSpec have both been specified! TableSpec will take "
-          + "precedence over session file for the tables for which it is defined!!");
-      List<String> tableNamesFromTableSpecJson = tableSpecListFromTableSpecJson.stream()
-          .map(TableSpec::getTableName)
-          .collect(Collectors.toList());
+    //if generateSpec is enabled, create the tableSpec from the one that is specified,
+    //or merge them if both are specified.
+    if (isGenerateTableSpecFlagEnabled) {
+      List<TableSpec> tableSpecListFromTableSpecJson = null;
+      List<TableSpec> tableSpecListFromSessionFileJson = null;
+      if (!Helpers.isNullOrEmpty(sessionFileJson)) {
+        tableSpecListFromSessionFileJson = TableSpecList.getFromSessionFile(options);
+      }
+      if (!Helpers.isNullOrEmpty(tableSpecJson)) {
+        tableSpecListFromTableSpecJson = TableSpecList.getFromJsonFile(options.getProjectId(),
+            tableSpecJson);
+      }
 
-      List<TableSpec> filteredTableSpecs = tableSpecListFromSessionFileJson.stream()
-          .filter(tableSpec -> !tableNamesFromTableSpecJson.contains(tableSpec.getTableName()))
-          .collect(Collectors.toList());
+      if (tableSpecListFromSessionFileJson != null && tableSpecListFromTableSpecJson != null) {
+        LOG.warn(
+            "GenerateTableSpec mode: Session file and tableSpec have both been specified! TableSpec will take "
+                + "precedence over session file for the tables for which it is defined!!");
+        List<String> tableNamesFromTableSpecJson = tableSpecListFromTableSpecJson.stream()
+            .map(TableSpec::getTableName)
+            .collect(Collectors.toList());
 
-      tableSpecs.addAll(filteredTableSpecs);
-      tableSpecs.addAll(tableSpecListFromTableSpecJson);
-    } else if (!Helpers.isNullOrEmpty(tableSpecJson)) {
-      tableSpecs = tableSpecListFromTableSpecJson;
-    } else if (!Helpers.isNullOrEmpty(sessionFileJson)) {
-      tableSpecs = tableSpecListFromSessionFileJson;
+        List<TableSpec> filteredTableSpecs = tableSpecListFromSessionFileJson.stream()
+            .filter(tableSpec -> !tableNamesFromTableSpecJson.contains(tableSpec.getTableName()))
+            .collect(Collectors.toList());
+
+        tableSpecs.addAll(filteredTableSpecs);
+        tableSpecs.addAll(tableSpecListFromTableSpecJson);
+      } else if (!Helpers.isNullOrEmpty(tableSpecJson)) {
+        tableSpecs = tableSpecListFromTableSpecJson;
+      } else if (!Helpers.isNullOrEmpty(sessionFileJson)) {
+        tableSpecs = tableSpecListFromSessionFileJson;
+      } else {
+        tableSpecs = getTableSpecs();
+      }
     } else {
-      tableSpecs = getTableSpecs();
+      //if generateSpec is disabled, return the tableSpec if it is specified,
+      //otherwise, use the session file one.
+      if (!Helpers.isNullOrEmpty(tableSpecJson)) {
+        tableSpecs = TableSpecList.getFromJsonFile(options.getProjectId(), tableSpecJson);
+      } else if (!Helpers.isNullOrEmpty(sessionFileJson)) {
+        tableSpecs = TableSpecList.getFromJsonFile(options.getProjectId(), tableSpecJson);
+      } else {
+        tableSpecs = getTableSpecs();
+      }
     }
     return tableSpecs;
   }
