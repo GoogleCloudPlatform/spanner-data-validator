@@ -30,6 +30,7 @@ import com.google.migration.Helpers;
 import com.google.migration.dto.HashResult;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.join.CoGbkResult;
 import org.apache.beam.sdk.values.KV;
@@ -38,8 +39,9 @@ import org.slf4j.LoggerFactory;
 
 public class CountMatchesDoFn extends DoFn<KV<String, CoGbkResult>, KV<String, Long>> {
   private static final Logger LOG = LoggerFactory.getLogger(CountMatchesDoFn.class);
-  private long timestampThreshold;
+  private long timestampThreshold = 0L;
   private Integer timestampThresholdDeltaInMins = 0;
+  private Integer ddrCount = 0;
   private boolean timestampThresholdInEffect;
   private long timestampFilterStart = 0;
   private long timestampFilterEnd = 0;

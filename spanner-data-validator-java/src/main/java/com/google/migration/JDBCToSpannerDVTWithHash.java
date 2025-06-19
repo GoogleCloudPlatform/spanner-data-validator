@@ -37,13 +37,14 @@ import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.Struct;
-import com.google.migration.common.CustomPoolableDataSourceProvider;
 import com.google.migration.common.DVTOptionsCore;
+import com.google.migration.common.FilteryByShard;
 import com.google.migration.common.HikariPoolableDataSourceProvider;
 import com.google.migration.common.JDBCRowMapper;
 import com.google.migration.common.SecretManagerAccessorImpl;
 import com.google.migration.common.ShardFileReader;
 import com.google.migration.dofns.CountMatchesDoFn;
+import com.google.migration.dofns.CountMatchesWithShardFilteringDoFn;
 import com.google.migration.dofns.CustomTransformationDoFn;
 import com.google.migration.dofns.MapWithRangeFn;
 import com.google.migration.dofns.MapWithRangeFn.MapWithRangeType;
@@ -63,7 +64,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.sql.DataSource;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
@@ -74,8 +74,6 @@ import org.apache.beam.sdk.io.gcp.spanner.ReadOperation;
 import org.apache.beam.sdk.io.gcp.spanner.SpannerIO;
 import org.apache.beam.sdk.io.gcp.spanner.SpannerIO.ReadAll;
 import org.apache.beam.sdk.io.jdbc.JdbcIO;
-import org.apache.beam.sdk.io.jdbc.JdbcIO.DataSourceConfiguration;
-import org.apache.beam.sdk.io.jdbc.JdbcIO.PoolableDataSourceProvider;
 import org.apache.beam.sdk.metrics.Gauge;
 import org.apache.beam.sdk.metrics.Metrics;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
@@ -99,10 +97,6 @@ import org.apache.beam.sdk.values.PCollectionView;
 import org.apache.beam.sdk.values.TupleTag;
 import org.apache.beam.sdk.values.TupleTagList;
 import org.apache.beam.sdk.values.TypeDescriptor;
-import org.checkerframework.checker.initialization.qual.Initialized;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.UnknownKeyFor;
 import org.jetbrains.annotations.NotNull;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -352,10 +346,23 @@ public class JDBCToSpannerDVTWithHash {
             .and(spannerTag, mappedWithHashSpannerRecords)
             .apply(groupByKeyStep, CoGroupByKey.create());
 
+    DoFn<KV<String, CoGbkResult>, KV<String, Long>> countMatchesDoFn;
+
+    String stepName = String.format("CountMatchesForTable-%s", tableName);
+    if(options.getEnableShardFiltering()) {
+      List<String> shardsToInclude =
+          Helpers.getShardListFromCommaSeparatedString(options.getShardsToInclude());
+      countMatchesDoFn = new CountMatchesWithShardFilteringDoFn(shardsToInclude);
+      stepName = String.format("CountMatchesWithShardFilteringForTable-%s", tableName);
+    } else {
+      countMatchesDoFn = new CountMatchesDoFn(tableSpec.getTimestampThresholdValue(),
+          tableSpec.getTimestampThresholdDeltaInMins());
+    }
+
     // Now tag the results by range
     PCollectionTuple countMatches = results.apply(
-        String.format("CountMatchesForTable-%s", tableName),
-        ParDo.of(new CountMatchesDoFn(tableSpec.getTimestampThresholdValue(), tableSpec.getTimestampThresholdDeltaInMins()))
+        stepName,
+        ParDo.of(countMatchesDoFn)
             .withOutputTags(matchedRecordsTag,
                 TupleTagList.of(unmatchedSpannerRecordsTag)
                     .and(unmatchedJDBCRecordsTag)
@@ -751,6 +758,12 @@ public class JDBCToSpannerDVTWithHash {
         .withInstanceId(options.getInstanceId())
         .withDatabaseId(options.getSpannerDatabaseId()));
 
+    FilteryByShard fbs = new FilteryByShard(options.getDdrCount(),
+        options.getServiceNameForShardCalc(),
+        tableName,
+        options.getColNameForShardCalc(),
+        options.getEnableShardFiltering());
+
     String convertToHashResultStepName =
         String.format("ConvertToHashResultForTable-%s", tableName);
     PCollection<HashResult> spannerHashes = spannerRecords.apply(convertToHashResultStepName,
@@ -761,7 +774,8 @@ public class JDBCToSpannerDVTWithHash {
                         keyIndex,
                         rangeFieldType,
                         adjustTimestampPrecision,
-                        timestampThresholdIndex)
+                        timestampThresholdIndex,
+                        fbs)
             ));
 
     return spannerHashes;

@@ -301,4 +301,34 @@ public interface DVTOptionsCore extends PipelineOptions {
   Boolean getIncludeBackTicksInColNameForTableSpecGen();
 
   void setIncludeBackTicksInColNameForTableSpecGen(Boolean value);
+
+  @Description("Enable shard filtering")
+  @Default.Boolean(false)
+  Boolean getEnableShardFiltering();
+
+  void setEnableShardFiltering(Boolean value);
+
+  @Description("DDR Count")
+  @Default.Long(1)
+  Long getDdrCount();
+
+  void setDdrCount(Long value);
+
+  @Description("Service name (for sharding id calc)")
+  @Default.String("")
+  String getServiceNameForShardCalc();
+
+  void setServiceNameForShardCalc(String value);
+
+  @Description("Col name (for shard id calc)")
+  @Default.String("ddrkey")
+  String getColNameForShardCalc();
+
+  void setColNameForShardCalc(String value);
+
+  @Description("Comma separated list of shards to include")
+  @Default.String("")
+  String getShardsToInclude();
+
+  void setShardsToInclude(String value);
 } // class

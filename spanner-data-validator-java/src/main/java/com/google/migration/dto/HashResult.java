@@ -19,6 +19,7 @@ package com.google.migration.dto;
 import com.google.cloud.spanner.Struct;
 import com.google.cloud.spanner.Type;
 import com.google.migration.Helpers;
+import com.google.migration.common.FilteryByShard;
 import com.google.migration.common.JSONNormalizer;
 import java.math.BigDecimal;
 import java.sql.Array;
@@ -44,9 +45,18 @@ public class HashResult {
   public String key;
   public String range = "";
   public String rangeFieldType = TableSpec.UUID_FIELD_TYPE;
+  public String logicalShardId = "0";
   public Long timestampThresholdValue = 0L;
 
   public HashResult() {
+  }
+
+  public void setLogicalShardId(String logicalShardIdIn) {
+    logicalShardId = logicalShardIdIn;
+  }
+
+  public String getLogicalShardId() {
+    return logicalShardId;
   }
 
   @Override
@@ -78,7 +88,8 @@ public class HashResult {
       Integer keyIndex,
       String rangeFieldType,
       Boolean adjustTimestampPrecision,
-      Integer timestampThresholdIndex) {
+      Integer timestampThresholdIndex,
+      FilteryByShard fbs) {
     HashResult retVal = new HashResult();
 
     int nCols = spannerStruct.getColumnCount();
@@ -167,6 +178,9 @@ public class HashResult {
     retVal.sha256 = Helpers.sha256(retVal.origValue);
     retVal.isSource = false;
     LOG.debug("SpannerHash=> Key={}, OrigValue={} \n HashResult={}", retVal.key, retVal.origValue, retVal.sha256);
+
+    fbs.setLogicalShardId(retVal, spannerStruct);
+
     return retVal;
   }
 

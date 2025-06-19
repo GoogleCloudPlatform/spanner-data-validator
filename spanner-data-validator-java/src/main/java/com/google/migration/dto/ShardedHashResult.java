@@ -55,12 +55,14 @@ public class ShardedHashResult extends HashResult {
       Boolean adjustTimestampPrecision,
       int numShards,
       ShardIdCalculator shardIdCalculator,
-      Long timestampThresholdValueIn) {
+      Long timestampThresholdValueIn,
+      String tableName) {
     HashResult hashResult = HashResult.fromSpannerStruct(spannerStruct,
         keyIndex,
         rangeFieldType,
         adjustTimestampPrecision,
-        -1);
+        -1,
+        null);
     Integer shardId = shardIdCalculator.getShardIndexForShardKey(hashResult.key, numShards);
     return new ShardedHashResult(hashResult, shardId, timestampThresholdValueIn);
   }

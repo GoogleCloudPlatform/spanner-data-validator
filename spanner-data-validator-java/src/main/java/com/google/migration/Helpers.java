@@ -40,6 +40,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -405,11 +406,16 @@ public class Helpers {
 
   public static String getFileFromGCS(String projectId, String bucketName, String objectName) {
 
-    Storage storage = StorageOptions.newBuilder().setProjectId(projectId).build().getService();
-    Blob blob = storage.get(BlobId.of(bucketName, objectName));
-    byte[] fileByteContent = blob.getContent();
-    String blobContent = new String(fileByteContent, StandardCharsets.UTF_8);
-    return blobContent;
+    try {
+      Storage storage = StorageOptions.newBuilder().setProjectId(projectId).build().getService();
+      Blob blob = storage.get(BlobId.of(bucketName, objectName));
+      byte[] fileByteContent = blob.getContent();
+      String blobContent = new String(fileByteContent, StandardCharsets.UTF_8);
+      return blobContent;
+    } catch(Exception ex) {
+      LOG.error("Exception while attempting to retrieve file from GCS. ProjectId: {}, Bucket name: {}, Object name: {}", projectId, bucketName, objectName);
+      return null;
+    }
   }
 
   public static String getJDBCPassword(DVTOptionsCore options) {
@@ -442,6 +448,14 @@ public class Helpers {
     } // for
 
     LOG.info(String.format("*******End of partition range(s) for table %s", tableName));
+  }
+
+  public static List<String> getShardListFromCommaSeparatedString(String commaSeparatedShards) {
+    if(Helpers.isNullOrEmpty(commaSeparatedShards)) {
+      return new ArrayList<>();
+    }
+
+    return Arrays.asList(commaSeparatedShards.split("\\s*,\\s*", 0));
   }
 
   public static void printTimestampThresholdInfo(long baseValue,
