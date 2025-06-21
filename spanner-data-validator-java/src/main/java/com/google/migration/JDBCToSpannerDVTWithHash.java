@@ -83,7 +83,6 @@ import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.Flatten;
 import org.apache.beam.sdk.transforms.MapElements;
 import org.apache.beam.sdk.transforms.ParDo;
-import org.apache.beam.sdk.transforms.Reshuffle;
 import org.apache.beam.sdk.transforms.SerializableFunction;
 import org.apache.beam.sdk.transforms.View;
 import org.apache.beam.sdk.transforms.join.CoGbkResult;
@@ -551,8 +550,7 @@ public class JDBCToSpannerDVTWithHash {
 
     if(customTransformation != null) {
       PCollection<SourceRecord> jdbcRecordsSR =
-          pRanges.apply(String.format("ReshuffleJDBCForTable-%s", tableName),
-                  Reshuffle.viaRandomKey())
+          pRanges
               .apply(String.format("ReadInParallelForTable-%s", tableName),
                   JdbcIO.<PartitionRange, SourceRecord>readAll()
                       .withDataSourceProviderFn(
@@ -585,8 +583,7 @@ public class JDBCToSpannerDVTWithHash {
           ParDo.of(customTransformationDoFn));
     } else {
       PCollection<HashResult> jdbcRecords =
-          pRanges.apply(String.format("ReshuffleJDBCForTable-%s", tableName),
-                  Reshuffle.viaRandomKey())
+          pRanges
               .apply(String.format("ReadInParallelForTable-%s", tableName),
                   JdbcIO.<PartitionRange, HashResult>readAll()
                       .withDataSourceProviderFn(
@@ -688,11 +685,8 @@ public class JDBCToSpannerDVTWithHash {
 
     String readOpsStepName = String.format("ConvertToSpannerIOReadOperationsForTable-%s",
         tableName);
-    String reshuffleOpsStepName = String.format("ReshuffleSpannerForTable-%s",
-        tableName);
 
     pRanges = (PCollection<PartitionRange>) pipelineTracker.applySpannerWait(pRanges);
-    pRanges = pRanges.apply(reshuffleOpsStepName, Reshuffle.viaRandomKey());
 
     // https://cloud.google.com/spanner/docs/samples/spanner-dataflow-readall
     PCollection<ReadOperation> readOps = pRanges
