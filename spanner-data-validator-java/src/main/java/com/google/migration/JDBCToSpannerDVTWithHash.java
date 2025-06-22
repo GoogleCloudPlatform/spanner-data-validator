@@ -752,11 +752,10 @@ public class JDBCToSpannerDVTWithHash {
         .withInstanceId(options.getInstanceId())
         .withDatabaseId(options.getSpannerDatabaseId()));
 
-    FilteryByShard fbs = new FilteryByShard(options.getDdrCount(),
-        options.getServiceNameForShardCalc(),
-        tableName,
-        options.getColNameForShardCalc(),
-        options.getEnableShardFiltering());
+    Long ddrCount = options.getDdrCount();
+    String serviceNameForShardCalc = options.getServiceNameForShardCalc();
+    String colNameForShardCalc = options.getColNameForShardCalc();
+    Boolean enableShardFiltering = options.getEnableShardFiltering();
 
     String convertToHashResultStepName =
         String.format("ConvertToHashResultForTable-%s", tableName);
@@ -769,7 +768,11 @@ public class JDBCToSpannerDVTWithHash {
                         rangeFieldType,
                         adjustTimestampPrecision,
                         timestampThresholdIndex,
-                        fbs)
+                        ddrCount,
+                        serviceNameForShardCalc,
+                        tableName,
+                        colNameForShardCalc,
+                        enableShardFiltering)
             ));
 
     return spannerHashes;
@@ -871,7 +874,10 @@ public class JDBCToSpannerDVTWithHash {
       return;
     }
 
-    p.getCoderRegistry().registerCoderForClass(HashResult.class, AvroCoder.of(HashResult.class));
+    p.getCoderRegistry()
+        .registerCoderForClass(HashResult.class, AvroCoder.of(HashResult.class));
+    p.getCoderRegistry()
+        .registerCoderForClass(FilteryByShard.class, AvroCoder.of(FilteryByShard.class));
 
     if(Helpers.isNullOrEmpty(options.getRunName())) {
       DateTimeFormatter formatter = DateTimeFormat.forPattern("yyyy-MM-dd-HH-mm-ss");

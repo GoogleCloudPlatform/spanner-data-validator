@@ -4,7 +4,16 @@ import com.google.cloud.spanner.Struct;
 import com.google.migration.Helpers;
 import com.google.migration.common.FilteryByShard;
 import com.google.migration.dto.HashResult;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.List;
+import org.apache.avro.io.DatumWriter;
+import org.apache.avro.io.Encoder;
+import org.apache.avro.io.EncoderFactory;
+import org.apache.avro.specific.SpecificDatumWriter;
+import org.apache.beam.sdk.util.SerializableUtils;
+import org.apache.commons.lang3.SerializationUtils;
 import org.junit.Test;
 
 public class FilterByShardTest {
@@ -63,5 +72,25 @@ public class FilterByShardTest {
     assert shardList.get(0).equals("1") : "Expected first item in shard list to be 1 but got " + shardList.get(0);
     assert shardList.get(4).equals("5") : "Expected first item in shard list to be 5 but got " + shardList.get(4);
     assert shardList.contains("4") : "Expected shard list to contain 4 but it does not";
+  }
+
+  @Test
+  public void testSerialization() throws IOException {
+    FilteryByShard fbs1 = new FilteryByShard(72L,
+        "gdb",
+        "nodes",
+        "ddrkey",
+        true);
+
+    SerializableUtils.serializeToByteArray((Serializable) fbs1);
+    // HashResult hr = new HashResult();
+    // SerializationUtils.serialize(hr);
+
+    // DatumWriter<FilteryByShard> datumWriter = new SpecificDatumWriter<>(FilteryByShard.class);
+    // ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    // Encoder encoder = EncoderFactory.get().binaryEncoder(outputStream, null);
+    // datumWriter.write(fbs1, encoder);
+    // encoder.flush();
+    // outputStream.close();
   }
 } // class FilterByShardTest

@@ -62,7 +62,11 @@ public class ShardedHashResult extends HashResult {
         rangeFieldType,
         adjustTimestampPrecision,
         -1,
-        null);
+        1L,
+        "",
+        "",
+        "",
+        false);
     Integer shardId = shardIdCalculator.getShardIndexForShardKey(hashResult.key, numShards);
     return new ShardedHashResult(hashResult, shardId, timestampThresholdValueIn);
   }

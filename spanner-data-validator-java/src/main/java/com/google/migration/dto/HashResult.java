@@ -89,8 +89,18 @@ public class HashResult {
       String rangeFieldType,
       Boolean adjustTimestampPrecision,
       Integer timestampThresholdIndex,
-      FilteryByShard fbs) {
+      Long ddrCount,
+      String serviceName,
+      String tableName,
+      String colNameForShardCalc,
+      Boolean enableShardFiltering) {
     HashResult retVal = new HashResult();
+
+    FilteryByShard fbs = new FilteryByShard(ddrCount,
+        serviceName,
+        tableName,
+        colNameForShardCalc,
+        enableShardFiltering);
 
     int nCols = spannerStruct.getColumnCount();
     StringBuilder sbConcatCols = new StringBuilder();
