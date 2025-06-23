@@ -337,4 +337,10 @@ public interface DVTOptionsCore extends PipelineOptions {
   Boolean getPerformStrongReadAtSpanner();
 
   void setPerformStrongReadAtSpanner(Boolean value);
+
+  @Description("Enable shuffle")
+  @Default.Boolean(true)
+  Boolean getEnableShuffle();
+
+  void setEnableShuffle(Boolean value);
 } // class

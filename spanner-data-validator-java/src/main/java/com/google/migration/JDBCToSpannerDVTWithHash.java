@@ -72,6 +72,7 @@ import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.CreateDisposition;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.WriteDisposition;
 import org.apache.beam.sdk.io.gcp.spanner.ReadOperation;
+import org.apache.beam.sdk.io.gcp.spanner.SpannerConfig;
 import org.apache.beam.sdk.io.gcp.spanner.SpannerIO;
 import org.apache.beam.sdk.io.gcp.spanner.SpannerIO.ReadAll;
 import org.apache.beam.sdk.io.jdbc.JdbcIO;
@@ -84,6 +85,7 @@ import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.Flatten;
 import org.apache.beam.sdk.transforms.MapElements;
 import org.apache.beam.sdk.transforms.ParDo;
+import org.apache.beam.sdk.transforms.Reshuffle;
 import org.apache.beam.sdk.transforms.SerializableFunction;
 import org.apache.beam.sdk.transforms.View;
 import org.apache.beam.sdk.transforms.join.CoGbkResult;
@@ -549,6 +551,8 @@ public class JDBCToSpannerDVTWithHash {
       String username,
       String jdbcPass) {
 
+    Boolean outputParallelization = options.getEnableShuffle();
+
     if(customTransformation != null) {
       PCollection<SourceRecord> jdbcRecordsSR =
           pRanges
@@ -567,7 +571,7 @@ public class JDBCToSpannerDVTWithHash {
                         preparedStatement.setString(2, input.getEndRange());
                       })
                       .withRowMapper(new SourceRecordMapper())
-                      .withOutputParallelization(false)
+                      .withOutputParallelization(outputParallelization)
               );
 
       CustomTransformationDoFn customTransformationDoFn = CustomTransformationDoFn.create(
@@ -605,7 +609,7 @@ public class JDBCToSpannerDVTWithHash {
                           options.getAdjustTimestampPrecision(),
                           timestampThresholdKeyIndex
                       ))
-                      .withOutputParallelization(false)
+                      .withOutputParallelization(outputParallelization)
               );
 
       return jdbcRecords;
@@ -688,6 +692,12 @@ public class JDBCToSpannerDVTWithHash {
         tableName);
 
     pRanges = (PCollection<PartitionRange>) pipelineTracker.applySpannerWait(pRanges);
+
+    if(options.getEnableShuffle()) {
+      String reshuffleOpsStepName = String.format("ReshuffleSpannerForTable-%s",
+          tableName);
+      pRanges = pRanges.apply(reshuffleOpsStepName, Reshuffle.viaRandomKey());
+    }
 
     // https://cloud.google.com/spanner/docs/samples/spanner-dataflow-readall
     PCollection<ReadOperation> readOps = pRanges
