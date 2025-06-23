@@ -693,11 +693,11 @@ public class JDBCToSpannerDVTWithHash {
 
     pRanges = (PCollection<PartitionRange>) pipelineTracker.applySpannerWait(pRanges);
 
-    if(options.getEnableShuffle()) {
-      String reshuffleOpsStepName = String.format("ReshuffleSpannerForTable-%s",
-          tableName);
-      pRanges = pRanges.apply(reshuffleOpsStepName, Reshuffle.viaRandomKey());
-    }
+    // if(options.getEnableShuffle()) {
+    //   String reshuffleOpsStepName = String.format("ReshuffleSpannerForTable-%s",
+    //       tableName);
+    //   pRanges = pRanges.apply(reshuffleOpsStepName, Reshuffle.viaRandomKey());
+    // }
 
     // https://cloud.google.com/spanner/docs/samples/spanner-dataflow-readall
     PCollection<ReadOperation> readOps = pRanges
