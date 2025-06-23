@@ -299,8 +299,6 @@ public class JDBCToSpannerDVTWithHash {
                 tableSpec.getRangeFieldType()))
             .withSideInputs(partitionRangesView));
 
-    pRanges = (PCollection<PartitionRange>) pipelineTracker.applyJDBCWait(pRanges);
-
     PCollection<HashResult> jdbcRecords;
 
     if(Helpers.isNullOrEmpty(shardConfigurationFileUrl)) {
@@ -328,8 +326,6 @@ public class JDBCToSpannerDVTWithHash {
               customTransformation,
               schema);
     }
-
-    pipelineTracker.addToJDBCReadList(jdbcRecords);
 
     // Map Range [start, end) + hash => HashResult (JDBC)
     String mapWithRangesForJDBCStep =
@@ -553,6 +549,8 @@ public class JDBCToSpannerDVTWithHash {
 
     Boolean outputParallelization = options.getEnableShuffle();
 
+    pRanges = (PCollection<PartitionRange>) pipelineTracker.applyJDBCWait(pRanges);
+
     if(customTransformation != null) {
       PCollection<SourceRecord> jdbcRecordsSR =
           pRanges
@@ -611,6 +609,8 @@ public class JDBCToSpannerDVTWithHash {
                       ))
                       .withOutputParallelization(outputParallelization)
               );
+
+      pipelineTracker.addToJDBCReadList(jdbcRecords);
 
       return jdbcRecords;
     } // if/else

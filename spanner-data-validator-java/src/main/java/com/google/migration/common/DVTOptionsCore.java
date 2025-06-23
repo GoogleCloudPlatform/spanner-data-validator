@@ -276,7 +276,7 @@ public interface DVTOptionsCore extends PipelineOptions {
    * Max tables in effect at one time
    */
   @Description("Max tables in effect at one time")
-  @Default.Integer(10)
+  @Default.Integer(100)
   Integer getMaxTablesInEffectAtOneTime();
 
   void setMaxTablesInEffectAtOneTime(Integer value);
