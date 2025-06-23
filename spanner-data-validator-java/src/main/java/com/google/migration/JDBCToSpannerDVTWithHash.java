@@ -37,6 +37,7 @@ import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.Struct;
+import com.google.cloud.spanner.TimestampBound;
 import com.google.migration.common.DVTOptionsCore;
 import com.google.migration.common.FilteryByShard;
 import com.google.migration.common.HikariPoolableDataSourceProvider;
@@ -731,7 +732,8 @@ public class JDBCToSpannerDVTWithHash {
                           rangeFieldType));
                   }
                   ReadOperation readOperation =
-                      ReadOperation.create().withQuery(statement);
+                      ReadOperation.create()
+                          .withQuery(statement);
 
                   return readOperation;
                 }));
@@ -744,6 +746,10 @@ public class JDBCToSpannerDVTWithHash {
     ReadAll spannerRead = SpannerIO.readAll();
     if(options.getReadFromSpannerWithHighPriorityCPU()) {
       spannerRead = spannerRead.withHighPriority();
+    }
+
+    if(options.getPerformStrongReadAtSpanner()) {
+      spannerRead = spannerRead.withTimestampBound(TimestampBound.strong());
     }
 
     PCollection<Struct> spannerRecords =

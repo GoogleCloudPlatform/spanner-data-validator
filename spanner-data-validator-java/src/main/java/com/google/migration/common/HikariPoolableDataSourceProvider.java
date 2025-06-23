@@ -52,7 +52,6 @@ public class HikariPoolableDataSourceProvider implements SerializableFunction<Vo
           ds.setDriverClassName(this.driverClassName);
 
           ds.setMaximumPoolSize(maxConnections);
-          ds.setIdleTimeout(10000);
           ds.setKeepaliveTime(30000);
           ds.setMaxLifetime(31000);
           ds.setConnectionTimeout(1000 * 3600 * 3);

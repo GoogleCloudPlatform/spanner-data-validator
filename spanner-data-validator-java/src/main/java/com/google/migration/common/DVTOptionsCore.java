@@ -331,4 +331,10 @@ public interface DVTOptionsCore extends PipelineOptions {
   String getShardsToInclude();
 
   void setShardsToInclude(String value);
+
+  @Description("Strong read at Spanner")
+  @Default.Boolean(true)
+  Boolean getPerformStrongReadAtSpanner();
+
+  void setPerformStrongReadAtSpanner(Boolean value);
 } // class
