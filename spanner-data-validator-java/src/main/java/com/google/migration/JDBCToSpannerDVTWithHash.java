@@ -575,7 +575,7 @@ public class JDBCToSpannerDVTWithHash {
                         preparedStatement.setString(2, input.getEndRange());
                       })
                       .withRowMapper(new SourceRecordMapper())
-                      .withOutputParallelization(outputParallelization)
+                      .withOutputParallelization(true)
               );
 
       CustomTransformationDoFn customTransformationDoFn = CustomTransformationDoFn.create(
@@ -613,7 +613,7 @@ public class JDBCToSpannerDVTWithHash {
                           options.getAdjustTimestampPrecision(),
                           timestampThresholdKeyIndex
                       ))
-                      .withOutputParallelization(outputParallelization)
+                      .withOutputParallelization(true)
               );
 
       pipelineTracker.addToJDBCReadList(jdbcRecords);
