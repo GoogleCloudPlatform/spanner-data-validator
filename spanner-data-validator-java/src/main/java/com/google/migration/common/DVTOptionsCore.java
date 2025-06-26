@@ -343,4 +343,10 @@ public interface DVTOptionsCore extends PipelineOptions {
   Boolean getEnableShuffle();
 
   void setEnableShuffle(Boolean value);
+
+  @Description("Stale read timestamp bound")
+  @Default.Long(60)
+  Long getMaxStalenessInSeconds();
+
+  void setMaxStalenessInSeconds(Long value);
 } // class
