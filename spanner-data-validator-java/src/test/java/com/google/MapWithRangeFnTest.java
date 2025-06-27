@@ -48,15 +48,17 @@ public class MapWithRangeFnTest {
         MapWithRangeType.RANGE_PLUS_HASH,
         fieldType);
 
-    PartitionRange pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    mapFn.initializeSortedPartitionRange(pRanges);
+
+    PartitionRange pRange = mapFn.getPartitionRangeForRecord(hr);
     assertEquals(pRange.getStartRange(), "0");
 
     hr.key = "1";
-    pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    pRange = mapFn.getPartitionRangeForRecord(hr);
     assertEquals(pRange.getStartRange(), "0");
 
     hr.key = String.valueOf(Integer.MAX_VALUE - 1);
-    pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    pRange = mapFn.getPartitionRangeForRecord(hr);
     assertNotEquals(pRange.getStartRange(), "1");
   }
 
@@ -78,15 +80,16 @@ public class MapWithRangeFnTest {
         MapWithRangeType.RANGE_PLUS_HASH,
         fieldType);
 
-    PartitionRange pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    mapFn.initializeSortedPartitionRange(pRanges);
+    PartitionRange pRange = mapFn.getPartitionRangeForRecord(hr);
     assertEquals(pRange.getStartRange(), "0");
 
     hr.key = "1";
-    pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    pRange = mapFn.getPartitionRangeForRecord(hr);
     assertEquals(pRange.getStartRange(), "0");
 
     hr.key = String.valueOf(Long.MAX_VALUE - 1);
-    pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    pRange = mapFn.getPartitionRangeForRecord(hr);
     assertNotEquals(pRange.getStartRange(), "1");
   }
 
@@ -121,15 +124,17 @@ public class MapWithRangeFnTest {
         MapWithRangeType.RANGE_PLUS_HASH,
         fieldType);
 
-    PartitionRange pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    mapFn.initializeSortedPartitionRange(pRanges);
+
+    PartitionRange pRange = mapFn.getPartitionRangeForRecord(hr);
     assertEquals(pRange.getStartRange(), startRange);
 
     hr.key = String.valueOf(startRangeL + 1L);
-    pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    pRange = mapFn.getPartitionRangeForRecord(hr);
     assertEquals(pRange.getStartRange(), startRange);
 
     hr.key = String.valueOf(endRangeL - 1);
-    pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    pRange = mapFn.getPartitionRangeForRecord(hr);
     assertNotEquals(pRange.getStartRange(), "1");
     assertEquals(pRange.getEndRange(), endRange);
   }
@@ -150,13 +155,15 @@ public class MapWithRangeFnTest {
         MapWithRangeType.RANGE_PLUS_HASH,
         fieldType);
 
-    PartitionRange pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    mapFn.initializeSortedPartitionRange(pRanges);
+
+    PartitionRange pRange = mapFn.getPartitionRangeForRecord(hr);
     assertEquals(pRange.getStartRange(), zeroUUID.toString());
 
     val = BigInteger.ONE;
     UUID oneUUID = Helpers.bigIntToUUID(val);
     hr.key = oneUUID.toString();
-    pRange = mapFn.getPartitionRangeForRecord(hr, pRanges);
+    pRange = mapFn.getPartitionRangeForRecord(hr);
     assertEquals(pRange.getStartRange(), zeroUUID.toString());
   }
 } // class MapWithRangeFnTest

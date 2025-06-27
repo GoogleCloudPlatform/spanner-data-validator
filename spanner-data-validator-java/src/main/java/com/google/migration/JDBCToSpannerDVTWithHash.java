@@ -73,7 +73,6 @@ import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.CreateDisposition;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.WriteDisposition;
 import org.apache.beam.sdk.io.gcp.spanner.ReadOperation;
-import org.apache.beam.sdk.io.gcp.spanner.SpannerConfig;
 import org.apache.beam.sdk.io.gcp.spanner.SpannerIO;
 import org.apache.beam.sdk.io.gcp.spanner.SpannerIO.ReadAll;
 import org.apache.beam.sdk.io.jdbc.JdbcIO;
@@ -547,8 +546,6 @@ public class JDBCToSpannerDVTWithHash {
       String shardId,
       String username,
       String jdbcPass) {
-
-    Boolean outputParallelization = options.getEnableShuffle();
 
     if(options.getEnableShuffle()) {
       String reshuffleOpsStepName = String.format("ReshuffleJDBCForTable-%s",
