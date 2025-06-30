@@ -62,6 +62,18 @@ public class FilterByShardTest {
     fbs1.setLogicalShardId(hr, spannerStruct);
     logicalShardId = Long.parseLong(hr.getLogicalShardId());
     assert logicalShardId == 0L : "Expected shard ID to be 1, but got " + logicalShardId;
+
+    spannerStruct = Struct.newBuilder()
+        .set("ddrkey").to(-9223354496199950336L)
+        .build();
+    fbs1 = new FilteryByShard(36L,
+        "itemhouse",
+        "ih_items",
+        "ddrkey",
+        true);
+    fbs1.setLogicalShardId(hr, spannerStruct);
+    logicalShardId = Long.parseLong(hr.getLogicalShardId());
+    assert logicalShardId == 25L : "Expected shard ID to be 25, but got " + logicalShardId;
   }
 
   @Test
@@ -72,6 +84,30 @@ public class FilterByShardTest {
     assert shardList.get(0).equals("1") : "Expected first item in shard list to be 1 but got " + shardList.get(0);
     assert shardList.get(4).equals("5") : "Expected first item in shard list to be 5 but got " + shardList.get(4);
     assert shardList.contains("4") : "Expected shard list to contain 4 but it does not";
+  }
+
+  @Test
+  public void singleValueShardListTest() {
+    String commaSeparatedShardList = "25";
+    List<String> shardList = Helpers.getShardListFromCommaSeparatedString(commaSeparatedShardList);
+    assert shardList.size() == 1 : "Expected shard list to be of size 1, but got " +shardList.size();
+    assert shardList.get(0).equals("25") : "Expected first item in shard list to be 25 but got " + shardList.get(0);
+  }
+
+  @Test
+  public void filterbyShardCountTest() {
+    HashResult hr = new HashResult();
+    Struct spannerStruct = Struct.newBuilder()
+        .set("ddrkey").to(-9223354496199950336L)
+        .build();
+    FilteryByShard fbs1 = new FilteryByShard(36L,
+        "itemhouse",
+        "ih_items",
+        "ddrkey",
+        true);
+    fbs1.setLogicalShardId(hr, spannerStruct);
+    Long logicalShardId = Long.parseLong(hr.getLogicalShardId());
+    assert logicalShardId == 25L : "Expected shard ID to be 25, but got " + logicalShardId;
   }
 
   @Test

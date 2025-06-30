@@ -350,7 +350,8 @@ public class JDBCToSpannerDVTWithHash {
     if(options.getEnableShardFiltering()) {
       List<String> shardsToInclude =
           Helpers.getShardListFromCommaSeparatedString(options.getShardsToInclude());
-      countMatchesDoFn = new CountMatchesWithShardFilteringDoFn(shardsToInclude);
+      Boolean enableVerboseLogging = options.getEnableVerboseLogging();
+      countMatchesDoFn = new CountMatchesWithShardFilteringDoFn(shardsToInclude, enableVerboseLogging);
       stepName = String.format("CountMatchesWithShardFilteringForTable-%s", tableName);
     } else {
       countMatchesDoFn = new CountMatchesDoFn(tableSpec.getTimestampThresholdValue(),

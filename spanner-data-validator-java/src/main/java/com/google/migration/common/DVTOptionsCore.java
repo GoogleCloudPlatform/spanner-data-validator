@@ -349,4 +349,10 @@ public interface DVTOptionsCore extends PipelineOptions {
   Long getMaxStalenessInSeconds();
 
   void setMaxStalenessInSeconds(Long value);
+
+  @Description("Verbose logging")
+  @Default.Boolean(false)
+  Boolean getEnableVerboseLogging();
+
+  void setEnableVerboseLogging(Boolean value);
 } // class

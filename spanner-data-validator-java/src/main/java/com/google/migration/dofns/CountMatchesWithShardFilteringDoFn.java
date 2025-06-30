@@ -11,13 +11,8 @@ import static com.google.migration.SharedTags.unmatchedSpannerRecordValuesTag;
 import static com.google.migration.SharedTags.unmatchedSpannerRecordsTag;
 
 import com.google.migration.dto.HashResult;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.apache.beam.sdk.transforms.DoFn;
-import org.apache.beam.sdk.transforms.DoFn.MultiOutputReceiver;
-import org.apache.beam.sdk.transforms.DoFn.ProcessContext;
-import org.apache.beam.sdk.transforms.DoFn.ProcessElement;
 import org.apache.beam.sdk.transforms.join.CoGbkResult;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;
@@ -27,12 +22,15 @@ public class CountMatchesWithShardFilteringDoFn extends
     DoFn<KV<String, CoGbkResult>, KV<String, Long>> {
   private static final Logger LOG = LoggerFactory.getLogger(CountMatchesWithShardFilteringDoFn.class);
 
+  private Boolean enableVerboseLogging = false;
   private List<String> shardsToInclude = null;
   public CountMatchesWithShardFilteringDoFn() {
   }
 
-  public CountMatchesWithShardFilteringDoFn(List<String> shardsToIncludeIn) {
+  public CountMatchesWithShardFilteringDoFn(List<String> shardsToIncludeIn,
+      Boolean enableVerboseLoggingIn) {
     shardsToInclude = shardsToIncludeIn;
+    enableVerboseLogging = enableVerboseLoggingIn;
   }
 
   @ProcessElement
@@ -49,9 +47,15 @@ public class CountMatchesWithShardFilteringDoFn extends
     if (spannerRecords.iterator().hasNext()) {
       spannerRecord = spannerRecords.iterator().next();
     }
+
     if(spannerRecord != null) {
       if(shardsToInclude != null && shardsToInclude.size() > 0) {
         if(!shardsToInclude.contains(spannerRecord.getLogicalShardId())) {
+
+          if(enableVerboseLogging) {
+            LOG.warn("Skipping record w/ logical shard id: {}", spannerRecord.getLogicalShardId());
+            LOG.warn("Shards to include: {}", String.join(",", shardsToInclude));
+          }
           return;
         }
       }
