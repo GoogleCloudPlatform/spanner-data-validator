@@ -66,6 +66,7 @@ public class ShardedHashResult extends HashResult {
         "",
         "",
         "",
+        false,
         false);
     Integer shardId = shardIdCalculator.getShardIndexForShardKey(hashResult.key, numShards);
     return new ShardedHashResult(hashResult, shardId, timestampThresholdValueIn);

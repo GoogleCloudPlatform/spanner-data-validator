@@ -1,7 +1,6 @@
 package com.google.migration.common;
 
 import com.google.cloud.spanner.Struct;
-import com.google.migration.Helpers;
 import com.google.migration.dto.HashResult;
 import org.apache.beam.sdk.coders.DefaultCoder;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
@@ -63,8 +62,15 @@ public class FilteryByShard {
     } // switch
   }
 
-  public void setLogicalShardId(HashResult hashResult, Struct spannerStruct) {
+  public void setLogicalShardId(HashResult hashResult,
+      Struct spannerStruct,
+      Boolean enableVerboseLogging) {
     if(!enableShardFiltering || ddrCount == 1) {
+      if(enableVerboseLogging) {
+        LOG.warn("'Setting logical shard to 0!. enableShardFiltering: {}, ddrCount:{}",
+            enableShardFiltering,
+            ddrCount);
+      }
       hashResult.setLogicalShardId("0");
       return;
     }
@@ -79,6 +85,12 @@ public class FilteryByShard {
       Long shardedIdValue = Long.reverse(ddrKeyValue);
       Long logicalShardId = shardedIdValue % this.ddrCount;
       hashResult.setLogicalShardId(Long.toString(logicalShardId));
+
+      if(enableVerboseLogging) {
+        LOG.warn("'Setting logical shard to {}. ddrKeyValue: {}",
+            logicalShardId,
+            ddrKeyValue);
+      }
     }
     else if(serviceName.equals(TRADEHOUSEI_SERVICE_NAME)) {
       if(spannerStruct.isNull(defaultDdrColumn)) {
@@ -106,6 +118,10 @@ public class FilteryByShard {
       }
 
       hashResult.setLogicalShardId(Long.toString(logicalShardId));
+    } else {
+      if(enableVerboseLogging) {
+        LOG.warn("'{}' unknown service name!", serviceName);
+      }
     }
   }
 

@@ -93,7 +93,8 @@ public class HashResult {
       String serviceName,
       String tableName,
       String colNameForShardCalc,
-      Boolean enableShardFiltering) {
+      Boolean enableShardFiltering,
+      Boolean enableVerboseLogging) {
     HashResult retVal = new HashResult();
 
     FilteryByShard fbs = new FilteryByShard(ddrCount,
@@ -189,7 +190,7 @@ public class HashResult {
     retVal.isSource = false;
     LOG.debug("SpannerHash=> Key={}, OrigValue={} \n HashResult={}", retVal.key, retVal.origValue, retVal.sha256);
 
-    fbs.setLogicalShardId(retVal, spannerStruct);
+    fbs.setLogicalShardId(retVal, spannerStruct, enableVerboseLogging);
 
     return retVal;
   }

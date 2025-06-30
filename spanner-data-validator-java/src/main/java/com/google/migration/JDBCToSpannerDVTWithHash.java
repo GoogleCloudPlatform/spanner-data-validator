@@ -781,6 +781,7 @@ public class JDBCToSpannerDVTWithHash {
     String serviceNameForShardCalc = options.getServiceNameForShardCalc();
     String colNameForShardCalc = options.getColNameForShardCalc();
     Boolean enableShardFiltering = options.getEnableShardFiltering();
+    Boolean enableVerboseLogging = options.getEnableVerboseLogging();
 
     String convertToHashResultStepName =
         String.format("ConvertToHashResultForTable-%s", tableName);
@@ -797,7 +798,8 @@ public class JDBCToSpannerDVTWithHash {
                         serviceNameForShardCalc,
                         tableName,
                         colNameForShardCalc,
-                        enableShardFiltering)
+                        enableShardFiltering,
+                        enableVerboseLogging)
             ));
 
     return spannerHashes;

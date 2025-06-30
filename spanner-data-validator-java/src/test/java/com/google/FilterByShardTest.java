@@ -32,11 +32,11 @@ public class FilterByShardTest {
         .build();
 
     HashResult hr = new HashResult();
-    fbs1.setLogicalShardId(hr, spannerStruct);
+    fbs1.setLogicalShardId(hr, spannerStruct, true);
     System.out.println(hr.getLogicalShardId());
 
     fbs1.setTableName("edges");
-    fbs1.setLogicalShardId(hr, spannerStruct);
+    fbs1.setLogicalShardId(hr, spannerStruct, true);
     System.out.println(hr.getLogicalShardId());
 
     spannerStruct = Struct.newBuilder()
@@ -47,7 +47,7 @@ public class FilterByShardTest {
         "th_packagecontents",
         "ddrkey",
         true);
-    fbs1.setLogicalShardId(hr, spannerStruct);
+    fbs1.setLogicalShardId(hr, spannerStruct, true);
     Long logicalShardId = Long.parseLong(hr.getLogicalShardId());
     assert logicalShardId == 1L : "Expected shard ID to be 1, but got " + logicalShardId;
 
@@ -59,7 +59,7 @@ public class FilterByShardTest {
         "th_search_playercards",
         "ddrkey",
         true);
-    fbs1.setLogicalShardId(hr, spannerStruct);
+    fbs1.setLogicalShardId(hr, spannerStruct, true);
     logicalShardId = Long.parseLong(hr.getLogicalShardId());
     assert logicalShardId == 0L : "Expected shard ID to be 1, but got " + logicalShardId;
 
@@ -71,7 +71,7 @@ public class FilterByShardTest {
         "ih_items",
         "ddrkey",
         true);
-    fbs1.setLogicalShardId(hr, spannerStruct);
+    fbs1.setLogicalShardId(hr, spannerStruct, true);
     logicalShardId = Long.parseLong(hr.getLogicalShardId());
     assert logicalShardId == 25L : "Expected shard ID to be 25, but got " + logicalShardId;
   }
@@ -105,7 +105,7 @@ public class FilterByShardTest {
         "ih_items",
         "ddrkey",
         true);
-    fbs1.setLogicalShardId(hr, spannerStruct);
+    fbs1.setLogicalShardId(hr, spannerStruct, true);
     Long logicalShardId = Long.parseLong(hr.getLogicalShardId());
     assert logicalShardId == 25L : "Expected shard ID to be 25, but got " + logicalShardId;
   }
