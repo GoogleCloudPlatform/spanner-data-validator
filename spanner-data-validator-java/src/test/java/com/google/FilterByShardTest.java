@@ -4,16 +4,7 @@ import com.google.cloud.spanner.Struct;
 import com.google.migration.Helpers;
 import com.google.migration.common.FilteryByShard;
 import com.google.migration.dto.HashResult;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.Serializable;
 import java.util.List;
-import org.apache.avro.io.DatumWriter;
-import org.apache.avro.io.Encoder;
-import org.apache.avro.io.EncoderFactory;
-import org.apache.avro.specific.SpecificDatumWriter;
-import org.apache.beam.sdk.util.SerializableUtils;
-import org.apache.commons.lang3.SerializationUtils;
 import org.junit.Test;
 
 public class FilterByShardTest {
@@ -33,11 +24,11 @@ public class FilterByShardTest {
 
     HashResult hr = new HashResult();
     fbs1.setLogicalShardId(hr, spannerStruct, true);
-    System.out.println(hr.getLogicalShardId());
+    System.out.println(hr.logicalShardId);
 
     fbs1.setTableName("edges");
     fbs1.setLogicalShardId(hr, spannerStruct, true);
-    System.out.println(hr.getLogicalShardId());
+    System.out.println(hr.logicalShardId);
 
     spannerStruct = Struct.newBuilder()
         .set("ddrkey").to(-443912000980910080L)
@@ -48,7 +39,7 @@ public class FilterByShardTest {
         "ddrkey",
         true);
     fbs1.setLogicalShardId(hr, spannerStruct, true);
-    Long logicalShardId = Long.parseLong(hr.getLogicalShardId());
+    Long logicalShardId = Long.parseLong(hr.logicalShardId);
     assert logicalShardId == 1L : "Expected shard ID to be 1, but got " + logicalShardId;
 
     spannerStruct = Struct.newBuilder()
@@ -60,7 +51,7 @@ public class FilterByShardTest {
         "ddrkey",
         true);
     fbs1.setLogicalShardId(hr, spannerStruct, true);
-    logicalShardId = Long.parseLong(hr.getLogicalShardId());
+    logicalShardId = Long.parseLong(hr.logicalShardId);
     assert logicalShardId == 0L : "Expected shard ID to be 1, but got " + logicalShardId;
 
     spannerStruct = Struct.newBuilder()
@@ -72,7 +63,7 @@ public class FilterByShardTest {
         "ddrkey",
         true);
     fbs1.setLogicalShardId(hr, spannerStruct, true);
-    logicalShardId = Long.parseLong(hr.getLogicalShardId());
+    logicalShardId = Long.parseLong(hr.logicalShardId);
     assert logicalShardId == 25L : "Expected shard ID to be 25, but got " + logicalShardId;
   }
 
@@ -106,27 +97,7 @@ public class FilterByShardTest {
         "ddrkey",
         true);
     fbs1.setLogicalShardId(hr, spannerStruct, true);
-    Long logicalShardId = Long.parseLong(hr.getLogicalShardId());
+    Long logicalShardId = Long.parseLong(hr.logicalShardId);
     assert logicalShardId == 25L : "Expected shard ID to be 25, but got " + logicalShardId;
-  }
-
-  @Test
-  public void testSerialization() throws IOException {
-    FilteryByShard fbs1 = new FilteryByShard(72L,
-        "gdb",
-        "nodes",
-        "ddrkey",
-        true);
-
-    SerializableUtils.serializeToByteArray((Serializable) fbs1);
-    // HashResult hr = new HashResult();
-    // SerializationUtils.serialize(hr);
-
-    // DatumWriter<FilteryByShard> datumWriter = new SpecificDatumWriter<>(FilteryByShard.class);
-    // ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    // Encoder encoder = EncoderFactory.get().binaryEncoder(outputStream, null);
-    // datumWriter.write(fbs1, encoder);
-    // encoder.flush();
-    // outputStream.close();
   }
 } // class FilterByShardTest

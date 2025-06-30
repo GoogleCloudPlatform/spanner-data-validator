@@ -64,10 +64,10 @@ public class CountMatchesWithShardFilteringDoFn extends
 
     if(spannerRecord != null) {
       if(shardsToInclude != null && shardsToInclude.size() > 0) {
-        if(!shardsToInclude.contains(spannerRecord.getLogicalShardId())) {
+        if(!shardsToInclude.contains(spannerRecord.logicalShardId)) {
 
           if(enableVerboseLogging) {
-            LOG.warn("Skipping record w/ logical shard id: {}", spannerRecord.getLogicalShardId());
+            LOG.warn("Skipping record w/ logical shard id: {}", spannerRecord.logicalShardId);
             LOG.warn("Shards to include: {}", String.join(",", shardsToInclude));
           }
           return;

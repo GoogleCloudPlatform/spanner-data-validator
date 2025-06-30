@@ -71,7 +71,7 @@ public class FilteryByShard {
             enableShardFiltering,
             ddrCount);
       }
-      hashResult.setLogicalShardId("0");
+      hashResult.logicalShardId = "0";
       return;
     }
 

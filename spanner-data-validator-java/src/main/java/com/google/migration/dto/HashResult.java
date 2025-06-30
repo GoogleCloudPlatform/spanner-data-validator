@@ -51,14 +51,6 @@ public class HashResult {
   public HashResult() {
   }
 
-  public void setLogicalShardId(String logicalShardIdIn) {
-    logicalShardId = logicalShardIdIn;
-  }
-
-  public String getLogicalShardId() {
-    return logicalShardId;
-  }
-
   @Override
   public String toString() {
     return "HashResult{" +
