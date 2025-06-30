@@ -62,8 +62,7 @@ public class FilteryByShard {
     } // switch
   }
 
-  public void setLogicalShardId(HashResult hashResult,
-      Struct spannerStruct,
+  public String getLogicalShardId(Struct spannerStruct,
       Boolean enableVerboseLogging) {
     if(!enableShardFiltering || ddrCount == 1) {
       if(enableVerboseLogging) {
@@ -71,31 +70,29 @@ public class FilteryByShard {
             enableShardFiltering,
             ddrCount);
       }
-      hashResult.logicalShardId = "0";
-      return;
+      return "0";
     }
 
     if(serviceName.equals(OTHER_SERVICE_NAME)) {
       if(spannerStruct.isNull(defaultDdrColumn)) {
         LOG.warn("'{}' column value is null!", defaultDdrColumn);
-        return;
+        return "0";
       }
 
       Long ddrKeyValue = spannerStruct.getLong(defaultDdrColumn);
       Long shardedIdValue = Long.reverse(ddrKeyValue);
       Long logicalShardId = shardedIdValue % this.ddrCount;
-      hashResult.logicalShardId = Long.toString(logicalShardId);
+      return Long.toString(logicalShardId);
     }
     else if(serviceName.equals(TRADEHOUSEI_SERVICE_NAME)) {
       if(spannerStruct.isNull(defaultDdrColumn)) {
         LOG.warn("'{}' column value is null!", defaultDdrColumn);
-        return;
+        return "0";
       }
 
       Long ddrKeyValue = spannerStruct.getLong(defaultDdrColumn);
 
       Long logicalShardId = ddrKeyValue % this.ddrCount;
-      hashResult.logicalShardId = Long.toString(logicalShardId);
 
       if(enableVerboseLogging) {
         LOG.warn("'Setting logical shard to {}. ddrKeyValue: {}; ddrCount: {}",
@@ -103,6 +100,8 @@ public class FilteryByShard {
             ddrKeyValue,
             ddrCount);
       }
+
+      return Long.toString(logicalShardId);
     }
     else if(serviceName.equals(GDB_SERVICE_NAME)) {
       Long logicalShardId = 0L;
@@ -118,11 +117,13 @@ public class FilteryByShard {
         logicalShardId = hash(key) % this.ddrCount.longValue();
       }
 
-      hashResult.logicalShardId = Long.toString(logicalShardId);
+      return Long.toString(logicalShardId);
     } else {
       if(enableVerboseLogging) {
         LOG.warn("'{}' unknown service name!", serviceName);
       }
+
+      return "0";
     }
   }
 

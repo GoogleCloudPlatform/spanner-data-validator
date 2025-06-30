@@ -23,11 +23,11 @@ public class FilterByShardTest {
         .build();
 
     HashResult hr = new HashResult();
-    fbs1.setLogicalShardId(hr, spannerStruct, true);
+    hr.logicalShardId = fbs1.getLogicalShardId(spannerStruct, true);
     System.out.println(hr.logicalShardId);
 
     fbs1.setTableName("edges");
-    fbs1.setLogicalShardId(hr, spannerStruct, true);
+    hr.logicalShardId = fbs1.getLogicalShardId(spannerStruct, true);
     System.out.println(hr.logicalShardId);
 
     spannerStruct = Struct.newBuilder()
@@ -38,7 +38,7 @@ public class FilterByShardTest {
         "th_packagecontents",
         "ddrkey",
         true);
-    fbs1.setLogicalShardId(hr, spannerStruct, true);
+    hr.logicalShardId = fbs1.getLogicalShardId(spannerStruct, true);
     Long logicalShardId = Long.parseLong(hr.logicalShardId);
     assert logicalShardId == 1L : "Expected shard ID to be 1, but got " + logicalShardId;
 
@@ -50,7 +50,7 @@ public class FilterByShardTest {
         "th_search_playercards",
         "ddrkey",
         true);
-    fbs1.setLogicalShardId(hr, spannerStruct, true);
+    hr.logicalShardId = fbs1.getLogicalShardId(spannerStruct, true);
     logicalShardId = Long.parseLong(hr.logicalShardId);
     assert logicalShardId == 0L : "Expected shard ID to be 1, but got " + logicalShardId;
 
@@ -62,7 +62,7 @@ public class FilterByShardTest {
         "ih_items",
         "ddrkey",
         true);
-    fbs1.setLogicalShardId(hr, spannerStruct, true);
+    hr.logicalShardId = fbs1.getLogicalShardId(spannerStruct, true);
     logicalShardId = Long.parseLong(hr.logicalShardId);
     assert logicalShardId == 25L : "Expected shard ID to be 25, but got " + logicalShardId;
   }
@@ -96,7 +96,7 @@ public class FilterByShardTest {
         "ih_items",
         "ddrkey",
         true);
-    fbs1.setLogicalShardId(hr, spannerStruct, true);
+    hr.logicalShardId = fbs1.getLogicalShardId(spannerStruct, true);
     Long logicalShardId = Long.parseLong(hr.logicalShardId);
     assert logicalShardId == 25L : "Expected shard ID to be 25, but got " + logicalShardId;
   }

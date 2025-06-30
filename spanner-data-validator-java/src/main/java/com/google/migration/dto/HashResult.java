@@ -182,7 +182,8 @@ public class HashResult {
     retVal.isSource = false;
     LOG.debug("SpannerHash=> Key={}, OrigValue={} \n HashResult={}", retVal.key, retVal.origValue, retVal.sha256);
 
-    fbs.setLogicalShardId(retVal, spannerStruct, enableVerboseLogging);
+    retVal.logicalShardId = fbs.getLogicalShardId(spannerStruct, enableVerboseLogging);
+
     if(enableVerboseLogging) {
       LOG.warn("'Setting logical shard to {}. ddrCount: {}",
           retVal.logicalShardId,

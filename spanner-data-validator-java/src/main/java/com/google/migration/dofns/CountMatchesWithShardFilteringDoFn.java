@@ -13,7 +13,6 @@ import static com.google.migration.SharedTags.unmatchedSpannerRecordsTag;
 import com.google.migration.dto.HashResult;
 import java.util.List;
 import org.apache.beam.sdk.metrics.Counter;
-import org.apache.beam.sdk.metrics.Gauge;
 import org.apache.beam.sdk.metrics.Metrics;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.join.CoGbkResult;
