@@ -12,6 +12,9 @@ import static com.google.migration.SharedTags.unmatchedSpannerRecordsTag;
 
 import com.google.migration.dto.HashResult;
 import java.util.List;
+import org.apache.beam.sdk.metrics.Counter;
+import org.apache.beam.sdk.metrics.Gauge;
+import org.apache.beam.sdk.metrics.Metrics;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.join.CoGbkResult;
 import org.apache.beam.sdk.values.KV;
@@ -24,13 +27,24 @@ public class CountMatchesWithShardFilteringDoFn extends
 
   private Boolean enableVerboseLogging = false;
   private List<String> shardsToInclude = null;
+  private String runName;
+
+  String spannerDVTRunNamespace = String.format("SpannerDVT-%s", runName);
+  Counter matchedRecordsCounter = Metrics.counter(spannerDVTRunNamespace, "matchedrecords");
+  Counter unmatchedJDBCRecordsCounter = Metrics.counter(spannerDVTRunNamespace, "unmatchedjdbcrecords");
+  Counter unmatchedSpannerRecordsCounter = Metrics.counter(spannerDVTRunNamespace, "unmatchedspannerrecords");
+  Counter sourceRecordCounter = Metrics.counter(spannerDVTRunNamespace, "sourcerecords");
+  Counter targetRecordCounter = Metrics.counter(spannerDVTRunNamespace, "targetrecords");
+
   public CountMatchesWithShardFilteringDoFn() {
   }
 
   public CountMatchesWithShardFilteringDoFn(List<String> shardsToIncludeIn,
-      Boolean enableVerboseLoggingIn) {
+      Boolean enableVerboseLoggingIn,
+      String runNameIn) {
     shardsToInclude = shardsToIncludeIn;
     enableVerboseLogging = enableVerboseLoggingIn;
+    runName = runNameIn;
   }
 
   @ProcessElement
@@ -62,14 +76,24 @@ public class CountMatchesWithShardFilteringDoFn extends
     }
 
     if (spannerRecord != null && jdbcRecord != null) {
+      matchedRecordsCounter.inc();
+      sourceRecordCounter.inc();
+      targetRecordCounter.inc();
+
       out.get(matchedRecordsTag).output(KV.of(spannerRecord.range, 1L));
       out.get(sourceRecordsTag).output(KV.of(spannerRecord.range, 1L));
       out.get(targetRecordsTag).output(KV.of(spannerRecord.range, 1L));
     } else if(spannerRecord != null) {
+      unmatchedSpannerRecordsCounter.inc();
+      targetRecordCounter.inc();
+
       out.get(unmatchedSpannerRecordsTag).output(KV.of(spannerRecord.range, 1L));
       out.get(targetRecordsTag).output(KV.of(spannerRecord.range, 1L));
       out.get(unmatchedSpannerRecordValuesTag).output(spannerRecord);
     } else if(jdbcRecord != null) {
+      unmatchedJDBCRecordsCounter.inc();
+      sourceRecordCounter.inc();
+
       out.get(unmatchedJDBCRecordsTag).output(KV.of(jdbcRecord.range, 1L));
       out.get(sourceRecordsTag).output(KV.of(jdbcRecord.range, 1L));
       out.get(unmatchedJDBCRecordValuesTag).output(jdbcRecord);

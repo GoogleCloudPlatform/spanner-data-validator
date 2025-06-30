@@ -84,13 +84,7 @@ public class FilteryByShard {
       Long ddrKeyValue = spannerStruct.getLong(defaultDdrColumn);
       Long shardedIdValue = Long.reverse(ddrKeyValue);
       Long logicalShardId = shardedIdValue % this.ddrCount;
-      hashResult.setLogicalShardId(Long.toString(logicalShardId));
-
-      if(enableVerboseLogging) {
-        LOG.warn("'Setting logical shard to {}. ddrKeyValue: {}",
-            logicalShardId,
-            ddrKeyValue);
-      }
+      hashResult.logicalShardId = Long.toString(logicalShardId);
     }
     else if(serviceName.equals(TRADEHOUSEI_SERVICE_NAME)) {
       if(spannerStruct.isNull(defaultDdrColumn)) {
@@ -101,7 +95,14 @@ public class FilteryByShard {
       Long ddrKeyValue = spannerStruct.getLong(defaultDdrColumn);
 
       Long logicalShardId = ddrKeyValue % this.ddrCount;
-      hashResult.setLogicalShardId(Long.toString(logicalShardId));
+      hashResult.logicalShardId = Long.toString(logicalShardId);
+
+      if(enableVerboseLogging) {
+        LOG.warn("'Setting logical shard to {}. ddrKeyValue: {}; ddrCount: {}",
+            logicalShardId,
+            ddrKeyValue,
+            ddrCount);
+      }
     }
     else if(serviceName.equals(GDB_SERVICE_NAME)) {
       Long logicalShardId = 0L;
@@ -117,7 +118,7 @@ public class FilteryByShard {
         logicalShardId = hash(key) % this.ddrCount.longValue();
       }
 
-      hashResult.setLogicalShardId(Long.toString(logicalShardId));
+      hashResult.logicalShardId = Long.toString(logicalShardId);
     } else {
       if(enableVerboseLogging) {
         LOG.warn("'{}' unknown service name!", serviceName);

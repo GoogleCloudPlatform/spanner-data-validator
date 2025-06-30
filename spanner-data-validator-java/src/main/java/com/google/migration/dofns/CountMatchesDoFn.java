@@ -31,6 +31,9 @@ import com.google.migration.dto.HashResult;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import org.apache.beam.sdk.metrics.Counter;
+import org.apache.beam.sdk.metrics.Gauge;
+import org.apache.beam.sdk.metrics.Metrics;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.join.CoGbkResult;
 import org.apache.beam.sdk.values.KV;
@@ -46,12 +49,24 @@ public class CountMatchesDoFn extends DoFn<KV<String, CoGbkResult>, KV<String, L
   private long timestampFilterStart = 0;
   private long timestampFilterEnd = 0;
 
-  public CountMatchesDoFn(long timestampThresholdIn, Integer timestampThresholdDeltaInMinsIn) {
+  private String runName;
+
+  String spannerDVTRunNamespace = String.format("SpannerDVT-%s", runName);
+  Counter matchedRecordsCounter = Metrics.counter(spannerDVTRunNamespace, "matchedrecords");
+  Counter unmatchedJDBCRecordsCounter = Metrics.counter(spannerDVTRunNamespace, "unmatchedjdbcrecords");
+  Counter unmatchedSpannerRecordsCounter = Metrics.counter(spannerDVTRunNamespace, "unmatchedspannerrecords");
+  Counter sourceRecordCounter = Metrics.counter(spannerDVTRunNamespace, "sourcerecords");
+  Counter targetRecordCounter = Metrics.counter(spannerDVTRunNamespace, "targetrecords");
+
+  public CountMatchesDoFn(long timestampThresholdIn, Integer timestampThresholdDeltaInMinsIn,
+      String runNameIn) {
     timestampThreshold = timestampThresholdIn;
     timestampThresholdInEffect = timestampThreshold > 0;
     timestampThresholdDeltaInMins = timestampThresholdDeltaInMinsIn;
-    LOG.info(String.format("Timestamp threshold in effect: %s", timestampThresholdInEffect));
-    LOG.info(String.format("***Timestamp threshold delta in mins: %d", timestampThresholdDeltaInMins));
+    LOG.debug(String.format("Timestamp threshold in effect: %s", timestampThresholdInEffect));
+    LOG.debug(String.format("***Timestamp threshold delta in mins: %d", timestampThresholdDeltaInMins));
+
+    runName = runNameIn;
 
     if(timestampThresholdInEffect) {
       timestampFilterStart = Math.min(timestampThreshold + ((long)timestampThresholdDeltaInMinsIn * 60 * 1000), timestampThreshold);
@@ -94,6 +109,10 @@ public class CountMatchesDoFn extends DoFn<KV<String, CoGbkResult>, KV<String, L
       }
 
       if(emitOutput) {
+        matchedRecordsCounter.inc();
+        sourceRecordCounter.inc();
+        targetRecordCounter.inc();
+
         out.get(matchedRecordsTag).output(KV.of(spannerRecord.range, 1L));
         out.get(sourceRecordsTag).output(KV.of(spannerRecord.range, 1L));
         out.get(targetRecordsTag).output(KV.of(spannerRecord.range, 1L));
@@ -105,6 +124,9 @@ public class CountMatchesDoFn extends DoFn<KV<String, CoGbkResult>, KV<String, L
       }
 
       if(emitOutput) {
+        unmatchedSpannerRecordsCounter.inc();
+        targetRecordCounter.inc();
+
         out.get(unmatchedSpannerRecordsTag).output(KV.of(spannerRecord.range, 1L));
         out.get(targetRecordsTag).output(KV.of(spannerRecord.range, 1L));
         out.get(unmatchedSpannerRecordValuesTag).output(spannerRecord);
@@ -116,6 +138,9 @@ public class CountMatchesDoFn extends DoFn<KV<String, CoGbkResult>, KV<String, L
       }
 
       if(emitOutput) {
+        unmatchedJDBCRecordsCounter.inc();
+        sourceRecordCounter.inc();
+
         out.get(unmatchedJDBCRecordsTag).output(KV.of(jdbcRecord.range, 1L));
         out.get(sourceRecordsTag).output(KV.of(jdbcRecord.range, 1L));
         out.get(unmatchedJDBCRecordValuesTag).output(jdbcRecord);

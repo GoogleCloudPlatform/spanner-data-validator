@@ -45,7 +45,7 @@ public class HashResult {
   public String key;
   public String range = "";
   public String rangeFieldType = TableSpec.UUID_FIELD_TYPE;
-  public String logicalShardId = "0";
+  public String logicalShardId;
   public Long timestampThresholdValue = 0L;
 
   public HashResult() {
@@ -191,6 +191,11 @@ public class HashResult {
     LOG.debug("SpannerHash=> Key={}, OrigValue={} \n HashResult={}", retVal.key, retVal.origValue, retVal.sha256);
 
     fbs.setLogicalShardId(retVal, spannerStruct, enableVerboseLogging);
+    if(enableVerboseLogging) {
+      LOG.warn("'Setting logical shard to {}. ddrCount: {}",
+          retVal.logicalShardId,
+          ddrCount);
+    }
 
     return retVal;
   }
