@@ -318,7 +318,7 @@ public class TableSpecList {
       tableSpec.setRangeCoverage(BigDecimal.valueOf(1));
       PartitionKey partitionKey = determinePartitionKey(sourceTable, spannerTable);
       if (partitionKey == null) {
-        continue;
+        throw new RuntimeException(String.format("Unable to determine partition key for sourceTable: %s. ABORTING!!!", sourceTable));
       }
       tableSpec.setRangeStart(partitionKey.getPartitionKeyMinValue());
       tableSpec.setRangeEnd(partitionKey.getPartitionKeyMaxValue());
