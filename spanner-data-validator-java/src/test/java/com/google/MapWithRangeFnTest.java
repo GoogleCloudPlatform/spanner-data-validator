@@ -43,7 +43,7 @@ public class MapWithRangeFnTest {
     List<PartitionRange> pRanges = fetcher.getPartitionRanges(100);
     assertEquals(pRanges.size(), 100);
 
-    HashResult hr = new HashResult("0", true, "orig", "hash", 0L);
+    HashResult hr = new HashResult("0", true, "orig", "hash", 0L, "0");
     MapWithRangeFn mapFn = new MapWithRangeFn(null,
         MapWithRangeType.RANGE_PLUS_HASH,
         fieldType);
@@ -75,7 +75,7 @@ public class MapWithRangeFnTest {
       System.out.println(String.format("Start: %s, end: %s", pRange.getStartRange(), pRange.getEndRange()));
     }
 
-    HashResult hr = new HashResult("0", true, "orig", "hash", 0L);
+    HashResult hr = new HashResult("0", true, "orig", "hash", 0L, "0");
     MapWithRangeFn mapFn = new MapWithRangeFn(null,
         MapWithRangeType.RANGE_PLUS_HASH,
         fieldType);
@@ -119,7 +119,8 @@ public class MapWithRangeFnTest {
         true,
         "orig",
         "hash",
-        0L);
+        0L,
+        "0");
     MapWithRangeFn mapFn = new MapWithRangeFn(null,
         MapWithRangeType.RANGE_PLUS_HASH,
         fieldType);
@@ -150,7 +151,7 @@ public class MapWithRangeFnTest {
 
     BigInteger val = BigInteger.ZERO;
     UUID zeroUUID = Helpers.bigIntToUUID(val);
-    HashResult hr = new HashResult(zeroUUID.toString(), true, "orig", "hash", 0L);
+    HashResult hr = new HashResult(zeroUUID.toString(), true, "orig", "hash", 0L, "0");
     MapWithRangeFn mapFn = new MapWithRangeFn(null,
         MapWithRangeType.RANGE_PLUS_HASH,
         fieldType);

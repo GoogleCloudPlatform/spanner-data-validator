@@ -45,7 +45,7 @@ public class HashResult {
   public String key;
   public String range = "";
   public String rangeFieldType = TableSpec.UUID_FIELD_TYPE;
-  public String logicalShardId;
+  public String logicalShardId = "";
   public Long timestampThresholdValue = 0L;
 
   public HashResult() {
@@ -60,6 +60,7 @@ public class HashResult {
         ", key='" + key + '\'' +
         ", range='" + range + '\'' +
         ", rangeFieldType='" + rangeFieldType + '\'' +
+        ", logicalShardId='" + logicalShardId + '\'' +
         ", timestampThresholdValue=" + timestampThresholdValue +
         '}';
   }
@@ -68,12 +69,14 @@ public class HashResult {
       Boolean isSourceIn,
       String origValueIn,
       String sha256In,
-      Long timestampThresholdValueIn) {
+      Long timestampThresholdValueIn,
+      String logicalShardIdIn) {
     key = keyIn;
     isSource = isSourceIn;
     origValue = origValueIn;
     sha256 = sha256In;
     timestampThresholdValue = timestampThresholdValueIn;
+    logicalShardId = logicalShardIdIn;
   }
 
   public static HashResult fromSpannerStruct(Struct spannerStruct,

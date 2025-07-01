@@ -108,7 +108,8 @@ public class MapWithRangeFn extends DoFn<HashResult, KV<String, HashResult>> {
         result.isSource,
         result.origValue,
         result.sha256,
-        result.timestampThresholdValue);
+        result.timestampThresholdValue,
+        result.logicalShardId);
     resultOut.range = key;
 
     switch(mappingType) {

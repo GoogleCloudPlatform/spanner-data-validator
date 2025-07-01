@@ -39,13 +39,14 @@ public class ShardedHashResult extends HashResult {
       String origValueIn,
       String sha256In,
       Integer shardIdIn,
-      Long timestampThresholdValueIn) {
-    super(keyIn, isSourceIn, origValueIn, sha256In, timestampThresholdValueIn);
+      Long timestampThresholdValueIn,
+      String logicalShardIdIn) {
+    super(keyIn, isSourceIn, origValueIn, sha256In, timestampThresholdValueIn, logicalShardIdIn);
     shardId = shardIdIn;
   }
 
-  public ShardedHashResult(HashResult hashResult, Integer shardIdIn, Long timestampThresholdValueIn) {
-    super(hashResult.key, hashResult.isSource, hashResult.origValue, hashResult.sha256, timestampThresholdValueIn);
+  public ShardedHashResult(HashResult hashResult, Integer shardIdIn, Long timestampThresholdValueIn, String logicalShardIdIn) {
+    super(hashResult.key, hashResult.isSource, hashResult.origValue, hashResult.sha256, timestampThresholdValueIn, logicalShardIdIn);
     shardId = shardIdIn;
   }
 
@@ -56,6 +57,7 @@ public class ShardedHashResult extends HashResult {
       int numShards,
       ShardIdCalculator shardIdCalculator,
       Long timestampThresholdValueIn,
+      String logicalShardIdIn,
       String tableName) {
     HashResult hashResult = HashResult.fromSpannerStruct(spannerStruct,
         keyIndex,
@@ -69,7 +71,7 @@ public class ShardedHashResult extends HashResult {
         false,
         false);
     Integer shardId = shardIdCalculator.getShardIndexForShardKey(hashResult.key, numShards);
-    return new ShardedHashResult(hashResult, shardId, timestampThresholdValueIn);
+    return new ShardedHashResult(hashResult, shardId, timestampThresholdValueIn, logicalShardIdIn);
   }
 
   public static ShardedHashResult fromJDBCResultSet(ResultSet resultSet,
@@ -77,13 +79,14 @@ public class ShardedHashResult extends HashResult {
       String rangeFieldType,
       Boolean adjustTimestampPrecision,
       Integer shardId,
-      Long timestampThresholdValueIn)
+      Long timestampThresholdValueIn,
+      String logicalShardIdIn)
       throws SQLException {
     HashResult hashResult = HashResult.fromJDBCResultSet(resultSet,
         keyIndex,
         rangeFieldType,
         adjustTimestampPrecision,
         -1);
-    return new ShardedHashResult(hashResult, shardId, timestampThresholdValueIn);
+    return new ShardedHashResult(hashResult, shardId, timestampThresholdValueIn, logicalShardIdIn);
   }
 } // class ShardedHashResult
