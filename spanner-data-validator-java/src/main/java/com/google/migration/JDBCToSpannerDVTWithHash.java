@@ -86,6 +86,7 @@ import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.transforms.Reshuffle;
 import org.apache.beam.sdk.transforms.SerializableFunction;
 import org.apache.beam.sdk.transforms.View;
+import org.apache.beam.sdk.transforms.Wait;
 import org.apache.beam.sdk.transforms.join.CoGbkResult;
 import org.apache.beam.sdk.transforms.join.CoGroupByKey;
 import org.apache.beam.sdk.transforms.join.KeyedPCollectionTuple;
@@ -303,6 +304,7 @@ public class JDBCToSpannerDVTWithHash {
       jdbcRecords =
           getJDBCRecords(tableName,
               pipelineTracker,
+              spannerRecords,
               tableSpec.getSourceQuery(),
               tableSpec.getRangeFieldIndex(),
               tableSpec.getRangeFieldType(),
@@ -315,6 +317,7 @@ public class JDBCToSpannerDVTWithHash {
       jdbcRecords =
           getJDBCRecordsWithSharding(tableName,
               pipelineTracker,
+              spannerRecords,
               tableSpec.getSourceQuery(),
               tableSpec.getRangeFieldIndex(),
               tableSpec.getRangeFieldType(),
@@ -474,6 +477,7 @@ public class JDBCToSpannerDVTWithHash {
 
   protected static PCollection<HashResult> getJDBCRecords(String tableName,
       PipelineTracker pipelineTracker,
+      PCollection<HashResult> spannerRecords,
       String query,
       Integer keyIndex,
       String rangeFieldType,
@@ -505,6 +509,7 @@ public class JDBCToSpannerDVTWithHash {
     //Return the ResultSet back for custom transformations instead of computing HashResult here.
     return getJDBCRecordsHelper(tableName,
         pipelineTracker,
+        spannerRecords,
         query,
         keyIndex,
         rangeFieldType,
@@ -523,6 +528,7 @@ public class JDBCToSpannerDVTWithHash {
   @NotNull
   private static PCollection<HashResult> getJDBCRecordsHelper(String tableName,
       PipelineTracker pipelineTracker,
+      PCollection<HashResult> spannerRecords,
       String query,
       Integer keyIndex,
       String rangeFieldType,
@@ -548,6 +554,7 @@ public class JDBCToSpannerDVTWithHash {
     if(customTransformation != null) {
       PCollection<SourceRecord> jdbcRecordsSR =
           pRanges
+              .apply(String.format("WaitforSpannerReadForTable-%s", tableName), Wait.on(spannerRecords))
               .apply(String.format("ReadInParallelForTable-%s", tableName),
                   JdbcIO.<PartitionRange, SourceRecord>readAll()
                       .withDataSourceProviderFn(
@@ -612,6 +619,7 @@ public class JDBCToSpannerDVTWithHash {
 
   protected static PCollection<HashResult> getJDBCRecordsWithSharding(String tableName,
       PipelineTracker pipelineTracker,
+      PCollection<HashResult> spannerRecords,
       String query,
       Integer keyIndex,
       String rangeFieldType,
@@ -647,6 +655,7 @@ public class JDBCToSpannerDVTWithHash {
       PCollection<HashResult> hashedJDBCRecordsPerShard = getJDBCRecordsHelper(
           tableName,
           pipelineTracker,
+          spannerRecords,
           query,
           keyIndex,
           rangeFieldType,

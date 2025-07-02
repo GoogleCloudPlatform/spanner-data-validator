@@ -86,6 +86,28 @@ public class FilterByShardTest {
   }
 
   @Test
+  public void noDefaultDdrColPresentTest() {
+    HashResult hr = new HashResult();
+    Struct spannerStruct = Struct.newBuilder()
+        .set("ddrkey").to(-9223354496199950336L)
+        .build();
+    FilteryByShard fbs1 = new FilteryByShard(36L,
+        "itemhouse",
+        "ih_items",
+        "ddrkey",
+        true);
+
+    Boolean colExists =
+        spannerStruct.getType().getStructFields().stream().anyMatch(f -> f.getName().equals("id"));
+    assert colExists == false : "Expected col name 'blahcol' to be absent, but got " + true;
+
+    colExists =
+        spannerStruct.getType().getStructFields().stream().anyMatch(f -> f.getName().equals("ddrkey"));
+    assert colExists == true : "Expected col name 'ddrkey' to be present, but got " + false;
+  }
+
+
+  @Test
   public void filterbyShardCountTest() {
     HashResult hr = new HashResult();
     Struct spannerStruct = Struct.newBuilder()
