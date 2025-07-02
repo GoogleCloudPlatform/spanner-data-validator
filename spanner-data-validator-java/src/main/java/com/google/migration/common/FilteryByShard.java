@@ -70,13 +70,24 @@ public class FilteryByShard {
             enableShardFiltering,
             ddrCount);
       }
-      return "0";
+      return "";
     }
 
     if(serviceName.equals(OTHER_SERVICE_NAME)) {
       if(spannerStruct.isNull(defaultDdrColumn)) {
         LOG.warn("'{}' column value is null!", defaultDdrColumn);
-        return "0";
+        return "";
+      }
+
+      Boolean colExists =
+          spannerStruct.getType().getStructFields().stream().anyMatch(f -> f.getName().equals(defaultDdrColumn));
+      if(!colExists) {
+        if(enableVerboseLogging) {
+          LOG.warn("{} col does not exist; service name: {}",
+              defaultDdrColumn,
+              serviceName);
+        }
+        return "";
       }
 
       Long ddrKeyValue = spannerStruct.getLong(defaultDdrColumn);
@@ -87,7 +98,18 @@ public class FilteryByShard {
     else if(serviceName.equals(TRADEHOUSEI_SERVICE_NAME)) {
       if(spannerStruct.isNull(defaultDdrColumn)) {
         LOG.warn("'{}' column value is null!", defaultDdrColumn);
-        return "0";
+        return "";
+      }
+
+      Boolean colExists =
+          spannerStruct.getType().getStructFields().stream().anyMatch(f -> f.getName().equals(defaultDdrColumn));
+      if(!colExists) {
+        if(enableVerboseLogging) {
+          LOG.warn("{} col does not exist; service name: {}",
+              defaultDdrColumn,
+              serviceName);
+        }
+        return "";
       }
 
       Long ddrKeyValue = spannerStruct.getLong(defaultDdrColumn);

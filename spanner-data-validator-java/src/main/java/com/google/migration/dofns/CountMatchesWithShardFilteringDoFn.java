@@ -10,6 +10,7 @@ import static com.google.migration.SharedTags.unmatchedJDBCRecordsTag;
 import static com.google.migration.SharedTags.unmatchedSpannerRecordValuesTag;
 import static com.google.migration.SharedTags.unmatchedSpannerRecordsTag;
 
+import com.google.migration.Helpers;
 import com.google.migration.dto.HashResult;
 import java.util.List;
 import org.apache.beam.sdk.metrics.Counter;
@@ -61,7 +62,7 @@ public class CountMatchesWithShardFilteringDoFn extends
       spannerRecord = spannerRecords.iterator().next();
     }
 
-    if(spannerRecord != null) {
+    if(spannerRecord != null && !Helpers.isNullOrEmpty(spannerRecord.logicalShardId)) {
       if(shardsToInclude != null && shardsToInclude.size() > 0) {
         if(!shardsToInclude.contains(spannerRecord.logicalShardId)) {
 
