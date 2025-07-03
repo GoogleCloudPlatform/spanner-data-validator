@@ -88,7 +88,7 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
   }
 
   @ProcessElement
-  public void processElement(ProcessContext c) {
+  public void processElement(ProcessContext c) throws InvalidTransformationException {
     SourceRecord sourceRecord = c.element();
     try {
       //if customTransformer is not null, then do the custom transformation.
@@ -126,9 +126,9 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
           timestampThresholdKeyIndex());
       c.output(hashResult);
     } catch (Exception e) {
-      LOG.error("Error while processing element: ", e);
+      LOG.error("Error while processing element in *********custom transformations*********: ", e);
       transformerErrors.inc();
-      c.output(new HashResult());
+      throw e;
     }
   }
 
