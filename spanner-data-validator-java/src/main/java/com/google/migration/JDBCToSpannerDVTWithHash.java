@@ -588,6 +588,7 @@ public class JDBCToSpannerDVTWithHash {
     } else {
       PCollection<HashResult> jdbcRecords =
           pRanges
+              .apply(String.format("WaitforSpannerReadForTable-%s", tableName), Wait.on(spannerRecords))
               .apply(String.format("ReadInParallelForTable-%s", tableName),
                   JdbcIO.<PartitionRange, HashResult>readAll()
                       .withDataSourceProviderFn(
