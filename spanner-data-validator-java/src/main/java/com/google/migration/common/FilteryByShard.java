@@ -73,14 +73,15 @@ public class FilteryByShard {
       return "";
     }
 
+    Boolean colExists =
+            spannerStruct.getType().getStructFields().stream().anyMatch(f -> f.getName().equals(defaultDdrColumn));
+
     if(serviceName.equals(OTHER_SERVICE_NAME)) {
-      if(spannerStruct.isNull(defaultDdrColumn)) {
-        LOG.warn("'{}' column value is null!", defaultDdrColumn);
+      if(!colExists) {
+        LOG.warn("'{}' column does not exist!", defaultDdrColumn);
         return "";
       }
 
-      Boolean colExists =
-          spannerStruct.getType().getStructFields().stream().anyMatch(f -> f.getName().equals(defaultDdrColumn));
       if(!colExists) {
         if(enableVerboseLogging) {
           LOG.warn("{} col does not exist; service name: {}",
@@ -96,13 +97,11 @@ public class FilteryByShard {
       return Long.toString(logicalShardId);
     }
     else if(serviceName.equals(TRADEHOUSEI_SERVICE_NAME)) {
-      if(spannerStruct.isNull(defaultDdrColumn)) {
+      if(!colExists) {
         LOG.warn("'{}' column value is null!", defaultDdrColumn);
         return "";
       }
 
-      Boolean colExists =
-          spannerStruct.getType().getStructFields().stream().anyMatch(f -> f.getName().equals(defaultDdrColumn));
       if(!colExists) {
         if(enableVerboseLogging) {
           LOG.warn("{} col does not exist; service name: {}",
