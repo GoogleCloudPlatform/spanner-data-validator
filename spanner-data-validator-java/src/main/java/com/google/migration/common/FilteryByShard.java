@@ -78,11 +78,6 @@ public class FilteryByShard {
 
     if(serviceName.equals(OTHER_SERVICE_NAME)) {
       if(!colExists) {
-        LOG.warn("'{}' column does not exist!", defaultDdrColumn);
-        return "";
-      }
-
-      if(!colExists) {
         if(enableVerboseLogging) {
           LOG.warn("{} col does not exist; service name: {}",
               defaultDdrColumn,
@@ -97,11 +92,6 @@ public class FilteryByShard {
       return Long.toString(logicalShardId);
     }
     else if(serviceName.equals(TRADEHOUSEI_SERVICE_NAME)) {
-      if(!colExists) {
-        LOG.warn("'{}' column value is null!", defaultDdrColumn);
-        return "";
-      }
-
       if(!colExists) {
         if(enableVerboseLogging) {
           LOG.warn("{} col does not exist; service name: {}",
@@ -125,6 +115,7 @@ public class FilteryByShard {
       return Long.toString(logicalShardId);
     }
     else if(serviceName.equals(GDB_SERVICE_NAME)) {
+
       Long logicalShardId = 0L;
       if(tableName.contains("nodes")){
         String type = spannerStruct.getString("type");
@@ -136,6 +127,8 @@ public class FilteryByShard {
         String[] fromSplits = from.split("\\?");
         String key = fromSplits[0] + "?" + fromSplits[1];
         logicalShardId = hash(key) % this.ddrCount.longValue();
+      } else {
+        return "";
       }
 
       return Long.toString(logicalShardId);
