@@ -17,6 +17,7 @@ limitations under the License.
 package com.google.migration.dofns;
 
 import com.google.migration.Helpers;
+import com.google.migration.common.FilteryByShard;
 import com.google.migration.dto.HashResult;
 import com.google.migration.dto.PartitionRange;
 import com.google.migration.dto.TableSpec;
@@ -30,8 +31,12 @@ import java.util.UUID;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollectionView;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MapWithRangeFn extends DoFn<HashResult, KV<String, HashResult>> {
+  private static final Logger LOG = LoggerFactory.getLogger(MapWithRangeFn.class);
+
   static Comparator<PartitionRange> uuidPartitionRangeComparator = (o1, o2) -> {
     BigInteger lhs = UUIDHelpers.uuidToBigInt(UUID.fromString(o1.getStartRange()));
     BigInteger rhs = Helpers.uuidToBigInt(UUID.fromString(o2.getStartRange()));
@@ -172,7 +177,12 @@ public class MapWithRangeFn extends DoFn<HashResult, KV<String, HashResult>> {
         return getRangeFromList(result.key,
             longPartitionRangeComparator);
       case TableSpec.TIMESTAMP_FIELD_TYPE:
+        return getRangeFromList(result.key,
+	        stringPartitionRangeComparator);
       case TableSpec.STRING_FIELD_TYPE:
+    	if (sortedPartitionRange.size() == 1)
+    		return sortedPartitionRange.get(0);
+    	else
         return getRangeFromList(result.key,
             stringPartitionRangeComparator);
       default:

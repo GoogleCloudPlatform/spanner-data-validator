@@ -108,6 +108,37 @@ public class SourceTable implements Serializable {
     return sb.toString();
   }
 
+  public String getStringSourceQuery(String partitionKeyColId, String[] spannerColIds, boolean includeBackTicks) {
+    //find the common colIds between colIds field and the param spannerColIds and sort that to use in rest of the code
+    String[] commonColIds = Arrays.stream(colIds).filter(x -> Arrays.asList(spannerColIds).contains(x)).toArray(String[]::new);
+    Arrays.sort(commonColIds);
+    StringBuilder sb = new StringBuilder();
+    sb.append("SELECT ");
+    //add the partition key first
+    if(includeBackTicks) {
+      sb.append("`").append(colDefs.get(partitionKeyColId).getName()).append("`").append(",");
+    } else {
+      sb.append(colDefs.get(partitionKeyColId).getName()).append(",");
+    }
+    //add the rest of the cols
+    for (String colId : commonColIds) {
+      if (!colId.equals(partitionKeyColId)) {
+        if(includeBackTicks) {
+          sb.append("`").append(colDefs.get(colId).getName()).append("`").append(",");
+        } else {
+          sb.append(colDefs.get(colId).getName()).append(",");
+        }
+      }
+    }
+    sb.deleteCharAt(sb.length() - 1);
+    sb.append(" FROM ").append(name);
+    sb.append(" WHERE (1=1 OR ").append(colDefs.get(partitionKeyColId).getName())
+        .append(" = ?) AND (1=1 OR ").append(colDefs.get(partitionKeyColId).getName())
+        .append(" = ?)");
+
+    return sb.toString();
+  }
+
   public String toString() {
     String pvalues = "";
     if (primaryKeys != null) {

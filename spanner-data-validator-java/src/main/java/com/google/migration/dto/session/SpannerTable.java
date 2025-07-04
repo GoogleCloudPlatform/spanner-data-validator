@@ -119,6 +119,49 @@ public class SpannerTable implements Serializable {
     return sb.toString();
   }
 
+  public String getStringSpannerQuery(String partitionKeyColId,
+      String[] sourceColIds,
+      Boolean isCustomTransformation,
+      Boolean includeBackTicks) {
+    //find the common colIds between colIds field and the param sourceColIds and sort that to use in rest of the code
+    String[] commonColIds = Arrays.stream(colIds).filter(x -> Arrays.asList(sourceColIds).contains(x)).toArray(String[]::new);
+    Arrays.sort(commonColIds);
+    StringBuilder sb = new StringBuilder();
+    sb.append("SELECT ");
+    //add the partition key first
+    sb.append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName(), includeBackTicks))
+        .append(",");
+    //add the rest of the cols
+    for (String colId : commonColIds) {
+      if (!colId.equals(partitionKeyColId)) {
+        sb.append(prependTableNameToColumn(name, colDefs.get(colId).getName(), includeBackTicks)).append(",");
+      }
+    }
+    //add the custom transformation columns if custom transformations is enabled
+    //There are two cases: an existing column is under transformation or a new one is added.
+    //If an existing column is under transformation, the dst query does not get modified.
+    //If a new column is added, the dst query gets modified. Below is how -
+    // All non-common columns in spannerTable are assumed to be under custom transformation
+    //by default. There is no other way to determine which columns are under custom transformation
+    //from the session file. Custom transformations are always added alphabetically sorted
+    //to the end of the query.
+    if (isCustomTransformation) {
+      String []customTransformColIds = Arrays.stream(colIds).filter(x -> !Arrays.asList(sourceColIds).contains(x)).toArray(String[]::new);
+      if (customTransformColIds.length > 0) {
+        Arrays.sort(customTransformColIds);
+        for (String colId : customTransformColIds) {
+          sb.append(prependTableNameToColumn(name, colDefs.get(colId).getName(), includeBackTicks)).append(",");
+        }
+      }
+    }
+    sb.deleteCharAt(sb.length() - 1);
+    sb.append(" FROM ").append(name);
+    sb.append(" WHERE (1=1 OR ").append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName(), includeBackTicks))
+        .append(" = @p1) AND (1=1 OR ").append(prependTableNameToColumn(name, colDefs.get(partitionKeyColId).getName(), includeBackTicks))
+        .append(" = @p2)");
+    return sb.toString();
+  }
+
   private String prependTableNameToColumn(String tableName, String columnName, Boolean includeBackTicks) {
     if(includeBackTicks) {
       return "`" + tableName + "`" + ".`" + columnName + "`";

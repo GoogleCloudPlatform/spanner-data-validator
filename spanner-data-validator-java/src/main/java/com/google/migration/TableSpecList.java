@@ -322,13 +322,24 @@ public class TableSpecList {
       }
       tableSpec.setRangeStart(partitionKey.getPartitionKeyMinValue());
       tableSpec.setRangeEnd(partitionKey.getPartitionKeyMaxValue());
-      tableSpec.setDestQuery(spannerTable.getSpannerQuery(partitionKey.getPartitionKeyColId(),
-          sourceTable.getColIds(),
-          !Helpers.isNullOrEmpty(options.getTransformationJarPath()) && !Helpers.isNullOrEmpty(options.getTransformationClassName()),
-          options.getIncludeBackTicksInColNameForTableSpecGen()));
-      tableSpec.setSourceQuery(sourceTable.getSourceQuery(partitionKey.getPartitionKeyColId(),
-          spannerTable.getColIds(),
-          options.getIncludeBackTicksInColNameForTableSpecGen()));
+      if (partitionKey.getPartitionKeyColDataType().equals("STRING") || partitionKey.getPartitionKeyColDataType().equals("VARCHAR")) {
+          tableSpec.setDestQuery(spannerTable.getStringSpannerQuery(partitionKey.getPartitionKeyColId(),
+              sourceTable.getColIds(),
+              !Helpers.isNullOrEmpty(options.getTransformationJarPath()) && !Helpers.isNullOrEmpty(options.getTransformationClassName()),
+              options.getIncludeBackTicksInColNameForTableSpecGen()));
+          tableSpec.setSourceQuery(sourceTable.getStringSourceQuery(partitionKey.getPartitionKeyColId(),
+              spannerTable.getColIds(),
+              options.getIncludeBackTicksInColNameForTableSpecGen()));
+          tableSpec.setPartitionCount(1); // must be 1 for string
+      } else {
+	      tableSpec.setDestQuery(spannerTable.getSpannerQuery(partitionKey.getPartitionKeyColId(),
+	          sourceTable.getColIds(),
+	          !Helpers.isNullOrEmpty(options.getTransformationJarPath()) && !Helpers.isNullOrEmpty(options.getTransformationClassName()),
+	          options.getIncludeBackTicksInColNameForTableSpecGen()));
+	      tableSpec.setSourceQuery(sourceTable.getSourceQuery(partitionKey.getPartitionKeyColId(),
+	          spannerTable.getColIds(),
+	          options.getIncludeBackTicksInColNameForTableSpecGen()));
+      }
       tableSpec.setRangeFieldType(partitionKey.getPartitionKeyColDataType());
       tableSpec.setRangeFieldName(sourceTable.getColDefs().get(partitionKey.getPartitionKeyColId()).getName());
       tableSpecList.add(tableSpec);
@@ -421,6 +432,9 @@ public class TableSpecList {
         return new PartitionKey(colId, "INTEGER", String.valueOf(Integer.MIN_VALUE), String.valueOf(Integer.MAX_VALUE));
       case "BIGINT":
         return new PartitionKey(colId, "LONG", String.valueOf(Long.MIN_VALUE), String.valueOf(Long.MAX_VALUE));
+      case "STRING":
+      case "VARCHAR":
+          return new PartitionKey(colId, "STRING", "a", "b");
     }
     return null;
   }
