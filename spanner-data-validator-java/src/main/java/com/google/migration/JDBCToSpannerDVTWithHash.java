@@ -264,6 +264,11 @@ public class JDBCToSpannerDVTWithHash {
         partitionCount,
         partitionFilterRatio);
 
+    // we don't want to do client-side partitioning for Spanner
+    List<PartitionRange> bRangesForSpanner = getPartitionRanges(tableSpec,
+        1,
+        partitionFilterRatio);
+
     Helpers.printPartitionRanges(bRanges, tableSpec.getTableName());
 
     String tableName = tableSpec.getTableName();
@@ -271,6 +276,10 @@ public class JDBCToSpannerDVTWithHash {
 
     String createRangesForTableStep = String.format("CreateRangesForTable-%s", tableName);
     PCollection<PartitionRange> pRanges = p.apply(createRangesForTableStep, Create.of(bRanges));
+
+    String createRangesForSpannerTableStep = String.format("CreateRangesForSpannerTable-%s", tableName);
+    PCollection<PartitionRange> pRangesForSpanner =
+        p.apply(createRangesForSpannerTableStep, Create.of(bRangesForSpanner));
 
     // get ranges of keys
     String partitionRangesViewStep = String.format("PartitionRangesForTable-%s", tableName);
@@ -284,7 +293,7 @@ public class JDBCToSpannerDVTWithHash {
             tableSpec.getRangeFieldIndex(),
             tableSpec.getRangeFieldType(),
             options,
-            pRanges,
+            pRangesForSpanner,
             tableSpec.getTimestampThresholdColIndex());
 
     pipelineTracker.addToSpannerReadList(spannerRecords);
