@@ -124,6 +124,11 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
           rangeFieldType(),
           adjustTimestampPrecision(),
           timestampThresholdKeyIndex());
+      if (hashResult.sha256.isEmpty()) {
+        LOG.error("Error while processing element: {} in *********custom transformations*********: ", sourceRecord.toString());
+        transformerErrors.inc();
+        throw new RuntimeException(String.format("Cannot compute hash for sourceRecord: %s", sourceRecord.toString()));
+      }
       c.output(hashResult);
     } catch (Exception e) {
       LOG.error("Error while processing element: {} in *********custom transformations*********: ", sourceRecord.toString(), e);
