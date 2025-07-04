@@ -126,7 +126,7 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
           timestampThresholdKeyIndex());
       c.output(hashResult);
     } catch (Exception e) {
-      LOG.error("Error while processing element in *********custom transformations*********: ", e);
+      LOG.error("Error while processing element: {} in *********custom transformations*********: ", sourceRecord.toString(), e);
       transformerErrors.inc();
       throw e;
     }
