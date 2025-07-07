@@ -361,4 +361,10 @@ public interface DVTOptionsCore extends PipelineOptions {
   Boolean getEnableClientSidePartitioningForSpanner();
 
   void setEnableClientSidePartitioningForSpanner(Boolean value);
+
+  @Description("Partition query timeout in seconds")
+  @Default.Long(300)
+  Long getPartitionQueryTimeoutInSeconds();
+
+  void setPartitionQueryTimeoutInSeconds(Long value);
 } // class

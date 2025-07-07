@@ -61,6 +61,7 @@ import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
 import com.google.migration.transform.CustomTransformation;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -73,6 +74,7 @@ import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.CreateDisposition;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.WriteDisposition;
 import org.apache.beam.sdk.io.gcp.spanner.ReadOperation;
+import org.apache.beam.sdk.io.gcp.spanner.SpannerConfig;
 import org.apache.beam.sdk.io.gcp.spanner.SpannerIO;
 import org.apache.beam.sdk.io.gcp.spanner.SpannerIO.ReadAll;
 import org.apache.beam.sdk.io.jdbc.JdbcIO;
@@ -785,11 +787,15 @@ public class JDBCToSpannerDVTWithHash {
           TimeUnit.SECONDS));
     }
 
-    PCollection<Struct> spannerRecords =
-        readOps.apply(spannerReadStepName, spannerRead
+    SpannerConfig spannerConfig = SpannerConfig.create()
         .withProjectId(spannerProjectId)
         .withInstanceId(options.getInstanceId())
-        .withDatabaseId(options.getSpannerDatabaseId()));
+        .withDatabaseId(options.getSpannerDatabaseId())
+        .withPartitionQueryTimeout(org.joda.time.Duration.standardSeconds(options.getPartitionQueryTimeoutInSeconds()));
+
+    PCollection<Struct> spannerRecords =
+        readOps.apply(spannerReadStepName, spannerRead
+            .withSpannerConfig(spannerConfig));
 
     Long ddrCount = options.getDdrCount();
     String serviceNameForShardCalc = options.getServiceNameForShardCalc();
