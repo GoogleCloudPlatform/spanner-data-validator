@@ -355,4 +355,10 @@ public interface DVTOptionsCore extends PipelineOptions {
   Boolean getEnableVerboseLogging();
 
   void setEnableVerboseLogging(Boolean value);
+
+  @Description("Enable client side partitioning for Spanner")
+  @Default.Boolean(false)
+  Boolean getEnableClientSidePartitioningForSpanner();
+
+  void setEnableClientSidePartitioningForSpanner(Boolean value);
 } // class

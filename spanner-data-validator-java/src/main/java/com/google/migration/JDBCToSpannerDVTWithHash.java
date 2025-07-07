@@ -265,9 +265,15 @@ public class JDBCToSpannerDVTWithHash {
         partitionFilterRatio);
 
     // we don't want to do client-side partitioning for Spanner
-    List<PartitionRange> bRangesForSpanner = getPartitionRanges(tableSpec,
-        1,
-        partitionFilterRatio);
+    List<PartitionRange> bRangesForSpanner = bRanges;
+
+    Boolean enableClientSidePartitiongForSpanner = options.getEnableClientSidePartitioningForSpanner();
+
+    if(!enableClientSidePartitiongForSpanner) {
+      bRangesForSpanner = getPartitionRanges(tableSpec,
+          1,
+          partitionFilterRatio);
+    }
 
     Helpers.printPartitionRanges(bRanges, tableSpec.getTableName());
 
