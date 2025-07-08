@@ -372,5 +372,5 @@ public interface DVTOptionsCore extends PipelineOptions {
   @Default.Integer(-1)
   Integer getFetchSizeForJDBC();
 
-  void getFetchSizeForJDBC(Integer value);
+  void setFetchSizeForJDBC(Integer value);
 } // class
