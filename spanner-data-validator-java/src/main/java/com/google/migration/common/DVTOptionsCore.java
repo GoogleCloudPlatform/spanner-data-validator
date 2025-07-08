@@ -367,4 +367,10 @@ public interface DVTOptionsCore extends PipelineOptions {
   Long getPartitionQueryTimeoutInSeconds();
 
   void setPartitionQueryTimeoutInSeconds(Long value);
+
+  @Description("JDBC fetch size")
+  @Default.Integer(-1)
+  Integer getFetchSizeForJDBC();
+
+  void getFetchSizeForJDBC(Integer value);
 } // class

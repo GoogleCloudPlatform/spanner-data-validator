@@ -569,26 +569,31 @@ public class JDBCToSpannerDVTWithHash {
     pRanges = (PCollection<PartitionRange>) pipelineTracker.applyJDBCWait(pRanges);
 
     if(customTransformation != null) {
+      JdbcIO.ReadAll<PartitionRange, SourceRecord> jdbcReadAll = JdbcIO.<PartitionRange, SourceRecord>readAll()
+          .withDataSourceProviderFn(
+              HikariPoolableDataSourceProvider.of(connString,
+                  username,
+                  jdbcPass,
+                  driver,
+                  options.getMaxJDBCConnectionsPerJVM()))
+          .withQuery(query)
+          .withDisableAutoCommit(false)
+          .withParameterSetter((input, preparedStatement) -> {
+            preparedStatement.setString(1, input.getStartRange());
+            preparedStatement.setString(2, input.getEndRange());
+          })
+          .withRowMapper(new SourceRecordMapper())
+          .withFetchSize(options.getFetchSizeForJDBC())
+          .withOutputParallelization(true);
+
+      if(options.getFetchSizeForJDBC() > 0) {
+        jdbcReadAll = jdbcReadAll.withFetchSize(options.getFetchSizeForJDBC());
+      }
+
       PCollection<SourceRecord> jdbcRecordsSR =
           pRanges
               .apply(String.format("WaitforSpannerReadForTable-%s", tableName), Wait.on(spannerRecords))
-              .apply(String.format("ReadInParallelForTable-%s", tableName),
-                  JdbcIO.<PartitionRange, SourceRecord>readAll()
-                      .withDataSourceProviderFn(
-                          HikariPoolableDataSourceProvider.of(connString,
-                              username,
-                              jdbcPass,
-                              driver,
-                              options.getMaxJDBCConnectionsPerJVM()))
-                      .withQuery(query)
-                      .withDisableAutoCommit(false)
-                      .withParameterSetter((input, preparedStatement) -> {
-                        preparedStatement.setString(1, input.getStartRange());
-                        preparedStatement.setString(2, input.getEndRange());
-                      })
-                      .withRowMapper(new SourceRecordMapper())
-                      .withOutputParallelization(true)
-              );
+              .apply(String.format("ReadInParallelForTable-%s", tableName), jdbcReadAll);
 
       CustomTransformationDoFn customTransformationDoFn = CustomTransformationDoFn.create(
           customTransformation,
@@ -603,31 +608,36 @@ public class JDBCToSpannerDVTWithHash {
       return jdbcRecordsSR.apply(String.format("CustomTransformationForTable-%s", tableName),
           ParDo.of(customTransformationDoFn));
     } else {
+      JdbcIO.ReadAll<PartitionRange, HashResult> jdbcReadAll = JdbcIO.<PartitionRange, HashResult>readAll()
+          .withDataSourceProviderFn(
+              HikariPoolableDataSourceProvider.of(connString,
+                  username,
+                  jdbcPass,
+                  driver,
+                  options.getMaxJDBCConnectionsPerJVM()))
+          .withQuery(query)
+          .withDisableAutoCommit(false)
+          .withParameterSetter((input, preparedStatement) -> {
+            preparedStatement.setString(1, input.getStartRange());
+            preparedStatement.setString(2, input.getEndRange());
+          })
+          .withFetchSize(options.getFetchSizeForJDBC())
+          .withRowMapper(new JDBCRowMapper(
+              keyIndex,
+              rangeFieldType,
+              options.getAdjustTimestampPrecision(),
+              timestampThresholdKeyIndex
+          ))
+          .withOutputParallelization(true);
+
+      if(options.getFetchSizeForJDBC() > 0) {
+        jdbcReadAll = jdbcReadAll.withFetchSize(options.getFetchSizeForJDBC());
+      }
+
       PCollection<HashResult> jdbcRecords =
           pRanges
               .apply(String.format("WaitforSpannerReadForTable-%s", tableName), Wait.on(spannerRecords))
-              .apply(String.format("ReadInParallelForTable-%s", tableName),
-                  JdbcIO.<PartitionRange, HashResult>readAll()
-                      .withDataSourceProviderFn(
-                          HikariPoolableDataSourceProvider.of(connString,
-                              username,
-                              jdbcPass,
-                              driver,
-                              options.getMaxJDBCConnectionsPerJVM()))
-                      .withQuery(query)
-                      .withDisableAutoCommit(false)
-                      .withParameterSetter((input, preparedStatement) -> {
-                        preparedStatement.setString(1, input.getStartRange());
-                        preparedStatement.setString(2, input.getEndRange());
-                      })
-                      .withRowMapper(new JDBCRowMapper(
-                          keyIndex,
-                          rangeFieldType,
-                          options.getAdjustTimestampPrecision(),
-                          timestampThresholdKeyIndex
-                      ))
-                      .withOutputParallelization(true)
-              );
+              .apply(String.format("ReadInParallelForTable-%s", tableName), jdbcReadAll);
 
       pipelineTracker.addToJDBCReadList(jdbcRecords);
 
