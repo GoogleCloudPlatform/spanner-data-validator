@@ -275,7 +275,7 @@ public class JDBCToSpannerDVTWithHash {
 
     if(!enableClientSidePartitiongForSpanner) {
       bRangesForSpanner = getPartitionRanges(tableSpec,
-          1,
+          options.getSpannerPartitionCountOnClient(),
           partitionFilterRatio);
     }
 

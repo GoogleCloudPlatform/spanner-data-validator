@@ -374,6 +374,12 @@ public interface DVTOptionsCore extends PipelineOptions {
 
   void setFetchSizeForJDBC(Integer value);
 
+  @Description("Spanner partition count on client")
+  @Default.Integer(1)
+  Integer getSpannerPartitionCountOnClient();
+
+  void setSpannerPartitionCountOnClient(Integer value);
+
   @Description("Partition size in bytes")
   @Default.Long(2L * 1024L * 1024L * 1024L)
   Long getPartitionSizeBytes();
