@@ -385,4 +385,10 @@ public interface DVTOptionsCore extends PipelineOptions {
   Long getPartitionSizeBytes();
 
   void setPartitionSizeBytes(Long value);
+
+  @Description("Enable custom filtering of dest query")
+  @Default.Boolean(false)
+  Boolean getEnableCustomFilteringOfDestQuery();
+
+  void setEnableCustomFilteringOfDestQuery(Boolean value);
 } // class

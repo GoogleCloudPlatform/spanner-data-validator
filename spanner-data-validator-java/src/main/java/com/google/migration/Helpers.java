@@ -28,6 +28,7 @@ import com.google.migration.common.DVTOptionsCore;
 import com.google.migration.common.JdbcDataSource;
 import com.google.migration.dto.GCSObject;
 import com.google.migration.dto.PartitionRange;
+import com.google.migration.dto.TableSpec;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
@@ -471,4 +472,30 @@ public class Helpers {
         Instant.ofEpochMilli(startFilter),
         Instant.ofEpochMilli(endFilter)));
   }
+
+  public static void customFiltering(DVTOptionsCore options, List<TableSpec> tableSpecs) {
+    // Hack: If enableShardFiltering is enabled, we'll replace $DDR_COUNT and $DDR_LIST in the tablespec destQuery so we
+    // could filter spanner data by shard. (eg. "destQuery": "SELECT * FROM table WHERE ddrkey >= @p1 AND ddrkey <= @p2
+    // AND MOD(ddrkey, $DDR_COUNT) IN ($DDR_LIST)")
+    if (options.getEnableShardFiltering())
+    {
+      // check if ddrCount and shardsToInclude are set
+      Long ddrCount = options.getDdrCount();
+      String shardsToInclude = options.getShardsToInclude();
+      if ((ddrCount == null || ddrCount > 0) && shardsToInclude != null && shardsToInclude.isEmpty())
+      {
+        for (TableSpec tableSpec : tableSpecs)
+        {
+          String destQuery = tableSpec.getDestQuery();
+          if (!Helpers.isNullOrEmpty(destQuery))
+          {
+            destQuery = destQuery.replace("$DDR_COUNT", ddrCount.toString());
+            destQuery = destQuery.replace("$DDR_LIST", shardsToInclude);
+            tableSpec.setDestQuery(destQuery);
+          }
+        } // for
+      } // if
+    } // if
+  }
+
 } // class Helpers

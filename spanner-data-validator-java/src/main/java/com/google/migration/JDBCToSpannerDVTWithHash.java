@@ -62,6 +62,7 @@ import com.google.migration.dto.session.SessionFileReader;
 import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
 import com.google.migration.transform.CustomTransformation;
+import io.grpc.LoadBalancer.Helper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -982,6 +983,10 @@ public class JDBCToSpannerDVTWithHash {
 
     PipelineTracker pipelineTracker = new PipelineTracker();
     pipelineTracker.setMaxTablesInEffectAtOneTime(options.getMaxTablesInEffectAtOneTime());
+
+    if(options.getEnableCustomFilteringOfDestQuery()) {
+      Helpers.customFiltering(options, tableSpecs);
+    }
 
     for(TableSpec tableSpec: tableSpecs) {
       BigQueryIO.Write<ComparerResult> comparerResultWrite =
