@@ -373,4 +373,10 @@ public interface DVTOptionsCore extends PipelineOptions {
   Integer getFetchSizeForJDBC();
 
   void setFetchSizeForJDBC(Integer value);
+
+  @Description("Partition size in bytes")
+  @Default.Long(2L * 1024L * 1024L * 1024L)
+  Long getPartitionSizeBytes();
+
+  void setPartitionSizeBytes(Long value);
 } // class

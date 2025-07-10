@@ -36,6 +36,7 @@ import com.google.api.gax.retrying.RetrySettings;
 import com.google.api.services.bigquery.model.TableFieldSchema;
 import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
+import com.google.cloud.spanner.PartitionOptions;
 import com.google.cloud.spanner.Statement;
 import com.google.cloud.spanner.Struct;
 import com.google.cloud.spanner.TimestampBound;
@@ -729,6 +730,10 @@ public class JDBCToSpannerDVTWithHash {
       pRanges = pRanges.apply(reshuffleOpsStepName, Reshuffle.viaRandomKey());
     }
 
+    PartitionOptions partitionOptions = PartitionOptions.newBuilder()
+        .setPartitionSizeBytes(options.getPartitionSizeBytes())
+        .build();
+
     // https://cloud.google.com/spanner/docs/samples/spanner-dataflow-readall
     PCollection<ReadOperation> readOps = pRanges
         .apply(readOpsStepName,
@@ -773,6 +778,7 @@ public class JDBCToSpannerDVTWithHash {
                   }
                   ReadOperation readOperation =
                       ReadOperation.create()
+                          .withPartitionOptions(partitionOptions)
                           .withQuery(statement);
 
                   return readOperation;
