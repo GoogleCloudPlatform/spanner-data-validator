@@ -32,6 +32,7 @@ import static com.google.migration.SharedTags.unmatchedSpannerRecordValuesTag;
 import static com.google.migration.SharedTags.unmatchedSpannerRecordsTag;
 import static com.google.migration.TableSpecList.getTableSpecs;
 
+import com.google.api.gax.retrying.RetrySettings;
 import com.google.api.services.bigquery.model.TableFieldSchema;
 import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
@@ -61,7 +62,6 @@ import com.google.migration.partitioning.PartitionRangeListFetcher;
 import com.google.migration.partitioning.PartitionRangeListFetcherFactory;
 import com.google.migration.transform.CustomTransformation;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -106,6 +106,7 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.threeten.bp.Duration;
 
 public class JDBCToSpannerDVTWithHash {
   protected static final String POSTGRES_JDBC_DRIVER = "org.postgresql.Driver";
@@ -583,7 +584,6 @@ public class JDBCToSpannerDVTWithHash {
             preparedStatement.setString(2, input.getEndRange());
           })
           .withRowMapper(new SourceRecordMapper())
-          .withFetchSize(options.getFetchSizeForJDBC())
           .withOutputParallelization(true);
 
       if(options.getFetchSizeForJDBC() > 0) {
@@ -621,7 +621,6 @@ public class JDBCToSpannerDVTWithHash {
             preparedStatement.setString(1, input.getStartRange());
             preparedStatement.setString(2, input.getEndRange());
           })
-          .withFetchSize(options.getFetchSizeForJDBC())
           .withRowMapper(new JDBCRowMapper(
               keyIndex,
               rangeFieldType,
@@ -797,10 +796,23 @@ public class JDBCToSpannerDVTWithHash {
           TimeUnit.SECONDS));
     }
 
+    // https://github.com/apache/beam/blob/9039608560c514fdae6034f2534120cbb16ac090/sdks/java/io/google-cloud-platform/src/main/java/org/apache/beam/sdk/io/gcp/spanner/SpannerAccessor.java#L178
+    RetrySettings retrySettings = RetrySettings.newBuilder()
+        .setInitialRpcTimeout(Duration.ofHours(100))
+        .setMaxRpcTimeout(Duration.ofHours(100))
+        .setTotalTimeout(Duration.ofHours(100))
+        .setRpcTimeoutMultiplier(1.0)
+        .setInitialRetryDelay(Duration.ofSeconds(2))
+        .setMaxRetryDelay(Duration.ofSeconds(60))
+        .setRetryDelayMultiplier(1.5)
+        .setMaxAttempts(150)
+        .build();
+
     SpannerConfig spannerConfig = SpannerConfig.create()
         .withProjectId(spannerProjectId)
         .withInstanceId(options.getInstanceId())
         .withDatabaseId(options.getSpannerDatabaseId())
+        .withExecuteStreamingSqlRetrySettings(retrySettings)
         .withPartitionQueryTimeout(org.joda.time.Duration.standardSeconds(options.getPartitionQueryTimeoutInSeconds()));
 
     PCollection<Struct> spannerRecords =
