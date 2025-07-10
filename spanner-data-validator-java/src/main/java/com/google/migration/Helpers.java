@@ -482,7 +482,7 @@ public class Helpers {
       // check if ddrCount and shardsToInclude are set
       Long ddrCount = options.getDdrCount();
       String shardsToInclude = options.getShardsToInclude();
-      if ((ddrCount == null || ddrCount > 0) && shardsToInclude != null && shardsToInclude.isEmpty())
+      if ((ddrCount != null && ddrCount > 0) && shardsToInclude != null && !shardsToInclude.isEmpty())
       {
         for (TableSpec tableSpec : tableSpecs)
         {
