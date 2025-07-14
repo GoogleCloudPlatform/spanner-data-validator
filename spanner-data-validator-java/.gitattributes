@@ -1,1 +1,2 @@
 spanner-migrations-sdk-1.0-SNAPSHOT.jar filter=lfs diff=lfs merge=lfs -text
+google-cloud-spanner-6.97.0.jar filter=lfs diff=lfs merge=lfs -text
