@@ -272,6 +272,7 @@ public class HashResult {
           }
           break;
         case Types.TINYINT:
+        case Types.SMALLINT:
           Short shortVal = resultSet.getShort(colOrdinal);
           if(shortVal != null && !resultSet.wasNull()) {
             sbConcatCols.append(shortVal);
