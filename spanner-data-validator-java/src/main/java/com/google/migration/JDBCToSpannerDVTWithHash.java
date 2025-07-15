@@ -798,7 +798,7 @@ public class JDBCToSpannerDVTWithHash {
     if(options.getPerformStrongReadAtSpanner()) {
       spannerRead = spannerRead.withTimestampBound(TimestampBound.strong());
     } else {
-      spannerRead = spannerRead.withTimestampBound(TimestampBound.ofExactStaleness(
+      spannerRead = spannerRead.withTimestampBound(TimestampBound.ofMaxStaleness(
           options.getMaxStalenessInSeconds(),
           TimeUnit.SECONDS));
     }
