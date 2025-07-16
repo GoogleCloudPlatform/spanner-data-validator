@@ -819,7 +819,7 @@ public class JDBCToSpannerDVTWithHash {
     if(options.getPerformStrongReadAtSpanner()) {
       spannerRead = spannerRead.withTimestampBound(TimestampBound.strong());
     } else {
-      spannerRead = spannerRead.withTimestampBound(TimestampBound.ofMaxStaleness(
+      spannerRead = spannerRead.withTimestampBound(TimestampBound.ofExactStaleness(
           options.getMaxStalenessInSeconds(),
           TimeUnit.SECONDS));
     }
@@ -870,7 +870,8 @@ public class JDBCToSpannerDVTWithHash {
                         colNameForShardCalc,
                         enableShardFiltering,
                         enableVerboseLogging)
-            ));
+            ))
+        .apply(String.format("ReshuffleSpannerRecordsInTable-%s", tableName), Reshuffle.viaRandomKey());
 
     return spannerHashes;
   }
