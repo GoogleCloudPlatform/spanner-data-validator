@@ -60,11 +60,11 @@
     <api-common.version>2.51.1</api-common.version>
     <grpc-all.version>1.73.0</grpc-all.version>
     <grpc-gcp.version>1.6.1</grpc-gcp.version>
-    <grpc-google-cloud-spanner-admin-instance-v1.version>6.96.1
+    <grpc-google-cloud-spanner-admin-instance-v1.version>6.97.1
     </grpc-google-cloud-spanner-admin-instance-v1.version>
-    <proto-google-cloud-spanner-v1.version>6.96.1
+    <proto-google-cloud-spanner-v1.version>6.97.1
     </proto-google-cloud-spanner-v1.version>
-    <grpc-google-cloud-spanner-v1.version>6.96.1
+    <grpc-google-cloud-spanner-v1.version>6.97.1
     </grpc-google-cloud-spanner-v1.version>
   </properties>
 
