@@ -513,14 +513,19 @@ public class JDBCToSpannerDVTWithHash {
     }
 
     // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
-    String zeroDateTimeNullBehaviorStr = options.getZeroDateTimeBehavior() ? "?zeroDateTimeBehavior=CONVERT_TO_NULL" : "";
+    // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
+    String urlProperties = "";
+    String zeroDateTimeNullBehaviorStr = options.getZeroDateTimeBehavior() ? "zeroDateTimeBehavior=CONVERT_TO_NULL" : "";
+    addProperty(urlProperties, zeroDateTimeNullBehaviorStr);
+    String setCursorFetch = (options.getFetchSizeForJDBC() != null && options.getFetchSizeForJDBC() != -1)? "useCursorFetch=true" :"";
+    addProperty(urlProperties, setCursorFetch);
 
     // JDBC conn string
     String connString = String.format("jdbc:%s://%s:%d/%s%s", options.getProtocol(),
         options.getServer(),
         options.getPort(),
         options.getSourceDB(),
-        zeroDateTimeNullBehaviorStr);
+        urlProperties);
 
     LOG.info(String.format("++++++++++++++++++++++++++++++++JDBC conn string: %s", connString));
 
