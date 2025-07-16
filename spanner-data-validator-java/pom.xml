@@ -622,6 +622,12 @@
     </dependency>
 
     <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-cloud-spanner-v1</artifactId>
+      <version>${proto-google-cloud-spanner-v1.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-secretmanager</artifactId>
     </dependency>
@@ -832,6 +838,11 @@
         <artifactId>google-cloud-spanner</artifactId>
         <version>6.97.0</version>
       </dependency>
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-cloud-spanner-v1</artifactId>
+      <version>${proto-google-cloud-spanner-v1.version}</version>
+    </dependency>
   </dependencies>
 
   <dependencyManagement>
@@ -893,21 +904,16 @@
         <version>${grpc-google-cloud-spanner-v1.version}</version>
       </dependency>
 
-      <dependency>
-        <groupId>com.google.api.grpc</groupId>
-        <artifactId>proto-google-cloud-spanner-v1</artifactId>
-        <version>${proto-google-cloud-spanner-v1.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.api.grpc</groupId>
-        <artifactId>grpc-google-cloud-spanner-v1</artifactId>
-        <version>${grpc-google-cloud-spanner-v1.version}</version>
-      </dependency>
       <!-- https://mvnrepository.com/artifact/com.google.api/gax -->
       <dependency>
         <groupId>com.google.api</groupId>
         <artifactId>gax</artifactId>
         <version>2.68.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>grpc-google-cloud-spanner-v1</artifactId>
+        <version>${grpc-google-cloud-spanner-v1.version}</version>
       </dependency>
 
     </dependencies>
