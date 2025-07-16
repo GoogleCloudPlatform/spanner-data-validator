@@ -27,19 +27,20 @@
 
   <properties>
     <beam.version>2.65.0</beam.version>
+    <google.cloud.spanner.version>6.97.0</google.cloud.spanner.version>
 
     <maven.compiler.target>1.11</maven.compiler.target>
     <maven.compiler.source>1.11</maven.compiler.source>
     <bigquery.version>v2-rev20230520-2.0.0</bigquery.version>
     <storage.version>v1-rev20240809-2.0.0</storage.version>
-    <google-api-client.version>2.0.0</google-api-client.version>
-    <guava.version>32.1.2-jre</guava.version>
+    <google-api-client.version>2.8.0</google-api-client.version>
+    <google-api.version>2.51.1</google-api.version>
     <hamcrest.version>2.1</hamcrest.version>
     <jackson.version>2.14.1</jackson.version>
     <joda.version>2.10.10</joda.version>
     <junit.version>4.13.1</junit.version>
     <kafka.version>3.7.1</kafka.version>
-    <libraries-bom.version>26.62.0</libraries-bom.version>
+    <libraries-bom.version>26.57.0</libraries-bom.version>
     <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
     <maven-exec-plugin.version>1.6.0</maven-exec-plugin.version>
     <maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
@@ -53,6 +54,17 @@
     <nemo.version>0.1</nemo.version>
     <flink.artifact.name>beam-runners-flink-1.16</flink.artifact.name>
     <autovalue.version>1.10.4</autovalue.version>
+    <proto-google-cloud-spanner-admin-instance-v1.version>6.96.1
+    </proto-google-cloud-spanner-admin-instance-v1.version>
+    <api-common.version>2.51.1</api-common.version>
+    <grpc-all.version>1.73.0</grpc-all.version>
+    <grpc-gcp.version>1.6.1</grpc-gcp.version>
+    <grpc-google-cloud-spanner-admin-instance-v1.version>6.96.1
+    </grpc-google-cloud-spanner-admin-instance-v1.version>
+    <proto-google-cloud-spanner-v1.version>6.96.1
+    </proto-google-cloud-spanner-v1.version>
+    <grpc-google-cloud-spanner-v1.version>6.96.1
+    </grpc-google-cloud-spanner-v1.version>
   </properties>
 
   <repositories>
@@ -234,12 +246,6 @@
           <artifactId>beam-runners-direct-java</artifactId>
           <version>${beam.version}</version>
           <scope>runtime</scope>
-          <exclusions>
-          <exclusion>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-spanner</artifactId>
-          </exclusion>
-        </exclusions>
         </dependency>
       </dependencies>
     </profile>
@@ -256,12 +262,6 @@
           <artifactId>beam-runners-portability-java</artifactId>
           <version>${beam.version}</version>
           <scope>runtime</scope>
-          <exclusions>
-            <exclusion>
-              <groupId>com.google.cloud</groupId>
-              <artifactId>google-cloud-spanner</artifactId>
-            </exclusion>
-          </exclusions>
         </dependency>
       </dependencies>
     </profile>
@@ -275,12 +275,6 @@
           <artifactId>beam-runners-google-cloud-dataflow-java</artifactId>
           <version>${beam.version}</version>
           <scope>runtime</scope>
-          <exclusions>
-            <exclusion>
-              <groupId>com.google.cloud</groupId>
-              <artifactId>google-cloud-spanner</artifactId>
-            </exclusion>
-          </exclusions>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.auto.service/auto-service -->
         <dependency>
@@ -300,29 +294,22 @@
           <artifactId>beam-runners-direct-java</artifactId>
           <version>${beam.version}</version>
           <scope>runtime</scope>
-          <exclusions>
-            <exclusion>
-              <groupId>com.google.cloud</groupId>
-              <artifactId>google-cloud-spanner</artifactId>
-            </exclusion>
-          </exclusions>
         </dependency>
         <dependency>
           <groupId>org.apache.beam</groupId>
           <artifactId>beam-runners-google-cloud-dataflow-java</artifactId>
           <version>${beam.version}</version>
           <scope>runtime</scope>
-          <exclusions>
-            <exclusion>
-              <groupId>com.google.cloud</groupId>
-              <artifactId>google-cloud-spanner</artifactId>
-            </exclusion>
-          </exclusions>
         </dependency>
         <dependency>
           <groupId>com.google.auto.service</groupId>
           <artifactId>auto-service</artifactId>
           <version>1.1.1</version>
+        </dependency>
+        <dependency>
+          <groupId>com.google.cloud</groupId>
+          <artifactId>google-cloud-spanner</artifactId>
+          <version>6.97.0</version>
         </dependency>
       </dependencies>
     </profile>
@@ -339,12 +326,6 @@
           <artifactId>${flink.artifact.name}</artifactId>
           <version>${beam.version}</version>
           <scope>runtime</scope>
-          <exclusions>
-            <exclusion>
-              <groupId>com.google.cloud</groupId>
-              <artifactId>google-cloud-spanner</artifactId>
-            </exclusion>
-          </exclusions>
         </dependency>
       </dependencies>
     </profile>
@@ -363,10 +344,6 @@
               <groupId>org.slf4j</groupId>
               <artifactId>jul-to-slf4j</artifactId>
             </exclusion>
-              <exclusion>
-                <groupId>com.google.cloud</groupId>
-                <artifactId>google-cloud-spanner</artifactId>
-              </exclusion>
           </exclusions>
         </dependency>
         <dependency>
@@ -374,12 +351,6 @@
           <artifactId>beam-sdks-java-io-hadoop-file-system</artifactId>
           <version>${beam.version}</version>
           <scope>runtime</scope>
-          <exclusions>
-            <exclusion>
-              <groupId>com.google.cloud</groupId>
-              <artifactId>google-cloud-spanner</artifactId>
-            </exclusion>
-          </exclusions>
         </dependency>
         <dependency>
           <groupId>org.apache.spark</groupId>
@@ -391,10 +362,6 @@
               <groupId>org.slf4j</groupId>
               <artifactId>jul-to-slf4j</artifactId>
             </exclusion>
-              <exclusion>
-                <groupId>com.google.cloud</groupId>
-                <artifactId>google-cloud-spanner</artifactId>
-              </exclusion>
           </exclusions>
         </dependency>
         <dependency>
@@ -413,12 +380,6 @@
           <artifactId>beam-runners-samza</artifactId>
           <version>${beam.version}</version>
           <scope>runtime</scope>
-          <exclusions>
-            <exclusion>
-              <groupId>com.google.cloud</groupId>
-              <artifactId>google-cloud-spanner</artifactId>
-            </exclusion>
-          </exclusions>
         </dependency>
       </dependencies>
     </profile>
@@ -430,12 +391,6 @@
           <artifactId>beam-runners-twister2</artifactId>
           <version>${beam.version}</version>
           <scope>runtime</scope>
-          <exclusions>
-            <exclusion>
-              <groupId>com.google.cloud</groupId>
-              <artifactId>google-cloud-spanner</artifactId>
-            </exclusion>
-          </exclusions>
         </dependency>
       </dependencies>
     </profile>
@@ -460,10 +415,6 @@
               <groupId>org.slf4j</groupId>
               <artifactId>slf4j-log4j12</artifactId>
             </exclusion>
-              <exclusion>
-                <groupId>com.google.cloud</groupId>
-                <artifactId>google-cloud-spanner</artifactId>
-              </exclusion>
             </exclusions>
         </dependency>
       </dependencies>
@@ -477,12 +428,6 @@
           <artifactId>beam-runners-jet</artifactId>
           <version>${beam.version}</version>
           <scope>runtime</scope>
-          <exclusions>
-            <exclusion>
-              <groupId>com.google.cloud</groupId>
-              <artifactId>google-cloud-spanner</artifactId>
-            </exclusion>
-          </exclusions>
         </dependency>
       </dependencies>
     </profile>
@@ -495,12 +440,6 @@
       <groupId>org.apache.beam</groupId>
       <artifactId>beam-sdks-java-core</artifactId>
       <version>${beam.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.cloud</groupId>
-          <artifactId>google-cloud-spanner</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
     <!-- Adds a dependency on the Beam Google Cloud Platform IO module. -->
@@ -508,12 +447,6 @@
       <groupId>org.apache.beam</groupId>
       <artifactId>beam-sdks-java-io-google-cloud-platform</artifactId>
       <version>${beam.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.cloud</groupId>
-          <artifactId>google-cloud-spanner</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
     <dependency>
@@ -521,18 +454,10 @@
       <artifactId>beam-sdks-java-io-google-cloud-platform</artifactId>
       <version>${beam.version}</version>
       <exclusions>
-        <exclusion>
-          <groupId>com.google.api.grpc</groupId>
-          <artifactId>grpc-google-common-protos</artifactId>
-        </exclusion>
         <!-- The BigTable client brings in an OpenCensus version that conflicts with Spanner. -->
         <exclusion>
           <groupId>com.google.cloud.bigtable</groupId>
           <artifactId>bigtable-client-core</artifactId>
-        </exclusion>
-          <exclusion>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-spanner</artifactId>
           </exclusion>
       </exclusions>
     </dependency>
@@ -560,12 +485,6 @@
       <groupId>org.apache.beam</groupId>
       <artifactId>beam-sdks-java-extensions-python</artifactId>
       <version>${beam.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.cloud</groupId>
-          <artifactId>google-cloud-spanner</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
 
@@ -588,18 +507,13 @@
       <groupId>org.apache.beam</groupId>
       <artifactId>beam-sdks-java-io-jdbc</artifactId>
       <version>${beam.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.cloud</groupId>
-          <artifactId>google-cloud-spanner</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
     <!-- Spanner -->
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-spanner</artifactId>
+      <version>6.97.0</version>
     </dependency>
 
     <dependency>
@@ -622,69 +536,65 @@
       <groupId>com.google.api-client</groupId>
       <artifactId>google-api-client</artifactId>
       <version>${google-api-client.version}</version>
-      <exclusions>
-        <!-- Exclude an old version of guava that is being pulled
-             in by a transitive dependency of google-api-client -->
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava-jdk5</artifactId>
-        </exclusion>
-      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>grpc-google-cloud-spanner-admin-instance-v1</artifactId>
+      <version>${grpc-google-cloud-spanner-admin-instance-v1.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.google.cloud/grpc-gcp -->
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>grpc-gcp</artifactId>
+      <version>${grpc-gcp.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/io.grpc/grpc-all -->
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-all</artifactId>
+      <version>${grpc-all.version}</version>
     </dependency>
 
+
+    <!-- https://mvnrepository.com/artifact/com.google.api.grpc/proto-google-cloud-spanner-admin-instance-v1 -->
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-cloud-spanner-admin-instance-v1</artifactId>
+      <version>${proto-google-cloud-spanner-admin-instance-v1.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.google.api.grpc/proto-google-cloud-spanner-v1 -->
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-cloud-spanner-v1</artifactId>
+      <version>${proto-google-cloud-spanner-v1.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.google.api/api-common -->
+    <dependency>
+      <groupId>com.google.api</groupId>
+      <artifactId>api-common</artifactId>
+      <version>${api-common.version}</version>
+    </dependency>
     <dependency>
       <groupId>com.google.apis</groupId>
       <artifactId>google-api-services-bigquery</artifactId>
       <version>${bigquery.version}</version>
-      <exclusions>
-        <!-- Exclude an old version of guava that is being pulled
-             in by a transitive dependency of google-api-client -->
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava-jdk5</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
     <dependency>
       <groupId>com.google.http-client</groupId>
       <artifactId>google-http-client</artifactId>
-      <exclusions>
-        <!-- Exclude an old version of guava that is being pulled
-             in by a transitive dependency of google-api-client -->
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava-jdk5</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
     <dependency>
       <groupId>com.google.apis</groupId>
       <artifactId>google-api-services-pubsub</artifactId>
       <version>${pubsub.version}</version>
-      <exclusions>
-        <!-- Exclude an old version of guava that is being pulled
-             in by a transitive dependency of google-api-client -->
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava-jdk5</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
     <dependency>
       <groupId>com.google.apis</groupId>
       <artifactId>google-api-services-storage</artifactId>
       <version>${storage.version}</version>
-      <exclusions>
-        <!-- Exclude an old version of guava that is being pulled
-             in by a transitive dependency of google-api-client -->
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava-jdk5</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
     <dependency>
@@ -759,22 +669,16 @@
         <groupId>com.google.cloud.teleport.v2</groupId>
         <artifactId>spanner-migrations-sdk</artifactId>
         <version>1.0-SNAPSHOT</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.cloud</groupId>
-          <artifactId>google-cloud-spanner</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>google-cloud-spanner</artifactId>
+        <version>6.97.0</version>
+      </dependency>
   </dependencies>
 
   <dependencyManagement>
     <dependencies>
-      <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>${guava.version}</version>  <!-- "-jre" for Java 8 or higher -->
-      </dependency>
       <!-- GCP libraries BOM sets the version for google http client -->
       <dependency>
         <groupId>com.google.cloud</groupId>
@@ -788,6 +692,56 @@
         <artifactId>google-cloud-spanner</artifactId>
         <version>6.97.0</version>
       </dependency>
+      <dependency>
+        <groupId>com.google.api-client</groupId>
+        <artifactId>google-api-client</artifactId>
+        <version>${google-api-client.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.api</groupId>
+        <artifactId>api-common</artifactId>
+        <version>${google-api.version}</version>
+      </dependency>
+
+      <!-- https://mvnrepository.com/artifact/com.google.api.grpc/proto-google-cloud-spanner-admin-instance-v1 -->
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>proto-google-cloud-spanner-admin-instance-v1</artifactId>
+        <version>${proto-google-cloud-spanner-admin-instance-v1.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-all</artifactId>
+        <version>${grpc-all.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>grpc-gcp</artifactId>
+        <version>${grpc-gcp.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>grpc-google-cloud-spanner-admin-instance-v1</artifactId>
+        <version>${grpc-google-cloud-spanner-admin-instance-v1.version}</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/com.google.api.grpc/grpc-google-cloud-spanner-v1 -->
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>grpc-google-cloud-spanner-v1</artifactId>
+        <version>${grpc-google-cloud-spanner-v1.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>proto-google-cloud-spanner-v1</artifactId>
+        <version>${proto-google-cloud-spanner-v1.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>grpc-google-cloud-spanner-v1</artifactId>
+        <version>${grpc-google-cloud-spanner-v1.version}</version>
+      </dependency>
+
     </dependencies>
   </dependencyManagement>
 </project>
