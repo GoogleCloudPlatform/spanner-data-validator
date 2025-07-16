@@ -55,7 +55,7 @@
     <nemo.version>0.1</nemo.version>
     <flink.artifact.name>beam-runners-flink-1.16</flink.artifact.name>
     <autovalue.version>1.10.4</autovalue.version>
-    <proto-google-cloud-spanner-admin-instance-v1.version>6.96.1
+    <proto-google-cloud-spanner-admin-instance-v1.version>6.97.1
     </proto-google-cloud-spanner-admin-instance-v1.version>
     <api-common.version>2.51.1</api-common.version>
     <grpc-all.version>1.73.0</grpc-all.version>
