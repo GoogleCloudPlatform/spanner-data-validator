@@ -513,14 +513,19 @@ public class JDBCToSpannerDVTWithHash {
     }
 
     // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
-    String zeroDateTimeNullBehaviorStr = options.getZeroDateTimeBehavior() ? "?zeroDateTimeBehavior=CONVERT_TO_NULL" : "";
+    // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
+    String urlProperties = "";
+    String zeroDateTimeNullBehaviorStr = options.getZeroDateTimeBehavior() ? "zeroDateTimeBehavior=CONVERT_TO_NULL" : "";
+    addProperty(urlProperties, zeroDateTimeNullBehaviorStr);
+    String setCursorFetch = (options.getFetchSizeForJDBC() != null && options.getFetchSizeForJDBC() != -1)? "useCursorFetch=true" :"";
+    addProperty(urlProperties, setCursorFetch);
 
     // JDBC conn string
     String connString = String.format("jdbc:%s://%s:%d/%s%s", options.getProtocol(),
         options.getServer(),
         options.getPort(),
         options.getSourceDB(),
-        zeroDateTimeNullBehaviorStr);
+        urlProperties);
 
     LOG.info(String.format("++++++++++++++++++++++++++++++++JDBC conn string: %s", connString));
 
@@ -672,14 +677,20 @@ public class JDBCToSpannerDVTWithHash {
     for(Shard shard: shards) {
 
       // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
-      String zeroDateTimeNullBehaviorStr = options.getZeroDateTimeBehavior() ? "?zeroDateTimeBehavior=CONVERT_TO_NULL" : "";
+      String urlProperties = "";
+      String zeroDateTimeNullBehaviorStr = options.getZeroDateTimeBehavior() ? "zeroDateTimeBehavior=CONVERT_TO_NULL" : "";
+      addProperty(urlProperties, zeroDateTimeNullBehaviorStr);
+      String setCursorFetch = (options.getFetchSizeForJDBC() != null && options.getFetchSizeForJDBC() != -1)? "useCursorFetch=true" :"";
+      addProperty(urlProperties, setCursorFetch);
+
+      LOG.info("Connection Properties are {}, fetchSize is {}", urlProperties, options.getFetchSizeForJDBC());
 
       // JDBC conn string
       String connString = String.format("jdbc:%s://%s:%d/%s%s", options.getProtocol(),
           shard.getHost(),
           Integer.parseInt(shard.getPort()),
           shard.getDbName(),
-          zeroDateTimeNullBehaviorStr);
+          urlProperties);
 
       PCollection<HashResult> hashedJDBCRecordsPerShard = getJDBCRecordsHelper(
           tableName,
@@ -707,6 +718,16 @@ public class JDBCToSpannerDVTWithHash {
         PCollectionList.of(pCollections).apply(flattenStepName, Flatten.pCollections());
 
     return mergedJdbcRecords;
+  }
+
+  private static String addProperty(String properties, String property) {
+    if (property.isEmpty()) {
+      return properties;
+    }
+    if (properties.isEmpty()) {
+      return "?" + property;
+    }
+    return properties + "&" + property;
   }
 
   protected static PCollection<HashResult> getSpannerRecords(String tableName,

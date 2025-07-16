@@ -26,14 +26,16 @@
   <packaging>jar</packaging>
 
   <properties>
-    <beam.version>2.65.0</beam.version>
+    <beam.version>2.66.0</beam.version>
+    <google.cloud.spanner.version>6.97.0</google.cloud.spanner.version>
 
     <maven.compiler.target>1.11</maven.compiler.target>
     <maven.compiler.source>1.11</maven.compiler.source>
     <bigquery.version>v2-rev20230520-2.0.0</bigquery.version>
     <storage.version>v1-rev20240809-2.0.0</storage.version>
-    <google-api-client.version>2.0.0</google-api-client.version>
+    <google-api-client.version>2.8.0</google-api-client.version>
     <guava.version>32.1.2-jre</guava.version>
+    <google-api.version>2.51.1</google-api.version>
     <hamcrest.version>2.1</hamcrest.version>
     <jackson.version>2.14.1</jackson.version>
     <joda.version>2.10.10</joda.version>
@@ -53,6 +55,17 @@
     <nemo.version>0.1</nemo.version>
     <flink.artifact.name>beam-runners-flink-1.16</flink.artifact.name>
     <autovalue.version>1.10.4</autovalue.version>
+    <proto-google-cloud-spanner-admin-instance-v1.version>6.97.1
+    </proto-google-cloud-spanner-admin-instance-v1.version>
+    <api-common.version>2.51.1</api-common.version>
+    <grpc-all.version>1.73.0</grpc-all.version>
+    <grpc-gcp.version>1.6.1</grpc-gcp.version>
+    <grpc-google-cloud-spanner-admin-instance-v1.version>6.97.1
+    </grpc-google-cloud-spanner-admin-instance-v1.version>
+    <proto-google-cloud-spanner-v1.version>6.97.1
+    </proto-google-cloud-spanner-v1.version>
+    <grpc-google-cloud-spanner-v1.version>6.97.1
+    </grpc-google-cloud-spanner-v1.version>
   </properties>
 
   <repositories>
@@ -323,6 +336,11 @@
           <groupId>com.google.auto.service</groupId>
           <artifactId>auto-service</artifactId>
           <version>1.1.1</version>
+        </dependency>
+        <dependency>
+          <groupId>com.google.cloud</groupId>
+          <artifactId>google-cloud-spanner</artifactId>
+          <version>6.97.0</version>
         </dependency>
       </dependencies>
     </profile>
@@ -600,6 +618,19 @@
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-spanner</artifactId>
+      <version>6.97.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-cloud-spanner-v1</artifactId>
+      <version>${proto-google-cloud-spanner-v1.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>grpc-google-cloud-spanner-v1</artifactId>
+      <version>${grpc-google-cloud-spanner-v1.version}</version>
     </dependency>
 
     <dependency>
@@ -631,7 +662,49 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>grpc-google-cloud-spanner-admin-instance-v1</artifactId>
+      <version>${grpc-google-cloud-spanner-admin-instance-v1.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.google.cloud/grpc-gcp -->
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>grpc-gcp</artifactId>
+      <version>${grpc-gcp.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/io.grpc/grpc-all -->
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-all</artifactId>
+      <version>${grpc-all.version}</version>
+    </dependency>
 
+
+    <!-- https://mvnrepository.com/artifact/com.google.api.grpc/proto-google-cloud-spanner-admin-instance-v1 -->
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-cloud-spanner-admin-instance-v1</artifactId>
+      <version>${proto-google-cloud-spanner-admin-instance-v1.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.google.api.grpc/proto-google-cloud-spanner-v1 -->
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-cloud-spanner-v1</artifactId>
+      <version>${proto-google-cloud-spanner-v1.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.google.api/gax -->
+    <dependency>
+      <groupId>com.google.api</groupId>
+      <artifactId>gax</artifactId>
+      <version>2.68.1</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.google.api/api-common -->
+    <dependency>
+      <groupId>com.google.api</groupId>
+      <artifactId>api-common</artifactId>
+      <version>${api-common.version}</version>
+    </dependency>
     <dependency>
       <groupId>com.google.apis</groupId>
       <artifactId>google-api-services-bigquery</artifactId>
@@ -766,6 +839,16 @@
         </exclusion>
       </exclusions>
     </dependency>
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>google-cloud-spanner</artifactId>
+        <version>6.97.0</version>
+      </dependency>
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-cloud-spanner-v1</artifactId>
+      <version>${proto-google-cloud-spanner-v1.version}</version>
+    </dependency>
   </dependencies>
 
   <dependencyManagement>
@@ -788,6 +871,57 @@
         <artifactId>google-cloud-spanner</artifactId>
         <version>6.97.0</version>
       </dependency>
+      <dependency>
+        <groupId>com.google.api-client</groupId>
+        <artifactId>google-api-client</artifactId>
+        <version>${google-api-client.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.api</groupId>
+        <artifactId>api-common</artifactId>
+        <version>${google-api.version}</version>
+      </dependency>
+
+      <!-- https://mvnrepository.com/artifact/com.google.api.grpc/proto-google-cloud-spanner-admin-instance-v1 -->
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>proto-google-cloud-spanner-admin-instance-v1</artifactId>
+        <version>${proto-google-cloud-spanner-admin-instance-v1.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-all</artifactId>
+        <version>${grpc-all.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>grpc-gcp</artifactId>
+        <version>${grpc-gcp.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>grpc-google-cloud-spanner-admin-instance-v1</artifactId>
+        <version>${grpc-google-cloud-spanner-admin-instance-v1.version}</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/com.google.api.grpc/grpc-google-cloud-spanner-v1 -->
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>grpc-google-cloud-spanner-v1</artifactId>
+        <version>${grpc-google-cloud-spanner-v1.version}</version>
+      </dependency>
+
+      <!-- https://mvnrepository.com/artifact/com.google.api/gax -->
+      <dependency>
+        <groupId>com.google.api</groupId>
+        <artifactId>gax</artifactId>
+        <version>2.68.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>grpc-google-cloud-spanner-v1</artifactId>
+        <version>${grpc-google-cloud-spanner-v1.version}</version>
+      </dependency>
+
     </dependencies>
   </dependencyManagement>
 </project>
