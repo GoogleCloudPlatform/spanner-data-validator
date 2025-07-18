@@ -180,10 +180,10 @@ public class HashResult {
     }
 
     retVal.rangeFieldType = rangeFieldType;
-    retVal.origValue = sbConcatCols.toString();
-    retVal.sha256 = Helpers.sha256(retVal.origValue);
+    retVal.origValue = "sp";//sbConcatCols.toString();
+    retVal.sha256 = Helpers.sha256(sbConcatCols.toString());
     retVal.isSource = false;
-    LOG.debug("SpannerHash=> Key={}, OrigValue={} \n HashResult={}", retVal.key, retVal.origValue, retVal.sha256);
+    //LOG.debug("SpannerHash=> Key={}, OrigValue={} \n HashResult={}", retVal.key, retVal.origValue, retVal.sha256);
 
     retVal.logicalShardId = fbs.getLogicalShardId(spannerStruct, enableVerboseLogging);
 
@@ -345,8 +345,8 @@ public class HashResult {
     }
 
     retVal.rangeFieldType = rangeFieldType;
-    retVal.origValue = sbConcatCols.toString();
-    retVal.sha256 = Helpers.sha256(retVal.origValue);
+    retVal.origValue = "jdbc";//sbConcatCols.toString();
+    retVal.sha256 = Helpers.sha256(sbConcatCols.toString());
     retVal.isSource = true;
 
     return retVal;
@@ -441,10 +441,10 @@ public class HashResult {
     }
 
     retVal.rangeFieldType = rangeFieldType;
-    retVal.origValue = sbConcatCols.toString();
-    retVal.sha256 = Helpers.sha256(retVal.origValue);
+    retVal.origValue = "src";//sbConcatCols.toString();
+    retVal.sha256 = Helpers.sha256(sbConcatCols.toString());
     retVal.isSource = true;
-    LOG.debug("SourceHash=> Key={}, OrigValue={} \n HashResult={}", retVal.key, retVal.origValue, retVal.sha256);
+    //LOG.debug("SourceHash=> Key={}, OrigValue={} \n HashResult={}", retVal.key, retVal.origValue, retVal.sha256);
     return retVal;
   }
 
