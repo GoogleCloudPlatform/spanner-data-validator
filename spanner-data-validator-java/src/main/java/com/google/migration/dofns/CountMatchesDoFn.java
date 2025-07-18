@@ -63,8 +63,8 @@ public class CountMatchesDoFn extends DoFn<KV<String, CoGbkResult>, KV<String, L
     timestampThreshold = timestampThresholdIn;
     timestampThresholdInEffect = timestampThreshold > 0;
     timestampThresholdDeltaInMins = timestampThresholdDeltaInMinsIn;
-    LOG.debug(String.format("Timestamp threshold in effect: %s", timestampThresholdInEffect));
-    LOG.debug(String.format("***Timestamp threshold delta in mins: %d", timestampThresholdDeltaInMins));
+    //LOG.debug(String.format("Timestamp threshold in effect: %s", timestampThresholdInEffect));
+    //LOG.debug(String.format("***Timestamp threshold delta in mins: %d", timestampThresholdDeltaInMins));
 
     runName = runNameIn;
 
