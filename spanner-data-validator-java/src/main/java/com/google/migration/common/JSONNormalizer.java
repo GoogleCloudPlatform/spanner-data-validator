@@ -74,7 +74,7 @@ public class JSONNormalizer {
         } else if (obj instanceof JSONArray) {
           traverseJSONArray(jsonArray.getJSONArray(i), sortedStrings);
         } else {
-          LOG.debug(String.format("Not an object or array: %s", obj.toString()));
+          //LOG.debug(String.format("Not an object or array: %s", obj.toString()));
           sortedStrings.add(obj.toString());
         } // if/else
       } // if

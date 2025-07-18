@@ -145,10 +145,10 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
     org.joda.time.Instant startTimestamp = org.joda.time.Instant.now();
     MigrationTransformationRequest migrationTransformationRequest =
         new MigrationTransformationRequest(tableName, sourceRecord, shardId, "INSERT");
-    LOG.debug(
+    /*LOG.debug(
         "using migration transformation request {} for table {}",
         migrationTransformationRequest,
-        tableName);
+        tableName);*/
     MigrationTransformationResponse migrationTransformationResponse;
     try {
       migrationTransformationResponse =
@@ -158,10 +158,10 @@ public abstract class CustomTransformationDoFn extends DoFn<SourceRecord, HashRe
       applyCustomTransformationResponseTimeMetric.update(
           new Duration(startTimestamp, endTimestamp).getMillis());
     }
-    LOG.debug(
+    /*LOG.debug(
         "Got migration transformation response {} for table {}",
         migrationTransformationResponse,
-        tableName);
+        tableName);*/
     return migrationTransformationResponse;
   }
 
