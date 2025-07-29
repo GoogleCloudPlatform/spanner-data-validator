@@ -512,13 +512,7 @@ public class JDBCToSpannerDVTWithHash {
       driver = MYSQL_JDBC_DRIVER;
     }
 
-    // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
-    // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
-    String urlProperties = "";
-    String zeroDateTimeNullBehaviorStr = options.getZeroDateTimeBehavior() ? "zeroDateTimeBehavior=CONVERT_TO_NULL" : "";
-    addProperty(urlProperties, zeroDateTimeNullBehaviorStr);
-    String setCursorFetch = (options.getFetchSizeForJDBC() != null && options.getFetchSizeForJDBC() != -1)? "useCursorFetch=true" :"";
-    addProperty(urlProperties, setCursorFetch);
+    String urlProperties = getUrlProperties(options);
 
     // JDBC conn string
     String connString = String.format("jdbc:%s://%s:%d/%s%s", options.getProtocol(),
@@ -576,6 +570,8 @@ public class JDBCToSpannerDVTWithHash {
 
     pRanges = (PCollection<PartitionRange>) pipelineTracker.applyJDBCWait(pRanges);
 
+    boolean autoCommit = driver.equals(POSTGRES_JDBC_DRIVER)?  false: true;//Postgres needs this to be false
+
     if(customTransformation != null) {
       JdbcIO.ReadAll<PartitionRange, SourceRecord> jdbcReadAll = JdbcIO.<PartitionRange, SourceRecord>readAll()
           .withDataSourceProviderFn(
@@ -585,7 +581,7 @@ public class JDBCToSpannerDVTWithHash {
                   driver,
                   options.getMaxJDBCConnectionsPerJVM()))
           .withQuery(query)
-          .withDisableAutoCommit(false)
+          .withDisableAutoCommit(autoCommit)
           .withParameterSetter((input, preparedStatement) -> {
             preparedStatement.setString(1, input.getStartRange());
             preparedStatement.setString(2, input.getEndRange());
@@ -623,7 +619,7 @@ public class JDBCToSpannerDVTWithHash {
                   driver,
                   options.getMaxJDBCConnectionsPerJVM()))
           .withQuery(query)
-          .withDisableAutoCommit(false)
+          .withDisableAutoCommit(autoCommit)
           .withParameterSetter((input, preparedStatement) -> {
             preparedStatement.setString(1, input.getStartRange());
             preparedStatement.setString(2, input.getEndRange());
@@ -676,14 +672,7 @@ public class JDBCToSpannerDVTWithHash {
 
     for(Shard shard: shards) {
 
-      // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
-      String urlProperties = "";
-      String zeroDateTimeNullBehaviorStr = options.getZeroDateTimeBehavior() ? "zeroDateTimeBehavior=CONVERT_TO_NULL" : "";
-      addProperty(urlProperties, zeroDateTimeNullBehaviorStr);
-      String setCursorFetch = (options.getFetchSizeForJDBC() != null && options.getFetchSizeForJDBC() != -1)? "useCursorFetch=true" :"";
-      addProperty(urlProperties, setCursorFetch);
-
-      LOG.info("Connection Properties are {}, fetchSize is {}", urlProperties, options.getFetchSizeForJDBC());
+      String urlProperties = getUrlProperties(options);
 
       // JDBC conn string
       String connString = String.format("jdbc:%s://%s:%d/%s%s", options.getProtocol(),
@@ -691,6 +680,8 @@ public class JDBCToSpannerDVTWithHash {
           Integer.parseInt(shard.getPort()),
           shard.getDbName(),
           urlProperties);
+
+      LOG.info(String.format("++++++++++++++++++++++++++++++++JDBC conn string: %s", connString));
 
       PCollection<HashResult> hashedJDBCRecordsPerShard = getJDBCRecordsHelper(
           tableName,
@@ -718,6 +709,26 @@ public class JDBCToSpannerDVTWithHash {
         PCollectionList.of(pCollections).apply(flattenStepName, Flatten.pCollections());
 
     return mergedJdbcRecords;
+  }
+
+  @NotNull
+  private static String getUrlProperties(DVTOptionsCore options) {
+    List<String> urlProperties = new ArrayList<>();
+    if(options.getZeroDateTimeBehavior()) {
+      // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
+      LOG.info(String.format("setting zero date time"));
+      urlProperties.add("zeroDateTimeBehavior=CONVERT_TO_NULL");
+    }
+    if (options.getFetchSizeForJDBC() != null && options.getFetchSizeForJDBC() != -1) {
+      LOG.info(String.format("setting cursor: %d", options.getFetchSizeForJDBC()));
+      urlProperties.add("useCursorFetch=true");
+    }
+
+    if (urlProperties.isEmpty()) {
+      return "";
+    } else {
+      return "?"+String.join("&",urlProperties);
+    }
   }
 
   private static String addProperty(String properties, String property) {
