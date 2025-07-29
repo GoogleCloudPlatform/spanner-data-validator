@@ -587,7 +587,7 @@ public class JDBCToSpannerDVTWithHash {
             preparedStatement.setString(2, input.getEndRange());
           })
           .withRowMapper(new SourceRecordMapper())
-          .withOutputParallelization(true);
+          .withOutputParallelization(false);
 
       if(options.getFetchSizeForJDBC() > 0) {
         jdbcReadAll = jdbcReadAll.withFetchSize(options.getFetchSizeForJDBC());
@@ -595,7 +595,6 @@ public class JDBCToSpannerDVTWithHash {
 
       PCollection<SourceRecord> jdbcRecordsSR =
           pRanges
-              .apply(String.format("WaitforSpannerReadForTable-%s", tableName), Wait.on(spannerRecords))
               .apply(String.format("ReadInParallelForTable-%s", tableName), jdbcReadAll);
 
       CustomTransformationDoFn customTransformationDoFn = CustomTransformationDoFn.create(
@@ -630,7 +629,7 @@ public class JDBCToSpannerDVTWithHash {
               options.getAdjustTimestampPrecision(),
               timestampThresholdKeyIndex
           ))
-          .withOutputParallelization(true);
+          .withOutputParallelization(false);
 
       if(options.getFetchSizeForJDBC() > 0) {
         jdbcReadAll = jdbcReadAll.withFetchSize(options.getFetchSizeForJDBC());
@@ -638,7 +637,6 @@ public class JDBCToSpannerDVTWithHash {
 
       PCollection<HashResult> jdbcRecords =
           pRanges
-              .apply(String.format("WaitforSpannerReadForTable-%s", tableName), Wait.on(spannerRecords))
               .apply(String.format("ReadInParallelForTable-%s", tableName), jdbcReadAll);
 
       pipelineTracker.addToJDBCReadList(jdbcRecords);
@@ -730,17 +728,7 @@ public class JDBCToSpannerDVTWithHash {
       return "?"+String.join("&",urlProperties);
     }
   }
-
-  private static String addProperty(String properties, String property) {
-    if (property.isEmpty()) {
-      return properties;
-    }
-    if (properties.isEmpty()) {
-      return "?" + property;
-    }
-    return properties + "&" + property;
-  }
-
+  
   protected static PCollection<HashResult> getSpannerRecords(String tableName,
       PipelineTracker pipelineTracker,
       String query,
@@ -881,8 +869,7 @@ public class JDBCToSpannerDVTWithHash {
                         colNameForShardCalc,
                         enableShardFiltering,
                         enableVerboseLogging)
-            ))
-        .apply(String.format("ReshuffleSpannerRecordsInTable-%s", tableName), Reshuffle.viaRandomKey());
+            ));
 
     return spannerHashes;
   }
