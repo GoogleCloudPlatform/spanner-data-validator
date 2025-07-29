@@ -572,6 +572,8 @@ public class JDBCToSpannerDVTWithHash {
 
     pRanges = (PCollection<PartitionRange>) pipelineTracker.applyJDBCWait(pRanges);
 
+    boolean autoCommit = driver.equals(POSTGRES_JDBC_DRIVER)?  false: true;//Postgres needs this to be false
+
     if(customTransformation != null) {
       JdbcIO.ReadAll<PartitionRange, SourceRecord> jdbcReadAll = JdbcIO.<PartitionRange, SourceRecord>readAll()
           .withDataSourceProviderFn(
@@ -581,7 +583,7 @@ public class JDBCToSpannerDVTWithHash {
                   driver,
                   options.getMaxJDBCConnectionsPerJVM()))
           .withQuery(query)
-          .withDisableAutoCommit(false)
+          .withDisableAutoCommit(autoCommit)
           .withParameterSetter((input, preparedStatement) -> {
             preparedStatement.setString(1, input.getStartRange());
             preparedStatement.setString(2, input.getEndRange());
@@ -619,7 +621,7 @@ public class JDBCToSpannerDVTWithHash {
                   driver,
                   options.getMaxJDBCConnectionsPerJVM()))
           .withQuery(query)
-          .withDisableAutoCommit(false)
+          .withDisableAutoCommit(autoCommit)
           .withParameterSetter((input, preparedStatement) -> {
             preparedStatement.setString(1, input.getStartRange());
             preparedStatement.setString(2, input.getEndRange());
