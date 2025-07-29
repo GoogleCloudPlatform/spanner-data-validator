@@ -512,8 +512,6 @@ public class JDBCToSpannerDVTWithHash {
       driver = MYSQL_JDBC_DRIVER;
     }
 
-    // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
-    // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
     String urlProperties = getUrlProperties(options);
 
     // JDBC conn string
@@ -715,10 +713,9 @@ public class JDBCToSpannerDVTWithHash {
 
   @NotNull
   private static String getUrlProperties(DVTOptionsCore options) {
-    // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
-
     List<String> urlProperties = new ArrayList<>();
     if(options.getZeroDateTimeBehavior()) {
+      // https://stackoverflow.com/questions/68353660/zero-date-value-prohibited-hibernate-sql-jpa
       LOG.info(String.format("setting zero date time"));
       urlProperties.add("zeroDateTimeBehavior=CONVERT_TO_NULL");
     }
