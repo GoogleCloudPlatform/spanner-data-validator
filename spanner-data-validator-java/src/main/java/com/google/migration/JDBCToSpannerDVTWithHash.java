@@ -728,17 +728,7 @@ public class JDBCToSpannerDVTWithHash {
       return "?"+String.join("&",urlProperties);
     }
   }
-
-  private static String addProperty(String properties, String property) {
-    if (property.isEmpty()) {
-      return properties;
-    }
-    if (properties.isEmpty()) {
-      return "?" + property;
-    }
-    return properties + "&" + property;
-  }
-
+  
   protected static PCollection<HashResult> getSpannerRecords(String tableName,
       PipelineTracker pipelineTracker,
       String query,
