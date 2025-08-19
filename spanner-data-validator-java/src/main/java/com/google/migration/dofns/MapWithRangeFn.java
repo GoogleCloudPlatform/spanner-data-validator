@@ -57,6 +57,7 @@ public class MapWithRangeFn extends DoFn<HashResult, KV<String, HashResult>> {
   };
 
   private PCollectionView<List<PartitionRange>> uuidRangesView;
+  private List<PartitionRange> sortedPartitionRange = null;
   private MapWithRangeType mappingType;
   private String rangeFieldType = TableSpec.UUID_FIELD_TYPE;
 
@@ -81,10 +82,13 @@ public class MapWithRangeFn extends DoFn<HashResult, KV<String, HashResult>> {
 
   @ProcessElement
   public void processElement(ProcessContext c) {
-    List<PartitionRange> siBRanges = c.sideInput(uuidRangesView);
+    if(sortedPartitionRange == null) {
+      List<PartitionRange> rangeList = c.sideInput(uuidRangesView);
+      initializeSortedPartitionRange(rangeList);
+    }
 
     HashResult result = c.element();
-    PartitionRange rangeForRecord = getPartitionRangeForRecord(result, siBRanges);
+    PartitionRange rangeForRecord = getPartitionRangeForRecord(result);
 
     String key = String.format("%s|%s",
         rangeForRecord.getStartRange(),
@@ -120,25 +124,44 @@ public class MapWithRangeFn extends DoFn<HashResult, KV<String, HashResult>> {
     c.output(outVal);
   }
 
-  public PartitionRange getPartitionRangeForRecord(HashResult result,
-      List<PartitionRange> siBRanges) {
+  public void initializeSortedPartitionRange(List<PartitionRange> rangeList) {
+    Comparator<PartitionRange> comparator;
+    switch(rangeFieldType) {
+      case TableSpec.UUID_FIELD_TYPE:
+        comparator = uuidPartitionRangeComparator;
+        break;
+      case TableSpec.INT_FIELD_TYPE:
+        comparator = intPartitionRangeComparator;
+        break;
+      case TableSpec.LONG_FIELD_TYPE:
+        comparator = longPartitionRangeComparator;
+        break;
+      case TableSpec.TIMESTAMP_FIELD_TYPE:
+      case TableSpec.STRING_FIELD_TYPE:
+        comparator = stringPartitionRangeComparator;
+        break;
+      default:
+        throw new RuntimeException("Unable to determine comparator");
+    }
+
+    sortedPartitionRange = new ArrayList(rangeList);
+    sortedPartitionRange.sort(comparator);
+  }
+
+  public PartitionRange getPartitionRangeForRecord(HashResult result) {
     switch(rangeFieldType) {
       case TableSpec.UUID_FIELD_TYPE:
         return getRangeFromList(result.key,
-            siBRanges,
             uuidPartitionRangeComparator);
       case TableSpec.INT_FIELD_TYPE:
         return getRangeFromList(result.key,
-            siBRanges,
             intPartitionRangeComparator);
       case TableSpec.LONG_FIELD_TYPE:
         return getRangeFromList(result.key,
-            siBRanges,
             longPartitionRangeComparator);
       case TableSpec.TIMESTAMP_FIELD_TYPE:
       case TableSpec.STRING_FIELD_TYPE:
         return getRangeFromList(result.key,
-            siBRanges,
             stringPartitionRangeComparator);
       default:
         break;
@@ -149,20 +172,17 @@ public class MapWithRangeFn extends DoFn<HashResult, KV<String, HashResult>> {
   }
 
   private PartitionRange getRangeFromList(String valueToGetRangeFor,
-      List<PartitionRange> rangeList,
       Comparator<PartitionRange> comparator) {
-    List<PartitionRange> sortedCopy = new ArrayList(rangeList);
-    sortedCopy.sort(comparator);
 
     int searchIndex =
-        Collections.binarySearch(sortedCopy,
+        Collections.binarySearch(sortedPartitionRange,
             new PartitionRange(valueToGetRangeFor.toString(), valueToGetRangeFor.toString()),
             comparator);
 
     int rangeIndex = searchIndex;
     if(searchIndex < 0) rangeIndex = -searchIndex - 2;
 
-    return sortedCopy.get(rangeIndex);
+    return sortedPartitionRange.get(rangeIndex);
   }
 
   public enum MapWithRangeType {
