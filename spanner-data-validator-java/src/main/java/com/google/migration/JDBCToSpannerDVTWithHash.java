@@ -160,11 +160,7 @@ public class JDBCToSpannerDVTWithHash {
         new TableFieldSchema()
             .setName("hash")
             .setType("STRING")
-            .setMode("REQUIRED"),
-        new TableFieldSchema()
-            .setName("orig_value")
-            .setType("STRING")
-            .setMode("NULLABLE"));
+            .setMode("REQUIRED");
   }
 
   protected static BigQueryIO.Write<ComparerResult> getComparisonResultsBQWriter(DVTOptionsCore options,
@@ -214,8 +210,7 @@ public class JDBCToSpannerDVTWithHash {
                 .set("jdbc_or_spanner", jdbcOrSpanner)
                 .set("range", x.range)
                 .set("key", x.key)
-                .set("hash", x.sha256)
-                .set("orig_value", x.origValue))
+                .set("hash", x.sha256))
         .withCreateDisposition(CreateDisposition.CREATE_IF_NEEDED)
         .withSchema(bqSchema)
         .withWriteDisposition(WriteDisposition.WRITE_APPEND)
